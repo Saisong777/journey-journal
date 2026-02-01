@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminRoute } from "@/components/admin/AdminRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Journal from "./pages/Journal";
@@ -16,6 +17,9 @@ import Settings from "./pages/Settings";
 import Attractions from "./pages/Attractions";
 import TripSummary from "./pages/TripSummary";
 import ResetPassword from "./pages/ResetPassword";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminTrips from "./pages/admin/AdminTrips";
+import AdminMembers from "./pages/admin/AdminMembers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +104,31 @@ const App = () => (
                 <ProtectedRoute>
                   <TripSummary />
                 </ProtectedRoute>
+              }
+            />
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/trips"
+              element={
+                <AdminRoute>
+                  <AdminTrips />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/members"
+              element={
+                <AdminRoute>
+                  <AdminMembers />
+                </AdminRoute>
               }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

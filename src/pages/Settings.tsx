@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   User,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   Share2,
   MessageSquare,
   Info,
+  Settings2,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -21,6 +22,7 @@ import { ProfileEditSheet, ProfileData } from "@/components/settings/ProfileEdit
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 
 interface SettingItem {
@@ -45,6 +47,7 @@ const defaultProfile: ProfileData = {
 export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData>({
     ...defaultProfile,
@@ -236,6 +239,19 @@ export default function Settings() {
             </div>
           </section>
         ))}
+
+        {/* Admin Access */}
+        {isAdmin && (
+          <section>
+            <Link
+              to="/admin"
+              className="w-full bg-primary/10 rounded-lg shadow-card p-4 flex items-center justify-center gap-2 text-primary hover:bg-primary/20 transition-colors"
+            >
+              <Settings2 className="w-5 h-5" />
+              <span className="text-body font-medium">進入管理後台</span>
+            </Link>
+          </section>
+        )}
 
         {/* Logout Button */}
         <section>
