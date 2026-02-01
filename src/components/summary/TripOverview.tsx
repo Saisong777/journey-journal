@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { CoverImageUpload } from "./CoverImageUpload";
 
 interface TripOverviewProps {
   title: string;
@@ -8,6 +10,9 @@ interface TripOverviewProps {
   duration: number;
   memberCount: number;
   coverImage: string;
+  tripId?: string;
+  editable?: boolean;
+  onCoverChange?: (url: string) => void;
 }
 
 export function TripOverview({
@@ -17,21 +22,49 @@ export function TripOverview({
   duration,
   memberCount,
   coverImage,
+  tripId,
+  editable = true,
+  onCoverChange,
 }: TripOverviewProps) {
+  const [currentCover, setCurrentCover] = useState(coverImage);
+
+  const handleCoverChange = (url: string) => {
+    setCurrentCover(url);
+    onCoverChange?.(url);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Cover Image */}
-      <div className="relative h-56 rounded-2xl overflow-hidden">
-        <img
-          src={coverImage}
-          alt={title}
-          className="w-full h-full object-cover"
+      {/* Cover Image with Upload */}
+      {editable ? (
+        <CoverImageUpload
+          currentImage={currentCover}
+          onImageChange={handleCoverChange}
+          tripId={tripId}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      ) : (
+        <div className="relative h-56 rounded-2xl overflow-hidden">
+          <img
+            src={currentCover}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        </div>
+      )}
+
+      {/* Title Overlay for non-editable */}
+      {!editable && (
         <div className="absolute bottom-4 left-4 right-4 text-white">
           <h2 className="text-2xl font-bold mb-1">{title}</h2>
           <p className="text-white/90">{destination}</p>
         </div>
+      )}
+
+      {/* Trip Info */}
+      <div className="text-center -mt-2">
+        <h2 className="text-title font-bold">{title}</h2>
+        <p className="text-body text-muted-foreground">{destination}</p>
       </div>
 
       {/* Quick Stats */}

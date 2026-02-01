@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { TripOverview } from "@/components/summary/TripOverview";
@@ -7,16 +8,11 @@ import { HighlightMoments } from "@/components/summary/HighlightMoments";
 import { ExportOptions } from "@/components/summary/ExportOptions";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTrip } from "@/hooks/useTrip";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data
-const tripData = {
-  title: "2024 聖地朝聖之旅",
-  destination: "以色列 · 約旦",
-  dateRange: "2024/3/15 - 3/25",
-  duration: 11,
-  memberCount: 28,
-  coverImage: "https://images.unsplash.com/photo-1547036346-0e63c72f8a4d?w=800&auto=format&fit=crop",
-};
+// Default cover image
+const defaultCoverImage = "https://images.unsplash.com/photo-1547036346-0e63c72f8a4d?w=800&auto=format&fit=crop";
 
 const scheduleData = [
   {
@@ -106,6 +102,36 @@ const highlightsData = [
 ];
 
 const TripSummary = () => {
+  const { data: trip } = useTrip();
+  const { toast } = useToast();
+  const [coverImage, setCoverImage] = useState(defaultCoverImage);
+
+  // Build trip data from database or fallback
+  const tripData = {
+    title: trip?.title || "2024 聖地朝聖之旅",
+    destination: trip?.destination || "以色列 · 約旦",
+    dateRange: trip?.start_date && trip?.end_date
+      ? `${trip.start_date} - ${trip.end_date}`
+      : "2024/3/15 - 3/25",
+    duration: trip?.start_date && trip?.end_date
+      ? Math.ceil(
+          (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      : 11,
+    memberCount: 28,
+    coverImage: trip?.cover_image_url || coverImage,
+    tripId: trip?.id,
+  };
+
+  const handleCoverChange = (url: string) => {
+    setCoverImage(url);
+    toast({
+      title: "封面已更新",
+      description: "您的回憶錄封面已成功更換",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <Header />
@@ -128,7 +154,11 @@ const TripSummary = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
-            <TripOverview {...tripData} />
+            <TripOverview
+              {...tripData}
+              editable={true}
+              onCoverChange={handleCoverChange}
+            />
             <Separator />
             <HighlightMoments highlights={highlightsData} />
           </TabsContent>
