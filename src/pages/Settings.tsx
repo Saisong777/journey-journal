@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   ChevronRight,
@@ -40,6 +41,7 @@ const defaultProfile: ProfileData = {
 };
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData>(defaultProfile);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(true);
@@ -106,12 +108,14 @@ export default function Settings() {
           label: "我的日誌",
           description: "查看所有旅途記錄",
           action: "navigate" as const,
+          onClick: () => navigate("/journal"),
         },
         {
           icon: Share2,
           label: "匯出旅遊簡表",
           description: "產生精美的旅遊回憶錄",
           action: "navigate" as const,
+          onClick: () => navigate("/summary"),
         },
       ],
     },
