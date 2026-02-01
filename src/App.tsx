@@ -3,7 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Journal from "./pages/Journal";
 import Location from "./pages/Location";
 import Devotional from "./pages/Devotional";
@@ -18,25 +21,91 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/location" element={<Location />} />
-          <Route path="/devotional" element={<Devotional />} />
-          <Route path="/tools" element={<Tools />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/attractions" element={<Attractions />} />
-          <Route path="/summary" element={<TripSummary />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/journal"
+              element={
+                <ProtectedRoute>
+                  <Journal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/location"
+              element={
+                <ProtectedRoute>
+                  <Location />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/devotional"
+              element={
+                <ProtectedRoute>
+                  <Devotional />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tools"
+              element={
+                <ProtectedRoute>
+                  <Tools />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/members"
+              element={
+                <ProtectedRoute>
+                  <Members />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/attractions"
+              element={
+                <ProtectedRoute>
+                  <Attractions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/summary"
+              element={
+                <ProtectedRoute>
+                  <TripSummary />
+                </ProtectedRoute>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

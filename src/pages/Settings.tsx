@@ -20,6 +20,8 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { ProfileEditSheet, ProfileData } from "@/components/settings/ProfileEditSheet";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface SettingItem {
   icon: typeof User;
@@ -42,7 +44,13 @@ const defaultProfile: ProfileData = {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<ProfileData>(defaultProfile);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<ProfileData>({
+    ...defaultProfile,
+    email: user?.email || defaultProfile.email,
+    name: user?.user_metadata?.name || defaultProfile.name,
+  });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
@@ -50,6 +58,15 @@ export default function Settings() {
 
   const handleSaveProfile = (newProfile: ProfileData) => {
     setProfile(newProfile);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "已登出",
+      description: "您已成功登出帳號",
+    });
+    navigate("/auth");
   };
 
   const settingSections = [
@@ -222,7 +239,10 @@ export default function Settings() {
 
         {/* Logout Button */}
         <section>
-          <button className="w-full bg-card rounded-lg shadow-card p-4 flex items-center justify-center gap-2 text-destructive hover:bg-destructive/5 transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-card rounded-lg shadow-card p-4 flex items-center justify-center gap-2 text-destructive hover:bg-destructive/5 transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             <span className="text-body font-medium">登出</span>
           </button>
