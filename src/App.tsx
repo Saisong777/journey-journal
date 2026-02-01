@@ -9,6 +9,7 @@ import Location from "./pages/Location";
 import Devotional from "./pages/Devotional";
 import Tools from "./pages/Tools";
 import Members from "./pages/Members";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/devotional" element={<Devotional />} />
           <Route path="/tools" element={<Tools />} />
           <Route path="/members" element={<Members />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
