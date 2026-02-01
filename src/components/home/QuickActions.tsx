@@ -29,7 +29,7 @@ const features = [
     title: "景點資訊",
     description: "景點介紹與歷史背景",
     variant: "secondary" as const,
-    path: "/",
+    path: "/attractions",
   },
   {
     icon: Book,
