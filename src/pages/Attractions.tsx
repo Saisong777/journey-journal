@@ -8,12 +8,23 @@ import { Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Import attraction images
+import holySepulchreImg from "@/assets/attractions/holy-sepulchre.jpg";
+import westernWallImg from "@/assets/attractions/western-wall.jpg";
+import mountOlivesImg from "@/assets/attractions/mount-olives.jpg";
+import gethsemaneImg from "@/assets/attractions/gethsemane.jpg";
+import viaDolorosaImg from "@/assets/attractions/via-dolorosa.jpg";
+import nativityChurchImg from "@/assets/attractions/nativity-church.jpg";
+import seaGalileeImg from "@/assets/attractions/sea-galilee.jpg";
+import petraImg from "@/assets/attractions/petra.jpg";
+import deadSeaImg from "@/assets/attractions/dead-sea.jpg";
+
 const attractions: Attraction[] = [
   {
     id: "1",
     name: "聖墓教堂",
     location: "耶路撒冷舊城區",
-    imageUrl: "https://images.unsplash.com/photo-1547036346-0e63c72f8a4d?w=800&auto=format&fit=crop",
+    imageUrl: holySepulchreImg,
     category: "religious",
     visitDuration: "1.5-2小時",
     visitDate: "3月17日",
@@ -32,7 +43,7 @@ const attractions: Attraction[] = [
     id: "2",
     name: "西牆（哭牆）",
     location: "耶路撒冷聖殿山",
-    imageUrl: "https://images.unsplash.com/photo-1552423314-cf29ab68ad73?w=800&auto=format&fit=crop",
+    imageUrl: westernWallImg,
     category: "religious",
     visitDuration: "1小時",
     visitDate: "3月17日",
@@ -51,7 +62,7 @@ const attractions: Attraction[] = [
     id: "3",
     name: "橄欖山",
     location: "耶路撒冷東部",
-    imageUrl: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=800&auto=format&fit=crop",
+    imageUrl: mountOlivesImg,
     category: "religious",
     visitDuration: "2-3小時",
     visitDate: "3月18日",
@@ -70,7 +81,7 @@ const attractions: Attraction[] = [
     id: "4",
     name: "客西馬尼園",
     location: "橄欖山山腳",
-    imageUrl: "https://images.unsplash.com/photo-1601142634808-38923eb7c560?w=800&auto=format&fit=crop",
+    imageUrl: gethsemaneImg,
     category: "religious",
     visitDuration: "45分鐘",
     visitDate: "3月18日",
@@ -89,7 +100,7 @@ const attractions: Attraction[] = [
     id: "5",
     name: "苦路（十四站）",
     location: "耶路撒冷舊城區",
-    imageUrl: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&auto=format&fit=crop",
+    imageUrl: viaDolorosaImg,
     category: "religious",
     visitDuration: "1.5-2小時",
     visitDate: "3月17日",
@@ -108,7 +119,7 @@ const attractions: Attraction[] = [
     id: "6",
     name: "伯利恆主誕教堂",
     location: "伯利恆",
-    imageUrl: "https://images.unsplash.com/photo-1580109169051-1f4de1f61e65?w=800&auto=format&fit=crop",
+    imageUrl: nativityChurchImg,
     category: "religious",
     visitDuration: "1.5小時",
     visitDate: "3月19日",
@@ -127,7 +138,7 @@ const attractions: Attraction[] = [
     id: "7",
     name: "加利利海",
     location: "以色列北部",
-    imageUrl: "https://images.unsplash.com/photo-1591018533273-cc9ed9e6f2ac?w=800&auto=format&fit=crop",
+    imageUrl: seaGalileeImg,
     category: "natural",
     visitDuration: "半天",
     visitDate: "3月20日",
@@ -146,7 +157,7 @@ const attractions: Attraction[] = [
     id: "8",
     name: "佩特拉古城",
     location: "約旦",
-    imageUrl: "https://images.unsplash.com/photo-1579606032821-4e6161c81571?w=800&auto=format&fit=crop",
+    imageUrl: petraImg,
     category: "historical",
     visitDuration: "全天",
     visitDate: "3月22日",
@@ -163,7 +174,7 @@ const attractions: Attraction[] = [
     id: "9",
     name: "死海",
     location: "以色列/約旦邊界",
-    imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop",
+    imageUrl: deadSeaImg,
     category: "natural",
     visitDuration: "3-4小時",
     visitDate: "3月21日",
