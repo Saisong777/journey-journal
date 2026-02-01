@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 // Google icon component
@@ -33,11 +33,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
+type AuthView = "main" | "forgot-password";
+
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [view, setView] = useState<AuthView>("main");
   
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -48,6 +51,10 @@ export default function Auth() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+
+  // Forgot password state
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
@@ -174,6 +181,145 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      toast({
+        title: "請輸入電子郵件",
+        description: "我們需要您的電子郵件來發送重設連結",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: "發送失敗",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setResetSent(true);
+        toast({
+          title: "郵件已發送",
+          description: "請查收您的電子郵件以重設密碼",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "發生錯誤",
+        description: "請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Forgot password view
+  if (view === "forgot-password") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 animate-fade-in">
+          <div className="text-center space-y-2">
+            <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
+              <span className="text-3xl">✝️</span>
+            </div>
+            <h1 className="text-display">忘記密碼</h1>
+            <p className="text-body text-muted-foreground">
+              輸入您的電子郵件，我們將發送重設連結
+            </p>
+          </div>
+
+          <Card>
+            {resetSent ? (
+              <CardContent className="pt-6 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <Mail className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-title font-semibold">郵件已發送</h3>
+                <p className="text-body text-muted-foreground">
+                  請查收 <span className="font-medium text-foreground">{resetEmail}</span> 的收件匣，
+                  點擊郵件中的連結來重設您的密碼。
+                </p>
+                <p className="text-caption text-muted-foreground">
+                  沒收到郵件？請檢查垃圾郵件資料夾，或稍後再試一次。
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setView("main");
+                    setResetSent(false);
+                    setResetEmail("");
+                  }}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  返回登入
+                </Button>
+              </CardContent>
+            ) : (
+              <form onSubmit={handleForgotPassword}>
+                <CardHeader>
+                  <CardTitle>重設密碼</CardTitle>
+                  <CardDescription>
+                    我們會發送重設連結到您的電子郵件
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">電子郵件</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="pl-10 h-12"
+                        required
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-3">
+                  <Button type="submit" className="w-full h-12" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        發送中...
+                      </>
+                    ) : (
+                      "發送重設連結"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setView("main")}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    返回登入
+                  </Button>
+                </CardFooter>
+              </form>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6 animate-fade-in">
@@ -247,7 +393,17 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">密碼</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">密碼</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="px-0 h-auto text-caption text-primary"
+                        onClick={() => setView("forgot-password")}
+                      >
+                        忘記密碼？
+                      </Button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
