@@ -343,6 +343,7 @@ export type Database = {
     }
     Functions: {
       get_user_trip_id: { Args: { _user_id: string }; Returns: string }
+      get_user_trip_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
