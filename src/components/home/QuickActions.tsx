@@ -6,6 +6,7 @@ import {
   Book,
   Wrench,
   Users,
+  FileText,
 } from "lucide-react";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 
@@ -23,6 +24,13 @@ const features = [
     description: "即時查看團員位置",
     variant: "olive" as const,
     path: "/location",
+  },
+  {
+    icon: FileText,
+    title: "旅遊簡表",
+    description: "行程總覽與精選回顧",
+    variant: "olive" as const,
+    path: "/summary",
   },
   {
     icon: Info,
