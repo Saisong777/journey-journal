@@ -1,11 +1,17 @@
 import { Book, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function DailyDevotional() {
+  const navigate = useNavigate();
+
   return (
     <section className="space-y-4">
       <h2 className="text-title px-1">今日靈修</h2>
       
-      <button className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:scale-[0.99]">
+      <button 
+        onClick={() => navigate("/devotional")}
+        className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:scale-[0.99]"
+      >
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-full gradient-olive flex items-center justify-center flex-shrink-0">
             <Book className="w-6 h-6 text-secondary-foreground" />
