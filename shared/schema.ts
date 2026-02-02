@@ -49,7 +49,7 @@ export const userRoles = pgTable("user_roles", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   role: appRoleEnum("role").default("member").notNull(),
-  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }),
 });
 
 export const journalEntries = pgTable("journal_entries", {
