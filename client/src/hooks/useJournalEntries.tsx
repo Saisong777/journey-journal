@@ -60,7 +60,12 @@ export function useCreateJournalEntry() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(entry),
+        body: JSON.stringify({
+          title: entry.title,
+          content: entry.content,
+          location: entry.location,
+          photos: entry.photos,
+        }),
       });
 
       if (!response.ok) {

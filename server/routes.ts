@@ -113,13 +113,45 @@ export function registerRoutes(app: Express) {
   app.get("/api/trip", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.session.userId!);
-      if (!userRole) {
+      if (!userRole || !userRole.tripId) {
         return res.json(null);
       }
       const trip = await storage.getTrip(userRole.tripId);
       res.json(trip ? { ...trip, userRole: userRole.role } : null);
     } catch (error) {
+      console.error("Failed to get trip:", error);
       res.status(500).json({ error: "Failed to get trip" });
+    }
+  });
+
+  app.get("/api/trip", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.json(null);
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      res.json(trip ? { ...trip, userRole: userRole.role } : null);
+    } catch (error) {
+      console.error("Failed to get trip:", error);
+      res.status(500).json({ error: "Failed to get trip" });
+    }
+  });
+
+  app.get("/api/trips/current", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.status(404).json({ error: "No active trip found" });
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      res.json({ ...trip, userRole: userRole.role });
+    } catch (error) {
+      console.error("Failed to get current trip:", error);
+      res.status(500).json({ error: "Failed to get current trip" });
     }
   });
 
@@ -166,7 +198,7 @@ export function registerRoutes(app: Express) {
   app.post("/api/journal-entries", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.session.userId!);
-      if (!userRole) {
+      if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
 
@@ -174,23 +206,25 @@ export function registerRoutes(app: Express) {
       const entry = await storage.createJournalEntry({
         userId: req.session.userId!,
         tripId: userRole.tripId,
-        title: title || location,
-        content,
-        location,
+        title: title || location || "無標題",
+        content: content || "",
+        location: location || "",
         entryDate: new Date().toISOString().split("T")[0],
       });
 
-      if (photos && photos.length > 0) {
+      if (photos && Array.isArray(photos) && photos.length > 0) {
         for (const photoUrl of photos) {
           await storage.createJournalPhoto({
             journalEntryId: entry.id,
             photoUrl,
+            caption: null,
           });
         }
       }
 
       res.json(entry);
     } catch (error) {
+      console.error("Failed to create journal entry:", error);
       res.status(500).json({ error: "Failed to create journal entry" });
     }
   });
@@ -207,7 +241,7 @@ export function registerRoutes(app: Express) {
   app.get("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.session.userId!);
-      if (!userRole) {
+      if (!userRole || !userRole.tripId) {
         return res.json([]);
       }
       const date = req.query.date as string | undefined;
@@ -221,26 +255,39 @@ export function registerRoutes(app: Express) {
   app.post("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.session.userId!);
-      if (!userRole) {
+      if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
+
+      const entryDate = req.body.entryDate || new Date().toISOString().split("T")[0];
 
       const entry = await storage.createDevotionalEntry({
         userId: req.session.userId!,
         tripId: userRole.tripId,
-        ...req.body,
+        scriptureReference: req.body.scriptureReference || "",
+        reflection: req.body.reflection || "",
+        prayer: req.body.prayer || "",
+        entryDate,
       });
       res.json(entry);
     } catch (error) {
+      console.error("Failed to create devotional entry:", error);
       res.status(500).json({ error: "Failed to create devotional entry" });
     }
   });
 
   app.patch("/api/devotional-entries/:id", requireAuth, async (req, res) => {
     try {
-      const updated = await storage.updateDevotionalEntry(req.params.id, req.body);
+      const { scriptureReference, reflection, prayer } = req.body;
+      const updated = await storage.updateDevotionalEntry(req.params.id, {
+        scriptureReference: scriptureReference || "",
+        reflection: reflection || "",
+        prayer: prayer || "",
+        updatedAt: new Date()
+      });
       res.json(updated);
     } catch (error) {
+      console.error("Failed to update devotional entry:", error);
       res.status(500).json({ error: "Failed to update devotional entry" });
     }
   });
@@ -327,6 +374,9 @@ export function registerRoutes(app: Express) {
   app.delete("/api/admin/user-roles", requireAdmin, async (req, res) => {
     try {
       const { user_id, trip_id } = req.body;
+      if (!user_id || !trip_id) {
+        return res.status(400).json({ error: "userId and tripId are required" });
+      }
       await storage.deleteUserRole(user_id, trip_id);
       res.json({ success: true });
     } catch (error) {

@@ -60,21 +60,24 @@ export function useSaveDevotional() {
       reflection: string;
       prayer: string;
       date?: string;
+      id?: string;
     }) => {
       if (!user?.id || !trip?.id) {
         throw new Error("User or trip not found");
       }
 
       const entryDate = entry.date || new Date().toISOString().split("T")[0];
+      const url = entry.id ? `/api/devotional-entries/${entry.id}` : "/api/devotional-entries";
+      const method = entry.id ? "PATCH" : "POST";
 
-      const response = await fetch("/api/devotional-entries", {
-        method: "POST",
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          scriptureReference: entry.scriptureReference,
-          reflection: entry.reflection,
-          prayer: entry.prayer,
+          scriptureReference: entry.scriptureReference || "",
+          reflection: entry.reflection || "",
+          prayer: entry.prayer || "",
           entryDate,
         }),
       });
