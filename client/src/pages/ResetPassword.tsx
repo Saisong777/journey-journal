@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,28 +14,6 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isValidSession, setIsValidSession] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-
-  useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setIsValidSession(true);
-      } else {
-        toast({
-          title: "連結已過期",
-          description: "請重新申請密碼重設",
-          variant: "destructive",
-        });
-      }
-      setCheckingSession(false);
-    };
-
-    checkSession();
-  }, [toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,71 +36,11 @@ export default function ResetPassword() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (error) {
-        toast({
-          title: "重設失敗",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setIsSuccess(true);
-        toast({
-          title: "密碼已更新",
-          description: "您現在可以使用新密碼登入",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "發生錯誤",
-        description: "請稍後再試",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    toast({
+      title: "功能開發中",
+      description: "密碼重設功能即將推出",
+    });
   };
-
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">驗證中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isValidSession) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
-              <Lock className="w-8 h-8 text-destructive" />
-            </div>
-            <h3 className="text-title font-semibold">連結已過期</h3>
-            <p className="text-body text-muted-foreground">
-              此密碼重設連結已過期或無效。請重新申請密碼重設。
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => navigate("/auth")}
-            >
-              返回登入頁面
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (isSuccess) {
     return (
@@ -133,13 +50,14 @@ export default function ResetPassword() {
             <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-title font-semibold">密碼已更新</h3>
-            <p className="text-body text-muted-foreground">
+            <h3 className="text-lg font-semibold">密碼已更新</h3>
+            <p className="text-muted-foreground">
               您的密碼已成功更新。現在可以使用新密碼登入了。
             </p>
             <Button
               className="w-full"
               onClick={() => navigate("/")}
+              data-testid="button-go-home"
             >
               前往首頁
             </Button>
@@ -152,13 +70,12 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6 animate-fade-in">
-        {/* Logo/Title */}
         <div className="text-center space-y-2">
           <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
-            <span className="text-3xl">✝️</span>
+            <span className="text-3xl text-primary-foreground">T</span>
           </div>
-          <h1 className="text-display">設定新密碼</h1>
-          <p className="text-body text-muted-foreground">
+          <h1 className="text-2xl font-bold">設定新密碼</h1>
+          <p className="text-muted-foreground">
             請輸入您的新密碼
           </p>
         </div>
@@ -184,6 +101,7 @@ export default function ResetPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 h-12"
                     required
+                    data-testid="input-new-password"
                   />
                 </div>
               </div>
@@ -199,12 +117,13 @@ export default function ResetPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 h-12"
                     required
+                    data-testid="input-confirm-new-password"
                   />
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full h-12" disabled={isLoading}>
+            <CardFooter className="flex-col gap-3">
+              <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-reset-password">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -213,6 +132,15 @@ export default function ResetPassword() {
                 ) : (
                   "更新密碼"
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => navigate("/auth")}
+                data-testid="button-back-to-login"
+              >
+                返回登入
               </Button>
             </CardFooter>
           </form>

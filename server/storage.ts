@@ -1,0 +1,302 @@
+import { eq, and, inArray, desc } from "drizzle-orm";
+import { db } from "./db";
+import {
+  users,
+  profiles,
+  trips,
+  groups,
+  userRoles,
+  journalEntries,
+  journalPhotos,
+  devotionalEntries,
+  attractionFavorites,
+  userLocations,
+  type User,
+  type Profile,
+  type Trip,
+  type Group,
+  type UserRole,
+  type JournalEntry,
+  type JournalPhoto,
+  type DevotionalEntry,
+  type AttractionFavorite,
+  type UserLocation,
+  type InsertUser,
+  type InsertProfile,
+  type InsertTrip,
+  type InsertGroup,
+  type InsertUserRole,
+  type InsertJournalEntry,
+  type InsertJournalPhoto,
+  type InsertDevotionalEntry,
+  type InsertAttractionFavorite,
+} from "@shared/schema";
+
+export interface IStorage {
+  getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
+  getProfile(userId: string): Promise<Profile | undefined>;
+  createProfile(profile: InsertProfile): Promise<Profile>;
+  updateProfile(userId: string, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
+
+  getTrip(id: string): Promise<Trip | undefined>;
+  getTrips(): Promise<Trip[]>;
+  createTrip(trip: InsertTrip): Promise<Trip>;
+  updateTrip(id: string, trip: Partial<InsertTrip>): Promise<Trip | undefined>;
+  deleteTrip(id: string): Promise<void>;
+
+  getGroups(tripId: string): Promise<Group[]>;
+  getAllGroups(): Promise<Group[]>;
+  createGroup(group: InsertGroup): Promise<Group>;
+  updateGroup(id: string, name: string): Promise<Group | undefined>;
+  deleteGroup(id: string): Promise<void>;
+
+  getUserRole(userId: string): Promise<UserRole | undefined>;
+  getUserRoles(tripId: string): Promise<UserRole[]>;
+  getAllUserRoles(): Promise<UserRole[]>;
+  createUserRole(role: InsertUserRole): Promise<UserRole>;
+  updateUserRole(id: string, role: string): Promise<UserRole | undefined>;
+  deleteUserRole(userId: string, tripId: string): Promise<void>;
+  hasRole(userId: string, role: string): Promise<boolean>;
+
+  getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
+  createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
+  deleteJournalEntry(id: string): Promise<void>;
+
+  createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto>;
+
+  getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]>;
+  createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry>;
+  updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined>;
+
+  getAttractionFavorites(userId: string): Promise<AttractionFavorite[]>;
+  addAttractionFavorite(fav: InsertAttractionFavorite): Promise<AttractionFavorite>;
+  removeAttractionFavorite(userId: string, attractionId: string): Promise<void>;
+
+  getMembers(tripId: string): Promise<(Profile & { group?: Group | null; role?: string })[]>;
+  getAllProfiles(): Promise<Profile[]>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async getProfile(userId: string): Promise<Profile | undefined> {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
+    return profile;
+  }
+
+  async createProfile(profile: InsertProfile): Promise<Profile> {
+    const [created] = await db.insert(profiles).values(profile).returning();
+    return created;
+  }
+
+  async updateProfile(userId: string, profile: Partial<InsertProfile>): Promise<Profile | undefined> {
+    const [updated] = await db
+      .update(profiles)
+      .set({ ...profile, updatedAt: new Date() })
+      .where(eq(profiles.userId, userId))
+      .returning();
+    return updated;
+  }
+
+  async getTrip(id: string): Promise<Trip | undefined> {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, id));
+    return trip;
+  }
+
+  async getTrips(): Promise<Trip[]> {
+    return db.select().from(trips).orderBy(desc(trips.startDate));
+  }
+
+  async createTrip(trip: InsertTrip): Promise<Trip> {
+    const [created] = await db.insert(trips).values(trip).returning();
+    return created;
+  }
+
+  async updateTrip(id: string, trip: Partial<InsertTrip>): Promise<Trip | undefined> {
+    const [updated] = await db
+      .update(trips)
+      .set({ ...trip, updatedAt: new Date() })
+      .where(eq(trips.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrip(id: string): Promise<void> {
+    await db.delete(trips).where(eq(trips.id, id));
+  }
+
+  async getGroups(tripId: string): Promise<Group[]> {
+    return db.select().from(groups).where(eq(groups.tripId, tripId));
+  }
+
+  async getAllGroups(): Promise<Group[]> {
+    return db.select().from(groups);
+  }
+
+  async createGroup(group: InsertGroup): Promise<Group> {
+    const [created] = await db.insert(groups).values(group).returning();
+    return created;
+  }
+
+  async updateGroup(id: string, name: string): Promise<Group | undefined> {
+    const [updated] = await db.update(groups).set({ name }).where(eq(groups.id, id)).returning();
+    return updated;
+  }
+
+  async deleteGroup(id: string): Promise<void> {
+    await db.delete(groups).where(eq(groups.id, id));
+  }
+
+  async getUserRole(userId: string): Promise<UserRole | undefined> {
+    const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId));
+    return role;
+  }
+
+  async getUserRoles(tripId: string): Promise<UserRole[]> {
+    return db.select().from(userRoles).where(eq(userRoles.tripId, tripId));
+  }
+
+  async getAllUserRoles(): Promise<UserRole[]> {
+    return db.select().from(userRoles);
+  }
+
+  async createUserRole(role: InsertUserRole): Promise<UserRole> {
+    const [created] = await db.insert(userRoles).values(role).returning();
+    return created;
+  }
+
+  async updateUserRole(id: string, role: string): Promise<UserRole | undefined> {
+    const [updated] = await db
+      .update(userRoles)
+      .set({ role: role as any })
+      .where(eq(userRoles.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteUserRole(userId: string, tripId: string): Promise<void> {
+    await db.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.tripId, tripId)));
+  }
+
+  async hasRole(userId: string, role: string): Promise<boolean> {
+    const [result] = await db
+      .select()
+      .from(userRoles)
+      .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role as any)));
+    return !!result;
+  }
+
+  async getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
+    let entriesQuery = db.select().from(journalEntries).where(eq(journalEntries.tripId, tripId));
+    
+    const entries = await entriesQuery.orderBy(desc(journalEntries.createdAt));
+    
+    const result = await Promise.all(
+      entries.map(async (entry) => {
+        const photos = await db
+          .select()
+          .from(journalPhotos)
+          .where(eq(journalPhotos.journalEntryId, entry.id));
+        return { ...entry, photos };
+      })
+    );
+
+    if (date) {
+      return result.filter((e) => e.entryDate === date);
+    }
+    return result;
+  }
+
+  async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
+    const [created] = await db.insert(journalEntries).values(entry).returning();
+    return created;
+  }
+
+  async deleteJournalEntry(id: string): Promise<void> {
+    await db.delete(journalEntries).where(eq(journalEntries.id, id));
+  }
+
+  async createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto> {
+    const [created] = await db.insert(journalPhotos).values(photo).returning();
+    return created;
+  }
+
+  async getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]> {
+    let query = db.select().from(devotionalEntries).where(eq(devotionalEntries.tripId, tripId));
+    const entries = await query.orderBy(desc(devotionalEntries.createdAt));
+    
+    if (date) {
+      return entries.filter((e) => e.entryDate === date);
+    }
+    return entries;
+  }
+
+  async createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry> {
+    const [created] = await db.insert(devotionalEntries).values(entry).returning();
+    return created;
+  }
+
+  async updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined> {
+    const [updated] = await db
+      .update(devotionalEntries)
+      .set({ ...entry, updatedAt: new Date() })
+      .where(eq(devotionalEntries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAttractionFavorites(userId: string): Promise<AttractionFavorite[]> {
+    return db.select().from(attractionFavorites).where(eq(attractionFavorites.userId, userId));
+  }
+
+  async addAttractionFavorite(fav: InsertAttractionFavorite): Promise<AttractionFavorite> {
+    const [created] = await db.insert(attractionFavorites).values(fav).returning();
+    return created;
+  }
+
+  async removeAttractionFavorite(userId: string, attractionId: string): Promise<void> {
+    await db
+      .delete(attractionFavorites)
+      .where(and(eq(attractionFavorites.userId, userId), eq(attractionFavorites.attractionId, attractionId)));
+  }
+
+  async getMembers(tripId: string): Promise<(Profile & { group?: Group | null; role?: string })[]> {
+    const tripGroups = await this.getGroups(tripId);
+    const groupIds = tripGroups.map((g) => g.id);
+    
+    if (groupIds.length === 0) return [];
+
+    const profilesList = await db.select().from(profiles).where(inArray(profiles.groupId, groupIds));
+    const roles = await this.getUserRoles(tripId);
+    const roleMap = new Map(roles.map((r) => [r.userId, r.role]));
+    const groupMap = new Map(tripGroups.map((g) => [g.id, g]));
+
+    return profilesList.map((profile) => ({
+      ...profile,
+      group: profile.groupId ? groupMap.get(profile.groupId) || null : null,
+      role: roleMap.get(profile.userId) || "member",
+    }));
+  }
+
+  async getAllProfiles(): Promise<Profile[]> {
+    return db.select().from(profiles);
+  }
+}
+
+export const storage = new DatabaseStorage();

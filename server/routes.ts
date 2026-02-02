@@ -1,0 +1,423 @@
+import type { Express, Request, Response, NextFunction } from "express";
+import { storage } from "./storage";
+import bcrypt from "bcrypt";
+import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
+
+declare module "express-session" {
+  interface SessionData {
+    userId?: string;
+  }
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const isAdmin = await storage.hasRole(req.session.userId, "admin");
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+}
+
+export function registerRoutes(app: Express) {
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password, name } = req.body;
+      
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({ email, password: hashedPassword });
+      
+      await storage.createProfile({ userId: user.id, name, email });
+      
+      req.session.userId = user.id;
+      res.json({ user: { id: user.id, email: user.email } });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ user: { id: user.id, email: user.email } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/session", async (req, res) => {
+    if (!req.session.userId) {
+      return res.json({ user: null });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.json({ user: null });
+    }
+    res.json({ user: { id: user.id, email: user.email } });
+  });
+
+  app.get("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const profile = await storage.getProfile(req.session.userId!);
+      res.json(profile || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get profile" });
+    }
+  });
+
+  app.patch("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateProfile(req.session.userId!, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  app.get("/api/trip", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.json(null);
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      res.json(trip ? { ...trip, userRole: userRole.role } : null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip" });
+    }
+  });
+
+  app.get("/api/members", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.json([]);
+      }
+      const members = await storage.getMembers(userRole.tripId);
+      res.json(members);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get members" });
+    }
+  });
+
+  app.get("/api/groups", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.json([]);
+      }
+      const groupList = await storage.getGroups(userRole.tripId);
+      res.json(groupList);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get groups" });
+    }
+  });
+
+  app.get("/api/journal-entries", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.json([]);
+      }
+      const date = req.query.date as string | undefined;
+      const entries = await storage.getJournalEntries(userRole.tripId, date);
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get journal entries" });
+    }
+  });
+
+  app.post("/api/journal-entries", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.status(400).json({ error: "User not in a trip" });
+      }
+
+      const { title, content, location, photos } = req.body;
+      const entry = await storage.createJournalEntry({
+        userId: req.session.userId!,
+        tripId: userRole.tripId,
+        title: title || location,
+        content,
+        location,
+        entryDate: new Date().toISOString().split("T")[0],
+      });
+
+      if (photos && photos.length > 0) {
+        for (const photoUrl of photos) {
+          await storage.createJournalPhoto({
+            journalEntryId: entry.id,
+            photoUrl,
+          });
+        }
+      }
+
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create journal entry" });
+    }
+  });
+
+  app.delete("/api/journal-entries/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteJournalEntry(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete journal entry" });
+    }
+  });
+
+  app.get("/api/devotional-entries", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.json([]);
+      }
+      const date = req.query.date as string | undefined;
+      const entries = await storage.getDevotionalEntries(userRole.tripId, date);
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get devotional entries" });
+    }
+  });
+
+  app.post("/api/devotional-entries", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.session.userId!);
+      if (!userRole) {
+        return res.status(400).json({ error: "User not in a trip" });
+      }
+
+      const entry = await storage.createDevotionalEntry({
+        userId: req.session.userId!,
+        tripId: userRole.tripId,
+        ...req.body,
+      });
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create devotional entry" });
+    }
+  });
+
+  app.patch("/api/devotional-entries/:id", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateDevotionalEntry(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update devotional entry" });
+    }
+  });
+
+  app.get("/api/is-admin", requireAuth, async (req, res) => {
+    try {
+      const isAdmin = await storage.hasRole(req.session.userId!, "admin");
+      res.json({ isAdmin });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check admin status" });
+    }
+  });
+
+  app.get("/api/admin/trips", requireAdmin, async (req, res) => {
+    try {
+      const tripList = await storage.getTrips();
+      res.json(tripList);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trips" });
+    }
+  });
+
+  app.post("/api/admin/trips", requireAdmin, async (req, res) => {
+    try {
+      const trip = await storage.createTrip(req.body);
+      res.json(trip);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create trip" });
+    }
+  });
+
+  app.patch("/api/admin/trips/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateTrip(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update trip" });
+    }
+  });
+
+  app.delete("/api/admin/trips/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteTrip(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete trip" });
+    }
+  });
+
+  app.get("/api/admin/profiles", requireAdmin, async (req, res) => {
+    try {
+      const profileList = await storage.getAllProfiles();
+      const allGroups = await storage.getAllGroups();
+      const groupMap = new Map(allGroups.map((g) => [g.id, g]));
+      
+      const profilesWithGroups = profileList.map((p) => ({
+        ...p,
+        group: p.groupId ? groupMap.get(p.groupId) : null,
+      }));
+      res.json(profilesWithGroups);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get profiles" });
+    }
+  });
+
+  app.get("/api/admin/user-roles", requireAdmin, async (req, res) => {
+    try {
+      const roles = await storage.getAllUserRoles();
+      res.json(roles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get user roles" });
+    }
+  });
+
+  app.post("/api/admin/user-roles", requireAdmin, async (req, res) => {
+    try {
+      const role = await storage.createUserRole(req.body);
+      res.json(role);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create user role" });
+    }
+  });
+
+  app.delete("/api/admin/user-roles", requireAdmin, async (req, res) => {
+    try {
+      const { user_id, trip_id } = req.body;
+      await storage.deleteUserRole(user_id, trip_id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user role" });
+    }
+  });
+
+  app.get("/api/admin/groups", requireAdmin, async (req, res) => {
+    try {
+      const groupList = await storage.getAllGroups();
+      const tripList = await storage.getTrips();
+      const tripMap = new Map(tripList.map((t) => [t.id, t]));
+      
+      const groupsWithTrips = groupList.map((g) => ({
+        ...g,
+        trip: tripMap.get(g.tripId),
+      }));
+      res.json(groupsWithTrips);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get groups" });
+    }
+  });
+
+  app.post("/api/admin/groups", requireAdmin, async (req, res) => {
+    try {
+      const group = await storage.createGroup(req.body);
+      res.json(group);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create group" });
+    }
+  });
+
+  app.patch("/api/admin/groups/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateGroup(req.params.id, req.body.name);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update group" });
+    }
+  });
+
+  app.delete("/api/admin/groups/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteGroup(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete group" });
+    }
+  });
+
+  app.patch("/api/admin/profiles/:id", requireAdmin, async (req, res) => {
+    try {
+      const profile = await storage.getAllProfiles();
+      const target = profile.find((p) => p.id === req.params.id);
+      if (!target) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      const updated = await storage.updateProfile(target.userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  app.get("/api/attraction-favorites", requireAuth, async (req, res) => {
+    try {
+      const favorites = await storage.getAttractionFavorites(req.session.userId!);
+      res.json(favorites);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get favorites" });
+    }
+  });
+
+  app.post("/api/attraction-favorites", requireAuth, async (req, res) => {
+    try {
+      const fav = await storage.addAttractionFavorite({
+        userId: req.session.userId!,
+        attractionId: req.body.attractionId,
+      });
+      res.json(fav);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
+
+  app.delete("/api/attraction-favorites/:attractionId", requireAuth, async (req, res) => {
+    try {
+      await storage.removeAttractionFavorite(req.session.userId!, req.params.attractionId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove favorite" });
+    }
+  });
+}

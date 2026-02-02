@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
@@ -22,39 +21,19 @@ export interface JournalEntryDB {
 }
 
 export function useJournalEntries(date?: string) {
-  const { user } = useAuth();
   const { data: trip } = useTrip();
 
   return useQuery({
     queryKey: ["journal-entries", trip?.id, date],
     queryFn: async () => {
-      if (!trip?.id) return [];
-
-      let query = supabase
-        .from("journal_entries")
-        .select(`
-          *,
-          journal_photos (
-            id,
-            photo_url,
-            caption
-          )
-        `)
-        .eq("trip_id", trip.id)
-        .order("created_at", { ascending: false });
-
-      if (date) {
-        query = query.eq("entry_date", date);
+      const url = date ? `/api/journal-entries?date=${date}` : "/api/journal-entries";
+      const response = await fetch(url, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch journal entries");
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      
-      return (data || []).map(entry => ({
-        ...entry,
-        photos: entry.journal_photos || [],
-      })) as JournalEntryDB[];
+      return response.json() as Promise<JournalEntryDB[]>;
     },
     enabled: !!trip?.id,
   });
@@ -77,37 +56,18 @@ export function useCreateJournalEntry() {
         throw new Error("User or trip not found");
       }
 
-      // Create the journal entry
-      const { data: journalEntry, error: entryError } = await supabase
-        .from("journal_entries")
-        .insert({
-          user_id: user.id,
-          trip_id: trip.id,
-          title: entry.title || entry.location,
-          content: entry.content,
-          location: entry.location,
-          entry_date: new Date().toISOString().split("T")[0],
-        })
-        .select()
-        .single();
+      const response = await fetch("/api/journal-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(entry),
+      });
 
-      if (entryError) throw entryError;
-
-      // Add photos if any
-      if (entry.photos.length > 0) {
-        const photoInserts = entry.photos.map((photo_url) => ({
-          journal_entry_id: journalEntry.id,
-          photo_url,
-        }));
-
-        const { error: photoError } = await supabase
-          .from("journal_photos")
-          .insert(photoInserts);
-
-        if (photoError) throw photoError;
+      if (!response.ok) {
+        throw new Error("Failed to create journal entry");
       }
 
-      return journalEntry;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
@@ -133,12 +93,14 @@ export function useDeleteJournalEntry() {
 
   return useMutation({
     mutationFn: async (entryId: string) => {
-      const { error } = await supabase
-        .from("journal_entries")
-        .delete()
-        .eq("id", entryId);
+      const response = await fetch(`/api/journal-entries/${entryId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error("Failed to delete journal entry");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });

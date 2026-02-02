@@ -1,111 +1,61 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-
-// Google icon component
-const GoogleIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24">
-    <path
-      fill="#4285F4"
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-    />
-  </svg>
-);
 
 type AuthView = "main" | "forgot-password";
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [view, setView] = useState<AuthView>("main");
   
-  // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   
-  // Signup state
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
-  // Forgot password state
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
-
-  const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const { error, redirected } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-
-      if (error) {
-        toast({
-          title: "Google 登入失敗",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else if (!redirected) {
-        toast({
-          title: "登入成功",
-          description: "歡迎回來！",
-        });
-        navigate("/");
-      }
-    } catch (error) {
-      toast({
-        title: "發生錯誤",
-        description: "請稍後再試",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
       });
 
-      if (error) {
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: "登入失敗",
-          description: error.message === "Invalid login credentials" 
+          description: data.error === "Invalid credentials" 
             ? "電子郵件或密碼錯誤" 
-            : error.message,
+            : data.error,
           variant: "destructive",
         });
       } else {
+        await refreshSession();
         toast({
           title: "登入成功",
           description: "歡迎回來！",
@@ -147,28 +97,32 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          data: {
-            name: signupName,
-          },
-          emailRedirectTo: window.location.origin,
-        },
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: signupEmail,
+          password: signupPassword,
+          name: signupName,
+        }),
       });
 
-      if (error) {
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: "註冊失敗",
-          description: error.message,
+          description: data.error,
           variant: "destructive",
         });
       } else {
+        await refreshSession();
         toast({
           title: "註冊成功！",
-          description: "請查收電子郵件以驗證您的帳號",
+          description: "歡迎加入！",
         });
+        navigate("/");
       }
     } catch (error) {
       toast({
@@ -193,48 +147,22 @@ export default function Auth() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
-      if (error) {
-        toast({
-          title: "發送失敗",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setResetSent(true);
-        toast({
-          title: "郵件已發送",
-          description: "請查收您的電子郵件以重設密碼",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "發生錯誤",
-        description: "請稍後再試",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    toast({
+      title: "功能開發中",
+      description: "密碼重設功能即將推出",
+    });
   };
 
-  // Forgot password view
   if (view === "forgot-password") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6 animate-fade-in">
           <div className="text-center space-y-2">
             <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
-              <span className="text-3xl">✝️</span>
+              <span className="text-3xl text-primary-foreground">T</span>
             </div>
-            <h1 className="text-display">忘記密碼</h1>
-            <p className="text-body text-muted-foreground">
+            <h1 className="text-2xl font-bold">忘記密碼</h1>
+            <p className="text-muted-foreground">
               輸入您的電子郵件，我們將發送重設連結
             </p>
           </div>
@@ -245,13 +173,9 @@ export default function Auth() {
                 <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
                   <Mail className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-title font-semibold">郵件已發送</h3>
-                <p className="text-body text-muted-foreground">
-                  請查收 <span className="font-medium text-foreground">{resetEmail}</span> 的收件匣，
-                  點擊郵件中的連結來重設您的密碼。
-                </p>
-                <p className="text-caption text-muted-foreground">
-                  沒收到郵件？請檢查垃圾郵件資料夾，或稍後再試一次。
+                <h3 className="text-lg font-semibold">郵件已發送</h3>
+                <p className="text-muted-foreground">
+                  請查收 <span className="font-medium text-foreground">{resetEmail}</span> 的收件匣
                 </p>
                 <Button
                   variant="outline"
@@ -287,12 +211,13 @@ export default function Auth() {
                         onChange={(e) => setResetEmail(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-reset-email"
                       />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full h-12" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-reset-submit">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -307,6 +232,7 @@ export default function Auth() {
                     variant="ghost"
                     className="w-full"
                     onClick={() => setView("main")}
+                    data-testid="button-back-login"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     返回登入
@@ -323,13 +249,12 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6 animate-fade-in">
-        {/* Logo/Title */}
         <div className="text-center space-y-2">
           <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
-            <span className="text-3xl">✝️</span>
+            <span className="text-3xl text-primary-foreground">T</span>
           </div>
-          <h1 className="text-display">朝聖之旅</h1>
-          <p className="text-body text-muted-foreground">
+          <h1 className="text-2xl font-bold">朝聖之旅</h1>
+          <p className="text-muted-foreground">
             與團員一同記錄屬靈旅程
           </p>
         </div>
@@ -337,8 +262,8 @@ export default function Auth() {
         <Card>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">登入</TabsTrigger>
-              <TabsTrigger value="signup">註冊</TabsTrigger>
+              <TabsTrigger value="login" data-testid="tab-login">登入</TabsTrigger>
+              <TabsTrigger value="signup" data-testid="tab-signup">註冊</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -350,33 +275,6 @@ export default function Auth() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Google Login Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 gap-3"
-                    onClick={handleGoogleLogin}
-                    disabled={isGoogleLoading || isLoading}
-                  >
-                    {isGoogleLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    使用 Google 帳號登入
-                  </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator className="w-full" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">
-                        或使用電子郵件
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="login-email">電子郵件</Label>
                     <div className="relative">
@@ -389,6 +287,7 @@ export default function Auth() {
                         onChange={(e) => setLoginEmail(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-login-email"
                       />
                     </div>
                   </div>
@@ -398,8 +297,9 @@ export default function Auth() {
                       <Button
                         type="button"
                         variant="link"
-                        className="px-0 h-auto text-caption text-primary"
+                        className="px-0 h-auto text-sm text-primary"
                         onClick={() => setView("forgot-password")}
+                        data-testid="link-forgot-password"
                       >
                         忘記密碼？
                       </Button>
@@ -409,17 +309,18 @@ export default function Auth() {
                       <Input
                         id="login-password"
                         type="password"
-                        placeholder="••••••••"
+                        placeholder="輸入密碼"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-login-password"
                       />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full h-12" disabled={isLoading || isGoogleLoading}>
+                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-login">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -442,33 +343,6 @@ export default function Auth() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Google Signup Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 gap-3"
-                    onClick={handleGoogleLogin}
-                    disabled={isGoogleLoading || isLoading}
-                  >
-                    {isGoogleLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    使用 Google 帳號註冊
-                  </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator className="w-full" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">
-                        或使用電子郵件
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">姓名</Label>
                     <div className="relative">
@@ -481,6 +355,7 @@ export default function Auth() {
                         onChange={(e) => setSignupName(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-signup-name"
                       />
                     </div>
                   </div>
@@ -496,6 +371,7 @@ export default function Auth() {
                         onChange={(e) => setSignupEmail(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-signup-email"
                       />
                     </div>
                   </div>
@@ -511,6 +387,7 @@ export default function Auth() {
                         onChange={(e) => setSignupPassword(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-signup-password"
                       />
                     </div>
                   </div>
@@ -526,12 +403,13 @@ export default function Auth() {
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         className="pl-10 h-12"
                         required
+                        data-testid="input-signup-confirm-password"
                       />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full h-12" disabled={isLoading || isGoogleLoading}>
+                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-signup">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -547,7 +425,7 @@ export default function Auth() {
           </Tabs>
         </Card>
 
-        <p className="text-center text-caption text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           註冊即表示您同意我們的服務條款和隱私政策
         </p>
       </div>
