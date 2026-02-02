@@ -85,6 +85,7 @@ export function useTripMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const createTrip = useMutation({
     mutationFn: async (trip: {
       title: string;
       destination: string;
