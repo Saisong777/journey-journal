@@ -20,4 +20,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["@tanstack/react-query"],
   },
+  server: {
+    allowedHosts: true,
+  },
 }));
