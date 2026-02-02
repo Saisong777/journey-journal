@@ -24,6 +24,7 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 - Built RESTful API endpoints for all features
 - Updated all frontend hooks to use fetch API instead of Supabase client
 - Configured Vite for client/server/shared project structure
+- Standardized all API responses and frontend components to use camelCase field names
 
 ## Key Features
 - User authentication (email/password)
