@@ -8,14 +8,14 @@ export interface JournalEntryDB {
   title: string;
   content: string | null;
   location: string | null;
-  entry_date: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  trip_id: string;
+  entryDate: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  tripId: string;
   photos?: Array<{
     id: string;
-    photo_url: string;
+    photoUrl: string;
     caption: string | null;
   }>;
 }

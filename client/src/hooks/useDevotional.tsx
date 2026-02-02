@@ -5,14 +5,14 @@ import { useToast } from "./use-toast";
 
 export interface DevotionalEntryDB {
   id: string;
-  user_id: string;
-  trip_id: string;
-  entry_date: string;
-  scripture_reference: string;
+  userId: string;
+  tripId: string;
+  entryDate: string;
+  scriptureReference: string;
   reflection: string | null;
   prayer: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function useDevotionalEntries(date?: string) {
@@ -42,7 +42,7 @@ export function useMyDevotionalEntry(date: string) {
     queryKey: ["my-devotional", date, user?.id],
     queryFn: async () => {
       if (!entries || !user?.id) return null;
-      return entries.find((e) => e.user_id === user.id) || null;
+      return entries.find((e) => e.userId === user.id) || null;
     },
     enabled: !!entries && !!user?.id,
   });
@@ -56,7 +56,7 @@ export function useSaveDevotional() {
 
   return useMutation({
     mutationFn: async (entry: {
-      scripture_reference: string;
+      scriptureReference: string;
       reflection: string;
       prayer: string;
       date?: string;
@@ -72,7 +72,7 @@ export function useSaveDevotional() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          scriptureReference: entry.scripture_reference,
+          scriptureReference: entry.scriptureReference,
           reflection: entry.reflection,
           prayer: entry.prayer,
           entryDate,

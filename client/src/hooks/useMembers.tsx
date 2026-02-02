@@ -3,16 +3,16 @@ import { useTrip } from "./useTrip";
 
 export interface MemberDB {
   id: string;
-  user_id: string;
+  userId: string;
   name: string;
   email: string | null;
   phone: string | null;
-  avatar_url: string | null;
-  dietary_restrictions: string | null;
-  medical_notes: string | null;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  group_id: string | null;
+  avatarUrl: string | null;
+  dietaryRestrictions: string | null;
+  medicalNotes: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  groupId: string | null;
   group?: {
     id: string;
     name: string;

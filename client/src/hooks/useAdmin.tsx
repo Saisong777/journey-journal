@@ -85,25 +85,18 @@ export function useTripMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const createTrip = useMutation({
     mutationFn: async (trip: {
       title: string;
       destination: string;
-      start_date: string;
-      end_date: string;
-      cover_image_url?: string;
+      startDate: string;
+      endDate: string;
+      coverImageUrl?: string;
     }) => {
       const response = await fetch("/api/admin/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          title: trip.title,
-          destination: trip.destination,
-          startDate: trip.start_date,
-          endDate: trip.end_date,
-          coverImageUrl: trip.cover_image_url,
-        }),
+        body: JSON.stringify(trip),
       });
       if (!response.ok) throw new Error("Failed to create trip");
       return response.json();
@@ -125,21 +118,15 @@ export function useTripMutations() {
       id: string;
       title?: string;
       destination?: string;
-      start_date?: string;
-      end_date?: string;
-      cover_image_url?: string;
+      startDate?: string;
+      endDate?: string;
+      coverImageUrl?: string;
     }) => {
       const response = await fetch(`/api/admin/trips/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          title: updates.title,
-          destination: updates.destination,
-          startDate: updates.start_date,
-          endDate: updates.end_date,
-          coverImageUrl: updates.cover_image_url,
-        }),
+        body: JSON.stringify(updates),
       });
       if (!response.ok) throw new Error("Failed to update trip");
       return response.json();
@@ -178,12 +165,12 @@ export function useGroupMutations() {
   const { toast } = useToast();
 
   const createGroup = useMutation({
-    mutationFn: async (group: { name: string; trip_id: string }) => {
+    mutationFn: async (group: { name: string; tripId: string }) => {
       const response = await fetch("/api/admin/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name: group.name, tripId: group.trip_id }),
+        body: JSON.stringify(group),
       });
       if (!response.ok) throw new Error("Failed to create group");
       return response.json();
@@ -246,19 +233,19 @@ export function useUserRoleMutations() {
 
   const assignRole = useMutation({
     mutationFn: async ({
-      user_id,
-      trip_id,
+      userId,
+      tripId,
       role,
     }: {
-      user_id: string;
-      trip_id: string;
+      userId: string;
+      tripId: string | null;
       role: "admin" | "leader" | "guide" | "member";
     }) => {
       const response = await fetch("/api/admin/user-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ userId: user_id, tripId: trip_id, role }),
+        body: JSON.stringify({ userId, tripId, role }),
       });
       if (!response.ok) throw new Error("Failed to assign role");
       return response.json();
@@ -274,12 +261,12 @@ export function useUserRoleMutations() {
   });
 
   const removeFromTrip = useMutation({
-    mutationFn: async ({ user_id, trip_id }: { user_id: string; trip_id: string }) => {
+    mutationFn: async ({ userId, tripId }: { userId: string; tripId: string }) => {
       const response = await fetch("/api/admin/user-roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ user_id, trip_id }),
+        body: JSON.stringify({ userId, tripId }),
       });
       if (!response.ok) throw new Error("Failed to remove from trip");
     },
@@ -302,17 +289,17 @@ export function useProfileMutations() {
 
   const updateProfileGroup = useMutation({
     mutationFn: async ({
-      profile_id,
-      group_id,
+      profileId,
+      groupId,
     }: {
-      profile_id: string;
-      group_id: string | null;
+      profileId: string;
+      groupId: string | null;
     }) => {
-      const response = await fetch(`/api/admin/profiles/${profile_id}`, {
+      const response = await fetch(`/api/admin/profiles/${profileId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ groupId: group_id }),
+        body: JSON.stringify({ groupId }),
       });
       if (!response.ok) throw new Error("Failed to update profile");
       return response.json();
