@@ -83,12 +83,12 @@ export default function AdminMembers() {
 
   // Get role for a user in a specific trip
   const getUserRole = (userId: string, tripId: string) => {
-    return userRoles?.find((r) => r.user_id === userId && r.trip_id === tripId)?.role;
+    return userRoles?.find((r) => r.userId === userId && r.tripId === tripId)?.role;
   };
 
   // Get groups for a specific trip
   const getGroupsForTrip = (tripId: string) => {
-    return groups?.filter((g) => g.trip_id === tripId) || [];
+    return groups?.filter((g) => g.tripId === tripId) || [];
   };
 
   // Filter profiles based on search and trip
@@ -107,13 +107,13 @@ export default function AdminMembers() {
 
     if (selectedTrip !== "all") {
       const tripGroupIds = groups
-        ?.filter((g) => g.trip_id === selectedTrip)
+        ?.filter((g) => g.tripId === selectedTrip)
         .map((g) => g.id);
       result = result.filter(
         (p) =>
-          (p.group_id && tripGroupIds?.includes(p.group_id)) ||
+          (p.groupId && tripGroupIds?.includes(p.groupId)) ||
           userRoles?.some(
-            (r) => r.user_id === p.user_id && r.trip_id === selectedTrip
+            (r) => r.userId === p.userId && r.tripId === selectedTrip
           )
       );
     }
@@ -126,15 +126,15 @@ export default function AdminMembers() {
 
     // Update role
     await assignRole.mutateAsync({
-      user_id: editingMember.profile.user_id,
-      trip_id: editingMember.tripId,
+      userId: editingMember.profile.userId,
+      tripId: editingMember.tripId,
       role: editingMember.currentRole as "admin" | "leader" | "guide" | "member",
     });
 
     // Update group
     await updateProfileGroup.mutateAsync({
-      profile_id: editingMember.profile.id,
-      group_id: editingMember.currentGroupId,
+      profileId: editingMember.profile.id,
+      groupId: editingMember.currentGroupId,
     });
 
     setEditingMember(null);
@@ -143,8 +143,8 @@ export default function AdminMembers() {
   const handleRemoveMember = async () => {
     if (!removingMember) return;
     await removeFromTrip.mutateAsync({
-      user_id: removingMember.userId,
-      trip_id: removingMember.tripId,
+      userId: removingMember.userId,
+      tripId: removingMember.tripId,
     });
     setRemovingMember(null);
   };
@@ -211,16 +211,16 @@ export default function AdminMembers() {
               {filteredProfiles.length > 0 ? (
                 filteredProfiles.map((profile) => {
                   const tripId = selectedTrip !== "all" ? selectedTrip : trips?.[0]?.id;
-                  const role = tripId ? getUserRole(profile.user_id, tripId) : null;
+                  const role = tripId ? getUserRole(profile.userId, tripId) : null;
 
                   return (
                     <TableRow key={profile.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                            {profile.avatar_url ? (
+                            {profile.avatarUrl ? (
                               <img
-                                src={profile.avatar_url}
+                                src={profile.avatarUrl}
                                 alt={profile.name}
                                 className="w-full h-full object-cover"
                               />
@@ -267,7 +267,7 @@ export default function AdminMembers() {
                                     profile,
                                     tripId,
                                     currentRole: role || "member",
-                                    currentGroupId: profile.group_id,
+                                    currentGroupId: profile.groupId,
                                   })
                                 }
                               >
@@ -279,7 +279,7 @@ export default function AdminMembers() {
                                   size="sm"
                                   onClick={() =>
                                     setRemovingMember({
-                                      userId: profile.user_id,
+                                      userId: profile.userId,
                                       tripId,
                                       name: profile.name,
                                     })

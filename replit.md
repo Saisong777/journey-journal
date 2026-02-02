@@ -1,10 +1,17 @@
-# Trip Companion - Pilgrimage Journey App
+# Trip Companion - Pilgrimage Journey App (朝聖之旅)
 
 ## Overview
-Trip Companion is a web application designed for Christian pilgrimage/mission trips. It enables team members to share journals, devotional entries, track locations, manage groups, and create trip summaries.
+Trip Companion is a web application designed for Christian pilgrimage/mission trips. It enables team members to share journals, devotional entries, track locations, manage groups, and create trip summaries. The UI is in Chinese Traditional (繁體中文) with a warm spiritual design using amber/gold colors.
 
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
+
+## Recent Changes (February 2, 2026)
+- Fixed duplicate `/api/trip` route in routes.ts
+- Standardized all field names to camelCase throughout the codebase
+- Fixed AdminMembers.tsx to use camelCase field references (userId, tripId, groupId, profileId)
+- Added proper null checks for tripId in API routes
+- Global admin role system with nullable trip_id for system-wide permissions
 
 ### Migration Summary
 - Completely removed all Supabase dependencies (`@supabase/supabase-js`)

@@ -124,20 +124,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/trip", requireAuth, async (req, res) => {
-    try {
-      const userRole = await storage.getUserRole(req.session.userId!);
-      if (!userRole || !userRole.tripId) {
-        return res.json(null);
-      }
-      const trip = await storage.getTrip(userRole.tripId);
-      res.json(trip ? { ...trip, userRole: userRole.role } : null);
-    } catch (error) {
-      console.error("Failed to get trip:", error);
-      res.status(500).json({ error: "Failed to get trip" });
-    }
-  });
-
   app.get("/api/trips/current", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.session.userId!);
