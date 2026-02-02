@@ -41,8 +41,8 @@ import { zhTW } from "date-fns/locale";
 interface TripFormData {
   title: string;
   destination: string;
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
 }
 
 export default function AdminTrips() {
@@ -56,8 +56,8 @@ export default function AdminTrips() {
   const [formData, setFormData] = useState<TripFormData>({
     title: "",
     destination: "",
-    start_date: "",
-    end_date: "",
+    startDate: "",
+    endDate: "",
   });
 
   // Group form state
@@ -67,7 +67,7 @@ export default function AdminTrips() {
   );
 
   const resetForm = () => {
-    setFormData({ title: "", destination: "", start_date: "", end_date: "" });
+    setFormData({ title: "", destination: "", startDate: "", endDate: "" });
     setEditingTrip(null);
   };
 
@@ -93,14 +93,14 @@ export default function AdminTrips() {
     setFormData({
       title: trip.title,
       destination: trip.destination,
-      start_date: trip.start_date,
-      end_date: trip.end_date,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
     });
   };
 
   const handleCreateGroup = async (tripId: string) => {
     if (!newGroupName.trim()) return;
-    await createGroup.mutateAsync({ name: newGroupName, trip_id: tripId });
+    await createGroup.mutateAsync({ name: newGroupName, tripId: tripId });
     setNewGroupName("");
   };
 
@@ -115,7 +115,7 @@ export default function AdminTrips() {
   };
 
   const getGroupsForTrip = (tripId: string) => {
-    return groups?.filter((g) => g.trip_id === tripId) || [];
+    return groups?.filter((g) => g.tripId === tripId) || [];
   };
 
   if (isLoading) {
@@ -175,24 +175,24 @@ export default function AdminTrips() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="start_date">開始日期</Label>
+                    <Label htmlFor="startDate">開始日期</Label>
                     <Input
-                      id="start_date"
+                      id="startDate"
                       type="date"
-                      value={formData.start_date}
+                      value={formData.startDate}
                       onChange={(e) =>
-                        setFormData({ ...formData, start_date: e.target.value })
+                        setFormData({ ...formData, startDate: e.target.value })
                       }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="end_date">結束日期</Label>
+                    <Label htmlFor="endDate">結束日期</Label>
                     <Input
-                      id="end_date"
+                      id="endDate"
                       type="date"
-                      value={formData.end_date}
+                      value={formData.endDate}
                       onChange={(e) =>
-                        setFormData({ ...formData, end_date: e.target.value })
+                        setFormData({ ...formData, endDate: e.target.value })
                       }
                     />
                   </div>
@@ -232,11 +232,11 @@ export default function AdminTrips() {
                         <h3 className="text-body font-semibold">{trip.title}</h3>
                         <p className="text-caption text-muted-foreground">
                           {trip.destination} ·{" "}
-                          {format(new Date(trip.start_date), "yyyy/MM/dd", {
+                          {format(new Date(trip.startDate), "yyyy/MM/dd", {
                             locale: zhTW,
                           })}{" "}
                           -{" "}
-                          {format(new Date(trip.end_date), "MM/dd", {
+                          {format(new Date(trip.endDate), "MM/dd", {
                             locale: zhTW,
                           })}
                         </p>
@@ -295,11 +295,11 @@ export default function AdminTrips() {
                                   <Input
                                     id="edit-start"
                                     type="date"
-                                    value={formData.start_date}
+                                    value={formData.startDate}
                                     onChange={(e) =>
                                       setFormData({
                                         ...formData,
-                                        start_date: e.target.value,
+                                        startDate: e.target.value,
                                       })
                                     }
                                   />
@@ -309,11 +309,11 @@ export default function AdminTrips() {
                                   <Input
                                     id="edit-end"
                                     type="date"
-                                    value={formData.end_date}
+                                    value={formData.endDate}
                                     onChange={(e) =>
                                       setFormData({
                                         ...formData,
-                                        end_date: e.target.value,
+                                        endDate: e.target.value,
                                       })
                                     }
                                   />
