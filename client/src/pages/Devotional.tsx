@@ -76,26 +76,26 @@ export default function Devotional() {
 
   // Calculate current day of trip
   const currentDay = useMemo(() => {
-    if (!trip?.start_date) return 1;
-    const start = parseISO(trip.start_date);
+    if (!trip?.startDate) return 1;
+    const start = parseISO(trip.startDate);
     const diff = differenceInDays(new Date(), start) + 1;
     return Math.max(1, Math.min(diff, 10));
-  }, [trip?.start_date]);
+  }, [trip?.startDate]);
 
   // Get today's scripture
   const todayScripture = dailyScriptures[currentDay] || dailyScriptures[3];
 
   // Generate progress days
   const progressDays = useMemo(() => {
-    if (!trip?.start_date) return [];
-    const start = parseISO(trip.start_date);
+    if (!trip?.startDate) return [];
+    const start = parseISO(trip.startDate);
     
     return Array.from({ length: 10 }, (_, i) => {
       const day = i + 1;
       const date = addDays(start, i);
       const scripture = dailyScriptures[day] || { theme: `第 ${day} 天` };
       const hasEntry = allEntries?.some(
-        (e) => e.entry_date === format(date, "yyyy-MM-dd") && e.user_id === myEntry?.user_id
+        (e) => e.entryDate === format(date, "yyyy-MM-dd") && e.userId === myEntry?.userId
       );
       
       return {
@@ -106,7 +106,7 @@ export default function Devotional() {
         isToday: day === currentDay,
       };
     });
-  }, [trip?.start_date, currentDay, allEntries, myEntry?.user_id]);
+  }, [trip?.startDate, currentDay, allEntries, myEntry?.userId]);
 
   // Get shared reflections from other members
   const sharedReflections = useMemo(() => {
@@ -116,10 +116,10 @@ export default function Devotional() {
       .filter((e) => e.reflection)
       .slice(0, 10)
       .map((entry) => {
-        const member = members.find((m) => m.user_id === entry.user_id);
+        const member = members.find((m) => m.userId === entry.userId);
         return {
           name: member?.name || "團員",
-          time: format(parseISO(entry.created_at), "今天 HH:mm"),
+          time: entry.createdAt ? format(parseISO(entry.createdAt), "今天 HH:mm") : "",
           content: entry.reflection || "",
           likes: Math.floor(Math.random() * 15),
         };
@@ -135,7 +135,7 @@ export default function Devotional() {
     prayerPoints: string[];
   }) => {
     await saveDevotional.mutateAsync({
-      scripture_reference: todayScripture.reference,
+      scriptureReference: todayScripture.reference,
       reflection: data.content,
       prayer: data.prayerPoints.join(", "),
     });

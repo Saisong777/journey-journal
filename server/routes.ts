@@ -42,6 +42,17 @@ export function registerRoutes(app: Express) {
       
       await storage.createProfile({ userId: user.id, name, email });
       
+      // Auto-assign new user to the first available trip as a member
+      const trips = await storage.getTrips();
+      if (trips.length > 0) {
+        await storage.createUserRole({
+          userId: user.id,
+          tripId: trips[0].id,
+          role: "member",
+        });
+        console.log(`Auto-assigned user ${email} to trip ${trips[0].title}`);
+      }
+      
       req.session.userId = user.id;
       res.json({ user: { id: user.id, email: user.email } });
     } catch (error) {
@@ -62,6 +73,26 @@ export function registerRoutes(app: Express) {
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) {
         return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Check if user has a role with a trip, if not auto-assign
+      const userRole = await storage.getUserRole(user.id);
+      if (!userRole || !userRole.tripId) {
+        const trips = await storage.getTrips();
+        if (trips.length > 0) {
+          if (!userRole) {
+            await storage.createUserRole({
+              userId: user.id,
+              tripId: trips[0].id,
+              role: "member",
+            });
+            console.log(`Auto-assigned existing user ${email} to trip ${trips[0].title}`);
+          } else {
+            // User has a role but no trip, update the role with trip
+            await storage.updateUserRoleTrip(userRole.id, trips[0].id);
+            console.log(`Updated user ${email} role to include trip ${trips[0].title}`);
+          }
+        }
       }
 
       req.session.userId = user.id;
@@ -126,11 +157,16 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trips/current", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userId = req.session.userId!;
+      console.log("Fetching current trip for user:", userId);
+      const userRole = await storage.getUserRole(userId);
+      console.log("User role found:", JSON.stringify(userRole));
       if (!userRole || !userRole.tripId) {
+        console.log("No tripId in user role");
         return res.status(404).json({ error: "No active trip found" });
       }
       const trip = await storage.getTrip(userRole.tripId);
+      console.log("Trip found:", trip?.title);
       if (!trip) {
         return res.status(404).json({ error: "Trip not found" });
       }

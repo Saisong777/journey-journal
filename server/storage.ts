@@ -58,6 +58,7 @@ export interface IStorage {
   getAllUserRoles(): Promise<UserRole[]>;
   createUserRole(role: InsertUserRole): Promise<UserRole>;
   updateUserRole(id: string, role: string): Promise<UserRole | undefined>;
+  updateUserRoleTrip(id: string, tripId: string): Promise<UserRole | undefined>;
   deleteUserRole(userId: string, tripId: string): Promise<void>;
   hasRole(userId: string, role: string): Promise<boolean>;
 
@@ -185,6 +186,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(userRoles)
       .set({ role: role as any })
+      .where(eq(userRoles.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateUserRoleTrip(id: string, tripId: string): Promise<UserRole | undefined> {
+    const [updated] = await db
+      .update(userRoles)
+      .set({ tripId })
       .where(eq(userRoles.id, id))
       .returning();
     return updated;

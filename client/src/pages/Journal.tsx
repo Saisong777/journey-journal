@@ -22,7 +22,7 @@ export default function Journal() {
 
   // Generate days based on trip dates or current week
   const days = useMemo(() => {
-    const tripStart = trip?.start_date ? parseISO(trip.start_date) : addDays(new Date(), -2);
+    const tripStart = trip?.startDate ? parseISO(trip.startDate) : addDays(new Date(), -2);
     const today = startOfDay(new Date());
     
     return Array.from({ length: 7 }, (_, i) => {
@@ -34,7 +34,7 @@ export default function Journal() {
         isToday: startOfDay(date).getTime() === today.getTime(),
       };
     });
-  }, [trip?.start_date]);
+  }, [trip?.startDate]);
 
   const selectedDayIndex = days.findIndex(
     (d) => format(d.fullDate, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
@@ -44,9 +44,9 @@ export default function Journal() {
   const transformedEntries: JournalEntryData[] = (entries || []).map((entry) => ({
     id: entry.id,
     location: entry.location || "未知地點",
-    time: format(parseISO(entry.created_at), "HH:mm"),
+    time: entry.createdAt ? format(parseISO(entry.createdAt), "HH:mm") : "",
     content: entry.content || "",
-    photos: entry.photos?.map((p) => p.photo_url) || [],
+    photos: entry.photos?.map((p) => p.photoUrl) || [],
     mood: undefined,
   }));
 

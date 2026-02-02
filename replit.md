@@ -12,6 +12,9 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 - Fixed AdminMembers.tsx to use camelCase field references (userId, tripId, groupId, profileId)
 - Added proper null checks for tripId in API routes
 - Global admin role system with nullable trip_id for system-wide permissions
+- **Auto-assignment of trips**: New users are automatically assigned to the first available trip when they register
+- **Login trip assignment**: Existing users without a trip are automatically assigned when they login
+- Added `updateUserRoleTrip` method to storage for updating user role trip assignments
 
 ### Migration Summary
 - Completely removed all Supabase dependencies (`@supabase/supabase-js`)
