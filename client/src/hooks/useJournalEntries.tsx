@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
 import { getAuthToken } from "@/lib/queryClient";
@@ -53,8 +52,6 @@ export function useJournalEntries(date?: string) {
 }
 
 export function useCreateJournalEntry() {
-  const { user } = useAuth();
-  const { data: trip } = useTrip();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -65,10 +62,6 @@ export function useCreateJournalEntry() {
       location: string;
       photos: string[];
     }) => {
-      if (!user?.id || !trip?.id) {
-        throw new Error("User or trip not found");
-      }
-
       const response = await fetch("/api/journal-entries", {
         method: "POST",
         headers: getHeaders(),

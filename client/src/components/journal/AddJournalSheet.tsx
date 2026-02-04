@@ -121,8 +121,10 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
           throw new Error("Failed to upload file");
         }
         
-        // Add the object path to photos
-        setPhotos(prev => [...prev, objectPath]);
+        // Store the public URL for the uploaded file
+        // Extract the base URL from the presigned URL (without query params)
+        const publicUrl = uploadURL.split("?")[0];
+        setPhotos(prev => [...prev, publicUrl]);
       }
     } catch (error) {
       console.error("Upload failed:", error);
@@ -159,7 +161,8 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
     }
   };
 
-  const isValid = selectedLocation && content.trim();
+  // Location is optional now
+  const isValid = content.trim();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -210,7 +213,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
               {photos.map((photo, index) => (
                 <div key={index} className="relative flex-shrink-0">
                   <img
-                    src={`/api/uploads/public/${encodeURIComponent(photo)}`}
+                    src={photo}
                     alt={`照片 ${index + 1}`}
                     className="w-24 h-24 object-cover rounded-lg"
                     data-testid={`img-photo-${index}`}
