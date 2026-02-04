@@ -48,6 +48,7 @@ interface TripDayFormData {
   cityArea: string;
   title: string;
   highlights: string;
+  attractions: string;
   bibleRefs: string;
   breakfast: string;
   lunch: string;
@@ -67,6 +68,7 @@ const emptyFormData: TripDayFormData = {
   cityArea: "",
   title: "",
   highlights: "",
+  attractions: "",
   bibleRefs: "",
   breakfast: "",
   lunch: "",
@@ -125,6 +127,7 @@ export default function AdminTripDays() {
       cityArea: day.cityArea || "",
       title: day.title || "",
       highlights: day.highlights || "",
+      attractions: day.attractions || "",
       bibleRefs: day.bibleRefs || "",
       breakfast: day.breakfast || "",
       lunch: day.lunch || "",
@@ -236,6 +239,17 @@ export default function AdminTripDays() {
           onChange={(e) => setFormData({ ...formData, highlights: e.target.value })}
           placeholder="伊斯坦堡歷史城區 / 聖索菲亞 / 跑馬場..."
           rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="attractions">景點（僅列出觀光景點）</Label>
+        <Textarea
+          id="attractions"
+          value={formData.attractions}
+          onChange={(e) => setFormData({ ...formData, attractions: e.target.value })}
+          placeholder="聖索菲亞 / 藍色清真寺 / 跑馬場（只列景點，不含接機、購物等活動）"
+          rows={2}
         />
       </div>
 

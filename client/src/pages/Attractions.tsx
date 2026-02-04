@@ -24,6 +24,7 @@ interface TripDay {
   cityArea: string;
   title: string;
   highlights: string;
+  attractions: string | null;
   bibleRefs: string;
   breakfast: string;
   lunch: string;
@@ -46,15 +47,16 @@ function parseAttractionsFromTripDays(days: TripDay[]): Attraction[] {
   const attractions: Attraction[] = [];
   
   days.forEach(day => {
-    if (!day.highlights) return;
+    const attractionsStr = day.attractions || "";
+    if (!attractionsStr) return;
     
-    const highlights = day.highlights.split("/").map(h => h.trim()).filter(Boolean);
+    const attractionsList = attractionsStr.split("/").map(a => a.trim()).filter(Boolean);
     
-    highlights.forEach((highlight, index) => {
-      if (highlight.length > 2 && !highlight.includes("機上") && !highlight.includes("自理")) {
+    attractionsList.forEach((attraction, index) => {
+      if (attraction.length > 1) {
         attractions.push({
           id: `${day.id}-${index}`,
-          name: highlight,
+          name: attraction,
           dayNo: day.dayNo,
           date: day.date,
           cityArea: day.cityArea || "",

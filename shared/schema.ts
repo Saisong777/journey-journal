@@ -23,6 +23,7 @@ export const tripDays = pgTable("trip_days", {
   cityArea: text("city_area"),
   title: text("title"),
   highlights: text("highlights"),
+  attractions: text("attractions"),
   bibleRefs: text("bible_refs"),
   breakfast: text("breakfast"),
   lunch: text("lunch"),
