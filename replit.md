@@ -22,6 +22,11 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 - **Trip Data Import**: Imported 16-day Turkey-Greece pilgrimage itinerary
   - Complete with Bible references, highlights, meals, and lodging
 - **New API Endpoint**: Added `/api/trip-days/today` for today's schedule
+- **Dynamic Attractions Page**: Attractions now display based on trip itinerary
+  - Parses highlights from trip_days to extract attractions
+  - Filters by day number
+  - Shows Bible references and location for each attraction
+  - Only displays attractions from current trip
 - **Token-based authentication**: Replaced cookie-based sessions with JWT-like tokens stored in localStorage to bypass Replit iframe third-party cookie restrictions
 - **Interactive Map**: Implemented real-time team member location tracking with Leaflet maps
   - Real OpenStreetMap integration
