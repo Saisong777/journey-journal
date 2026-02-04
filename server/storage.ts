@@ -307,6 +307,41 @@ export class DatabaseStorage implements IStorage {
   async getAllProfiles(): Promise<Profile[]> {
     return db.select().from(profiles);
   }
+
+  async getUserLocation(userId: string): Promise<UserLocation | undefined> {
+    const [location] = await db.select().from(userLocations).where(eq(userLocations.userId, userId));
+    return location;
+  }
+
+  async getLocationsByTrip(tripId: string): Promise<(UserLocation & { profile?: Profile })[]> {
+    const locations = await db.select().from(userLocations).where(eq(userLocations.tripId, tripId));
+    const profilesList = await this.getAllProfiles();
+    const profileMap = new Map(profilesList.map((p) => [p.userId, p]));
+    
+    return locations.map((loc) => ({
+      ...loc,
+      profile: profileMap.get(loc.userId),
+    }));
+  }
+
+  async updateUserLocation(userId: string, tripId: string, latitude: number, longitude: number): Promise<UserLocation> {
+    const existing = await this.getUserLocation(userId);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(userLocations)
+        .set({ latitude, longitude, updatedAt: new Date() })
+        .where(eq(userLocations.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(userLocations)
+        .values({ userId, tripId, latitude, longitude })
+        .returning();
+      return created;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

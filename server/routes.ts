@@ -551,4 +551,48 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to remove favorite" });
     }
   });
+
+  // Location endpoints
+  app.get("/api/locations", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const locations = await storage.getLocationsByTrip(userRole.tripId);
+      res.json(locations);
+    } catch (error) {
+      console.error("Failed to get locations:", error);
+      res.status(500).json({ error: "Failed to get locations" });
+    }
+  });
+
+  app.post("/api/locations", requireAuth, async (req, res) => {
+    try {
+      const { latitude, longitude } = req.body;
+      if (typeof latitude !== "number" || typeof longitude !== "number") {
+        return res.status(400).json({ error: "Invalid coordinates" });
+      }
+      
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.status(400).json({ error: "No trip assigned" });
+      }
+      
+      const location = await storage.updateUserLocation(req.userId!, userRole.tripId, latitude, longitude);
+      res.json(location);
+    } catch (error) {
+      console.error("Failed to update location:", error);
+      res.status(500).json({ error: "Failed to update location" });
+    }
+  });
+
+  app.get("/api/my-location", requireAuth, async (req, res) => {
+    try {
+      const location = await storage.getUserLocation(req.userId!);
+      res.json(location || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get location" });
+    }
+  });
 }

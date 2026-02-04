@@ -6,7 +6,16 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
-## Recent Changes (February 2, 2026)
+## Recent Changes (February 4, 2026)
+- **Token-based authentication**: Replaced cookie-based sessions with JWT-like tokens stored in localStorage to bypass Replit iframe third-party cookie restrictions
+- **Interactive Map**: Implemented real-time team member location tracking with Leaflet maps
+  - Real OpenStreetMap integration
+  - Share location button using browser Geolocation API
+  - Auto-refresh every 30 seconds
+  - Visual markers for team members with popup info
+- **Location API endpoints**: Added `/api/locations`, `/api/my-location` for location tracking
+
+### Previous Changes (February 2, 2026)
 - Fixed duplicate `/api/trip` route in routes.ts
 - Standardized all field names to camelCase throughout the codebase
 - Fixed AdminMembers.tsx to use camelCase field references (userId, tripId, groupId, profileId)
@@ -19,7 +28,7 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ### Migration Summary
 - Completely removed all Supabase dependencies (`@supabase/supabase-js`)
 - Deleted all Supabase-related configuration files and migration folders
-- Implemented session-based authentication with Express sessions
+- Implemented token-based authentication (tokens stored in localStorage, sent via Authorization header)
 - Created Drizzle ORM schema matching original Supabase structure
 - Built RESTful API endpoints for all features
 - Updated all frontend hooks to use fetch API instead of Supabase client
