@@ -22,7 +22,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTrips from "./pages/admin/AdminTrips";
 import AdminTripDays from "./pages/admin/AdminTripDays";
 import AdminDevotionals from "./pages/admin/AdminDevotionals";
+import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminMembers from "./pages/admin/AdminMembers";
+import VerifyTrip from "./pages/VerifyTrip";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -35,6 +37,14 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/verify-trip"
+              element={
+                <ProtectedRoute skipTripCheck>
+                  <VerifyTrip />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/"
               element={
@@ -153,6 +163,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminDevotionals />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/invitations"
+              element={
+                <AdminRoute>
+                  <AdminInvitations />
                 </AdminRoute>
               }
             />

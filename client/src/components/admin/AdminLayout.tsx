@@ -6,6 +6,7 @@ import {
   Users, 
   CalendarDays,
   BookOpen,
+  Ticket,
   ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navItems = [
   { path: "/admin/trips", label: "旅程管理", icon: Map },
   { path: "/admin/trip-days", label: "每日行程", icon: CalendarDays },
   { path: "/admin/devotionals", label: "靈修管理", icon: BookOpen },
+  { path: "/admin/invitations", label: "邀請碼管理", icon: Ticket },
   { path: "/admin/members", label: "會員管理", icon: Users },
 ];
 

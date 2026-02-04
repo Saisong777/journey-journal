@@ -81,16 +81,12 @@ export function registerRoutes(app: Express) {
       
       await storage.createProfile({ userId: user.id, name, email });
       
-      // Auto-assign new user to the first available trip as a member
-      const trips = await storage.getTrips();
-      if (trips.length > 0) {
-        await storage.createUserRole({
-          userId: user.id,
-          tripId: trips[0].id,
-          role: "member",
-        });
-        console.log(`Auto-assigned user ${email} to trip ${trips[0].title}`);
-      }
+      // Create user role without trip assignment - user must use invitation code to join a trip
+      await storage.createUserRole({
+        userId: user.id,
+        tripId: null,
+        role: "member",
+      });
       
       // Generate auth token
       const token = generateToken();
@@ -124,24 +120,15 @@ export function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Check if user has a role with a trip, if not auto-assign
+      // User must use invitation code to join a trip - no auto-assignment
       const userRole = await storage.getUserRole(user.id);
-      if (!userRole || !userRole.tripId) {
-        const trips = await storage.getTrips();
-        if (trips.length > 0) {
-          if (!userRole) {
-            await storage.createUserRole({
-              userId: user.id,
-              tripId: trips[0].id,
-              role: "member",
-            });
-            console.log(`Auto-assigned existing user ${email} to trip ${trips[0].title}`);
-          } else {
-            // User has a role but no trip, update the role with trip
-            await storage.updateUserRoleTrip(userRole.id, trips[0].id);
-            console.log(`Updated user ${email} role to include trip ${trips[0].title}`);
-          }
-        }
+      if (!userRole) {
+        // Create role without trip for legacy users who don't have a role yet
+        await storage.createUserRole({
+          userId: user.id,
+          tripId: null,
+          role: "member",
+        });
       }
 
       // Generate auth token
@@ -732,6 +719,131 @@ export function registerRoutes(app: Express) {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete devotional course" });
+    }
+  });
+
+  // Trip Invitations Admin endpoints
+  app.get("/api/admin/trip-invitations", requireAdmin, async (req, res) => {
+    try {
+      const invitations = await storage.getAllTripInvitations();
+      res.json(invitations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch trip invitations" });
+    }
+  });
+
+  app.get("/api/admin/trips/:tripId/invitations", requireAdmin, async (req, res) => {
+    try {
+      const invitations = await storage.getTripInvitations(req.params.tripId);
+      res.json(invitations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch trip invitations" });
+    }
+  });
+
+  app.post("/api/admin/trips/:tripId/invitations", requireAdmin, async (req, res) => {
+    try {
+      const { description, maxUses, expiresAt } = req.body;
+      const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+      
+      const invitation = await storage.createTripInvitation({
+        tripId: req.params.tripId,
+        code,
+        description,
+        maxUses: maxUses || null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        isActive: true,
+      });
+      res.json(invitation);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create invitation" });
+    }
+  });
+
+  app.patch("/api/admin/trip-invitations/:id", requireAdmin, async (req, res) => {
+    try {
+      const invitation = await storage.updateTripInvitation(req.params.id, req.body);
+      res.json(invitation);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update invitation" });
+    }
+  });
+
+  app.delete("/api/admin/trip-invitations/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteTripInvitation(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete invitation" });
+    }
+  });
+
+  // User verification endpoint - verify invitation code and join trip
+  app.post("/api/verify-invitation", requireAuth, async (req, res) => {
+    try {
+      const { code } = req.body;
+      if (!code) {
+        return res.status(400).json({ error: "驗證碼不可為空" });
+      }
+
+      const invitation = await storage.getTripInvitationByCode(code.toUpperCase());
+      if (!invitation) {
+        return res.status(404).json({ error: "驗證碼無效" });
+      }
+
+      if (!invitation.isActive) {
+        return res.status(400).json({ error: "此驗證碼已停用" });
+      }
+
+      if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "此驗證碼已過期" });
+      }
+
+      if (invitation.maxUses && invitation.usedCount >= invitation.maxUses) {
+        return res.status(400).json({ error: "此驗證碼已達使用上限" });
+      }
+
+      // Check if user already has a role for this trip
+      const existingRole = await storage.getUserRole(req.userId!);
+      if (existingRole && existingRole.tripId === invitation.tripId) {
+        return res.status(400).json({ error: "您已加入此旅程" });
+      }
+
+      // Update or create user role for this trip
+      if (existingRole) {
+        await storage.updateUserRoleTrip(existingRole.id, invitation.tripId);
+      } else {
+        await storage.createUserRole({
+          userId: req.userId!,
+          role: "member",
+          tripId: invitation.tripId,
+        });
+      }
+
+      // Increment used count
+      await storage.incrementInvitationUsedCount(invitation.id);
+
+      // Get the trip info to return
+      const trip = await storage.getTrip(invitation.tripId);
+
+      res.json({ success: true, trip, message: "成功加入旅程！" });
+    } catch (error) {
+      console.error("Failed to verify invitation:", error);
+      res.status(500).json({ error: "驗證失敗，請稍後再試" });
+    }
+  });
+
+  // Check if user needs to verify (no trip assigned)
+  app.get("/api/check-trip-status", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.json({ needsVerification: true });
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      res.json({ needsVerification: false, trip });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check trip status" });
     }
   });
 }

@@ -7,6 +7,12 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (February 4, 2026)
+- **Trip Invitation Code System**: Users join trips via verification codes
+  - New `trip_invitations` database table with code, max uses, expiration support
+  - Admin interface: `/admin/invitations` for creating/managing invitation codes
+  - User verification page: `/verify-trip` for entering invitation codes
+  - Auto-redirect: Users without a trip are redirected to verification page
+  - API endpoints: `/api/verify-invitation`, `/api/check-trip-status`, admin CRUD
 - **Devotional Course Management**: Admin interface for creating devotional content per trip
   - New `devotional_courses` database table with title, scripture, reflection, action, prayer fields
   - CRUD API endpoints: `/api/admin/trips/:tripId/devotional-courses`

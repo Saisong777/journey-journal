@@ -448,6 +448,101 @@ export function useTripDayMutations(tripId: string | null) {
   return { createTripDay, updateTripDay, deleteTripDay };
 }
 
+export interface TripInvitation {
+  id: string;
+  tripId: string;
+  code: string;
+  description: string | null;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export function useTripInvitations(tripId: string | null) {
+  return useQuery<TripInvitation[]>({
+    queryKey: ["admin-trip-invitations", tripId],
+    queryFn: async () => {
+      if (!tripId) return [];
+      const response = await fetch(`/api/admin/trips/${tripId}/invitations`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch trip invitations");
+      }
+      return response.json();
+    },
+    enabled: !!tripId,
+  });
+}
+
+export function useTripInvitationMutations(tripId: string | null) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createInvitation = useMutation({
+    mutationFn: async (data: { description: string | null; maxUses: number | null; expiresAt: string | null }) => {
+      const response = await fetch(`/api/admin/trips/${tripId}/invitations`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create invitation");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-invitations", tripId] });
+      toast({ title: "邀請碼已建立" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "建立失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateInvitation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<TripInvitation> & { id: string }) => {
+      const response = await fetch(`/api/admin/trip-invitations/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update invitation");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-invitations", tripId] });
+      toast({ title: "邀請碼已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteInvitation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/trip-invitations/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete invitation");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-invitations", tripId] });
+      toast({ title: "邀請碼已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { createInvitation, updateInvitation, deleteInvitation };
+}
+
 export interface DevotionalCourse {
   id: string;
   tripId: string;

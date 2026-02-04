@@ -13,6 +13,7 @@ import {
   attractionFavorites,
   userLocations,
   devotionalCourses,
+  tripInvitations,
   type User,
   type Profile,
   type Trip,
@@ -25,6 +26,7 @@ import {
   type AttractionFavorite,
   type UserLocation,
   type DevotionalCourse,
+  type TripInvitation,
   type InsertUser,
   type InsertProfile,
   type InsertTrip,
@@ -36,6 +38,7 @@ import {
   type InsertDevotionalEntry,
   type InsertAttractionFavorite,
   type InsertDevotionalCourse,
+  type InsertTripInvitation,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -96,6 +99,15 @@ export interface IStorage {
   createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
   updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
   deleteDevotionalCourse(id: string): Promise<void>;
+
+  getTripInvitations(tripId: string): Promise<TripInvitation[]>;
+  getAllTripInvitations(): Promise<TripInvitation[]>;
+  getTripInvitation(id: string): Promise<TripInvitation | undefined>;
+  getTripInvitationByCode(code: string): Promise<TripInvitation | undefined>;
+  createTripInvitation(invitation: InsertTripInvitation): Promise<TripInvitation>;
+  updateTripInvitation(id: string, invitation: Partial<InsertTripInvitation>): Promise<TripInvitation | undefined>;
+  incrementInvitationUsedCount(id: string): Promise<void>;
+  deleteTripInvitation(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -413,6 +425,52 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDevotionalCourse(id: string): Promise<void> {
     await db.delete(devotionalCourses).where(eq(devotionalCourses.id, id));
+  }
+
+  async getTripInvitations(tripId: string): Promise<TripInvitation[]> {
+    return db.select().from(tripInvitations).where(eq(tripInvitations.tripId, tripId)).orderBy(desc(tripInvitations.createdAt));
+  }
+
+  async getAllTripInvitations(): Promise<TripInvitation[]> {
+    return db.select().from(tripInvitations).orderBy(desc(tripInvitations.createdAt));
+  }
+
+  async getTripInvitation(id: string): Promise<TripInvitation | undefined> {
+    const [invitation] = await db.select().from(tripInvitations).where(eq(tripInvitations.id, id));
+    return invitation;
+  }
+
+  async getTripInvitationByCode(code: string): Promise<TripInvitation | undefined> {
+    const [invitation] = await db.select().from(tripInvitations).where(eq(tripInvitations.code, code));
+    return invitation;
+  }
+
+  async createTripInvitation(invitation: InsertTripInvitation): Promise<TripInvitation> {
+    const [created] = await db.insert(tripInvitations).values(invitation).returning();
+    return created;
+  }
+
+  async updateTripInvitation(id: string, invitation: Partial<InsertTripInvitation>): Promise<TripInvitation | undefined> {
+    const [updated] = await db
+      .update(tripInvitations)
+      .set(invitation)
+      .where(eq(tripInvitations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async incrementInvitationUsedCount(id: string): Promise<void> {
+    const invitation = await this.getTripInvitation(id);
+    if (invitation) {
+      await db
+        .update(tripInvitations)
+        .set({ usedCount: invitation.usedCount + 1 })
+        .where(eq(tripInvitations.id, id));
+    }
+  }
+
+  async deleteTripInvitation(id: string): Promise<void> {
+    await db.delete(tripInvitations).where(eq(tripInvitations.id, id));
   }
 }
 
