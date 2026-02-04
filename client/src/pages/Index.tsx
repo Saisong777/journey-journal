@@ -1,4 +1,3 @@
-import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { TripCard } from "@/components/ui/TripCard";
 import { QuickActions } from "@/components/home/QuickActions";
@@ -46,10 +45,22 @@ function formatDateRange(startDate: string, endDate: string): string {
 
 function calculateDayNumber(startDate: string): number {
   const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const diffTime = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, diffDays);
+  return diffDays;
+}
+
+function calculateCountdown(startDate: string): number {
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffTime = start.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 }
 
 function getGreeting(): string {
@@ -103,12 +114,12 @@ const Index = () => {
   });
 
   const dayNumber = trip?.startDate ? calculateDayNumber(trip.startDate) : 1;
+  const countdown = trip?.startDate ? calculateCountdown(trip.startDate) : 0;
+  const isTripStarted = dayNumber >= 1;
   const currentCity = todaySchedule?.cityArea || "準備中";
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <Header />
-      
       <main className="px-4 py-6 max-w-lg mx-auto space-y-8 animate-fade-in">
         {tripLoading ? (
           <section className="text-center space-y-2">
@@ -120,9 +131,15 @@ const Index = () => {
           <section className="text-center space-y-2">
             <p className="text-muted-foreground text-body">{getGreeting()}</p>
             <h1 className="text-display text-foreground" data-testid="text-trip-title">{trip.title}</h1>
-            <p className="text-body-lg text-muted-foreground" data-testid="text-day-info">
-              第 {dayNumber} 天 · {currentCity}
-            </p>
+            {isTripStarted ? (
+              <p className="text-body-lg text-muted-foreground" data-testid="text-day-info">
+                第 {dayNumber} 天 · {currentCity}
+              </p>
+            ) : (
+              <p className="text-body-lg text-primary font-medium" data-testid="text-countdown">
+                平安旅者，距離旅遊時間還有倒數 {countdown} 天
+              </p>
+            )}
           </section>
         ) : (
           <section className="text-center space-y-2">
