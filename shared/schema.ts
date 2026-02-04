@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,6 +11,29 @@ export const trips = pgTable("trips", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   coverImageUrl: text("cover_image_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const tripDays = pgTable("trip_days", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  dayNo: integer("day_no").notNull(),
+  date: date("date").notNull(),
+  cityArea: text("city_area"),
+  title: text("title"),
+  highlights: text("highlights"),
+  bibleRefs: text("bible_refs"),
+  breakfast: text("breakfast"),
+  lunch: text("lunch"),
+  dinner: text("dinner"),
+  lodging: text("lodging"),
+  lodgingLevel: text("lodging_level"),
+  transport: text("transport"),
+  freeTimeFlag: boolean("free_time_flag").default(false),
+  shoppingFlag: boolean("shopping_flag").default(false),
+  mustKnow: text("must_know"),
+  notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -103,6 +126,7 @@ export const attractionFavorites = pgTable("attraction_favorites", {
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripSchema = createInsertSchema(trips).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTripDaySchema = createInsertSchema(tripDays).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertGroupSchema = createInsertSchema(groups).omit({ id: true, createdAt: true });
 export const insertUserRoleSchema = createInsertSchema(userRoles).omit({ id: true });
 export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({ id: true, createdAt: true, updatedAt: true });
@@ -113,6 +137,7 @@ export const insertAttractionFavoriteSchema = createInsertSchema(attractionFavor
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
+export type InsertTripDay = z.infer<typeof insertTripDaySchema>;
 export type InsertGroup = z.infer<typeof insertGroupSchema>;
 export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
@@ -123,6 +148,7 @@ export type InsertAttractionFavorite = z.infer<typeof insertAttractionFavoriteSc
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
+export type TripDay = typeof tripDays.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type UserRole = typeof userRoles.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
