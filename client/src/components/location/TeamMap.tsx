@@ -35,6 +35,7 @@ interface TeamMapProps {
   locations: MemberLocation[];
   myUserId?: string;
   center?: [number, number];
+  myPosition?: [number, number] | null;
 }
 
 function MapUpdater({ center }: { center: [number, number] }) {
@@ -67,7 +68,30 @@ function formatTimeAgo(dateString: string): string {
   return `${diffDays} 天前`;
 }
 
-export function TeamMap({ locations, myUserId, center }: TeamMapProps) {
+const currentPositionIcon = L.divIcon({
+  className: "current-position-marker",
+  html: `<div style="
+    width: 20px;
+    height: 20px;
+    background: #22c55e;
+    border: 4px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+    animation: pulse 2s infinite;
+  "></div>
+  <style>
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4), 0 2px 8px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.1), 0 2px 8px rgba(0,0,0,0.3); }
+      100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4), 0 2px 8px rgba(0,0,0,0.3); }
+    }
+  </style>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  popupAnchor: [0, -10],
+});
+
+export function TeamMap({ locations, myUserId, center, myPosition }: TeamMapProps) {
   const defaultCenter: [number, number] = center || [31.7683, 35.2137];
 
   return (
@@ -83,6 +107,17 @@ export function TeamMap({ locations, myUserId, center }: TeamMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapUpdater center={defaultCenter} />
+        
+        {myPosition && (
+          <Marker position={myPosition} icon={currentPositionIcon}>
+            <Popup>
+              <div className="text-center">
+                <p className="font-semibold">您的位置</p>
+                <p className="text-xs text-gray-500">即時定位</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
         
         {locations.map((loc) => {
           const isMe = loc.userId === myUserId;

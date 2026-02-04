@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -35,11 +35,28 @@ export default function Location() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [myPosition, setMyPosition] = useState<[number, number] | null>(null);
+  const autoLocatedRef = useRef(false);
   
   const { data: locations = [], refetch, isLoading } = useLocations();
   const updateLocation = useUpdateLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (autoLocatedRef.current || !navigator.geolocation) return;
+    autoLocatedRef.current = true;
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setMyPosition([position.coords.latitude, position.coords.longitude]);
+      },
+      () => {
+        setMyPosition([31.7683, 35.2137]);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 300000 }
+    );
+  }, []);
 
   const membersWithLocation: MemberLocationData[] = locations.map((loc) => ({
     id: loc.id,
@@ -127,9 +144,8 @@ export default function Location() {
     );
   };
 
-  const mapCenter: [number, number] | undefined = locations.length > 0
-    ? [locations[0].latitude, locations[0].longitude]
-    : [31.7683, 35.2137];
+  const mapCenter: [number, number] = myPosition 
+    || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : [31.7683, 35.2137]);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -207,22 +223,24 @@ export default function Location() {
 
         {viewMode === "map" && (
           <section className="space-y-4">
-            {isLoading ? (
+            {isLoading && !myPosition ? (
               <div className="w-full h-72 rounded-lg bg-muted flex items-center justify-center">
                 <RefreshCw className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : locations.length === 0 ? (
-              <div className="w-full h-72 rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground">
-                <MapPin className="w-12 h-12 mb-3 opacity-50" />
-                <p className="text-body">尚無團員位置資料</p>
-                <p className="text-caption">點擊「分享位置」開始追蹤</p>
-              </div>
             ) : (
-              <TeamMap 
-                locations={locations} 
-                myUserId={user?.id}
-                center={mapCenter}
-              />
+              <>
+                <TeamMap 
+                  locations={locations} 
+                  myUserId={user?.id}
+                  center={mapCenter}
+                  myPosition={myPosition}
+                />
+                {locations.length === 0 && (
+                  <div className="bg-primary/10 rounded-lg p-3 text-center">
+                    <p className="text-caption text-primary">點擊「分享位置」讓團員看到您的位置</p>
+                  </div>
+                )}
+              </>
             )}
             
             {filteredMembers.length > 0 && (
