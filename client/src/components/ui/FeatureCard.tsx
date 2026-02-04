@@ -29,8 +29,8 @@ export function FeatureCard({
     <button
       onClick={onClick}
       className={cn(
-        "w-full p-6 rounded-lg transition-all duration-300",
-        "flex flex-col items-center text-center gap-4",
+        "w-full p-4 rounded-lg transition-all duration-300",
+        "flex flex-col items-center text-center gap-2",
         "touch-target shadow-card hover:shadow-elevated",
         "active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         variantStyles[variant],
@@ -38,15 +38,15 @@ export function FeatureCard({
       )}
     >
       <div className={cn(
-        "w-16 h-16 rounded-full flex items-center justify-center",
+        "w-10 h-10 rounded-full flex items-center justify-center",
         variant === "secondary" ? "bg-primary/10" : "bg-white/20"
       )}>
-        <Icon className="w-8 h-8" strokeWidth={1.5} />
+        <Icon className="w-5 h-5" strokeWidth={1.5} />
       </div>
-      <div className="space-y-1">
-        <h3 className="text-title">{title}</h3>
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-medium">{title}</h3>
         <p className={cn(
-          "text-caption",
+          "text-xs",
           variant === "secondary" ? "text-muted-foreground" : "opacity-90"
         )}>
           {description}

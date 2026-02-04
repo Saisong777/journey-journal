@@ -1,5 +1,4 @@
 import { BottomNav } from "@/components/ui/BottomNav";
-import { TripCard } from "@/components/ui/TripCard";
 import { QuickActions } from "@/components/home/QuickActions";
 import { TodaySchedule } from "@/components/home/TodaySchedule";
 import { DailyDevotional } from "@/components/home/DailyDevotional";
@@ -151,21 +150,9 @@ const Index = () => {
           </section>
         )}
 
-        {tripLoading ? (
-          <Skeleton className="h-32 w-full rounded-lg" />
-        ) : trip ? (
-          <TripCard
-            title={trip.title}
-            destination={trip.destination || ""}
-            dateRange={formatDateRange(trip.startDate, trip.endDate)}
-            memberCount={memberCount || 0}
-            isActive
-          />
-        ) : null}
+        <DailyDevotional bibleRefs={todaySchedule?.bibleRefs} />
 
         <TodaySchedule todaySchedule={todaySchedule} isLoading={scheduleLoading} />
-
-        <DailyDevotional bibleRefs={todaySchedule?.bibleRefs} />
 
         <QuickActions />
       </main>
