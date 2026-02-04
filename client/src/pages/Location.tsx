@@ -43,18 +43,33 @@ export default function Location() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(true);
+
   useEffect(() => {
-    if (autoLocatedRef.current || !navigator.geolocation) return;
+    if (autoLocatedRef.current) return;
     autoLocatedRef.current = true;
     
+    if (!navigator.geolocation) {
+      setLocationError("您的瀏覽器不支援定位功能");
+      setIsGettingLocation(false);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setMyPosition([position.coords.latitude, position.coords.longitude]);
+        setIsGettingLocation(false);
       },
-      () => {
-        setMyPosition([31.7683, 35.2137]);
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("請允許存取您的位置以使用地圖功能");
+        } else {
+          setLocationError("無法取得您的位置，請確認定位功能已開啟");
+        }
+        setIsGettingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   }, []);
 
@@ -144,8 +159,8 @@ export default function Location() {
     );
   };
 
-  const mapCenter: [number, number] = myPosition 
-    || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : [31.7683, 35.2137]);
+  const mapCenter: [number, number] | null = myPosition 
+    || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : null);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -223,11 +238,26 @@ export default function Location() {
 
         {viewMode === "map" && (
           <section className="space-y-4">
-            {isLoading && !myPosition ? (
-              <div className="w-full h-72 rounded-lg bg-muted flex items-center justify-center">
-                <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+            {isGettingLocation ? (
+              <div className="w-full h-72 rounded-lg bg-muted flex flex-col items-center justify-center">
+                <RefreshCw className="w-8 h-8 animate-spin text-primary mb-3" />
+                <p className="text-caption text-muted-foreground">正在取得您的位置...</p>
               </div>
-            ) : (
+            ) : locationError && !mapCenter ? (
+              <div className="w-full h-72 rounded-lg bg-muted flex flex-col items-center justify-center text-center p-6">
+                <MapPin className="w-12 h-12 text-destructive mb-3" />
+                <p className="text-body font-medium text-destructive mb-2">定位失敗</p>
+                <p className="text-caption text-muted-foreground mb-4">{locationError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  data-testid="button-retry-location"
+                >
+                  重新嘗試
+                </Button>
+              </div>
+            ) : mapCenter ? (
               <>
                 <TeamMap 
                   locations={locations} 
@@ -241,7 +271,7 @@ export default function Location() {
                   </div>
                 )}
               </>
-            )}
+            ) : null}
             
             {filteredMembers.length > 0 && (
               <div className="space-y-3">
