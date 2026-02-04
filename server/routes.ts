@@ -54,7 +54,13 @@ export function registerRoutes(app: Express) {
       }
       
       req.session.userId = user.id;
-      res.json({ user: { id: user.id, email: user.email } });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Session save failed" });
+        }
+        res.json({ user: { id: user.id, email: user.email } });
+      });
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ error: "Registration failed" });
@@ -96,7 +102,13 @@ export function registerRoutes(app: Express) {
       }
 
       req.session.userId = user.id;
-      res.json({ user: { id: user.id, email: user.email } });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Session save failed" });
+        }
+        res.json({ user: { id: user.id, email: user.email } });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });

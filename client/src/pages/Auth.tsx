@@ -14,7 +14,7 @@ type AuthView = "main" | "forgot-password";
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshSession } = useAuth();
+  const { setUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<AuthView>("main");
   
@@ -55,7 +55,7 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
-        await refreshSession();
+        setUser(data.user);
         toast({
           title: "登入成功",
           description: "歡迎回來！",
@@ -117,7 +117,7 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
-        await refreshSession();
+        setUser(data.user);
         toast({
           title: "註冊成功！",
           description: "歡迎加入！",
