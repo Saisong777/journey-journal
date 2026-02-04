@@ -7,6 +7,21 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (February 4, 2026)
+- **Dynamic Homepage**: Connected homepage to real database data
+  - Fetches current trip info, today's schedule, and member count
+  - Dynamic greetings based on time of day
+  - Real-time trip card with actual dates and member count
+- **Daily Itinerary Display**: TodaySchedule component shows real trip day data
+  - Parses highlights into schedule items with times
+  - Shows meals (breakfast, lunch, dinner) and lodging
+  - Highlights the next upcoming activity
+- **Daily Devotional**: Shows Bible references from current trip day
+- **Trip Days Management**: Admin interface for managing daily itineraries
+  - CRUD operations for trip days
+  - CSV-based data structure support
+- **Trip Data Import**: Imported 16-day Turkey-Greece pilgrimage itinerary
+  - Complete with Bible references, highlights, meals, and lodging
+- **New API Endpoint**: Added `/api/trip-days/today` for today's schedule
 - **Token-based authentication**: Replaced cookie-based sessions with JWT-like tokens stored in localStorage to bypass Replit iframe third-party cookie restrictions
 - **Interactive Map**: Implemented real-time team member location tracking with Leaflet maps
   - Real OpenStreetMap integration
