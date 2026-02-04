@@ -472,6 +472,51 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get today's trip day based on current date
+  app.get("/api/trip-days/today", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json(null);
+      }
+      const days = await storage.getTripDays(userRole.tripId);
+      
+      // Guard against empty days array
+      if (!days || days.length === 0) {
+        return res.json(null);
+      }
+      
+      // Use local date (YYYY-MM-DD format) for comparison
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      
+      // Find today's schedule
+      const todaySchedule = days.find(d => d.date === today);
+      if (todaySchedule) {
+        return res.json({ ...todaySchedule, dayNumber: todaySchedule.dayNo });
+      }
+      
+      // If trip hasn't started yet, return first day
+      const trip = await storage.getTrip(userRole.tripId);
+      if (trip && trip.startDate && today < trip.startDate) {
+        const firstDay = days.find(d => d.dayNo === 1);
+        return res.json(firstDay ? { ...firstDay, dayNumber: 1, isPreTrip: true } : null);
+      }
+      
+      // If trip has ended, return last day
+      if (trip && trip.endDate && today > trip.endDate) {
+        const lastDay = days.reduce((max, d) => d.dayNo > max.dayNo ? d : max, days[0]);
+        return res.json(lastDay ? { ...lastDay, dayNumber: lastDay.dayNo, isPostTrip: true } : null);
+      }
+      
+      // Return first day as fallback
+      const firstDay = days.find(d => d.dayNo === 1);
+      res.json(firstDay ? { ...firstDay, dayNumber: 1 } : null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get today's schedule" });
+    }
+  });
+
   app.get("/api/admin/profiles", requireAdmin, async (req, res) => {
     try {
       const profileList = await storage.getAllProfiles();
