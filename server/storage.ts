@@ -80,6 +80,7 @@ export interface IStorage {
   getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
   getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
   createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
+  updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined>;
   deleteJournalEntry(id: string): Promise<void>;
 
   createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto>;
@@ -322,6 +323,15 @@ export class DatabaseStorage implements IStorage {
   async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
     const [created] = await db.insert(journalEntries).values(entry).returning();
     return created;
+  }
+
+  async updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined> {
+    const [updated] = await db
+      .update(journalEntries)
+      .set({ ...entry, updatedAt: new Date() })
+      .where(eq(journalEntries.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteJournalEntry(id: string): Promise<void> {

@@ -100,6 +100,52 @@ export function useCreateJournalEntry() {
   });
 }
 
+export function useUpdateJournalEntry() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      content,
+      location,
+    }: {
+      id: string;
+      title?: string;
+      content?: string;
+      location?: string;
+    }) => {
+      const response = await fetch(`/api/journal-entries/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: getHeaders(),
+        body: JSON.stringify({ title, content, location }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update journal entry");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({
+        title: "成功",
+        description: "日誌已更新",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating journal entry:", error);
+      toast({
+        title: "錯誤",
+        description: "更新日誌時發生錯誤",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useDeleteJournalEntry() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

@@ -303,6 +303,20 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/journal-entries/:id", requireAuth, async (req, res) => {
+    try {
+      const { title, content, location } = req.body;
+      const entry = await storage.updateJournalEntry(req.params.id, {
+        title,
+        content,
+        location,
+      });
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update journal entry" });
+    }
+  });
+
   app.delete("/api/journal-entries/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteJournalEntry(req.params.id);

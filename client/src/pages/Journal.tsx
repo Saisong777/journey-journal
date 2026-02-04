@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntry";
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
-import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry } from "@/hooks/useJournalEntries";
+import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
 import { useTrip } from "@/hooks/useTrip";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfDay, parseISO } from "date-fns";
@@ -35,6 +35,7 @@ export default function Journal() {
   );
   const createEntry = useCreateJournalEntry();
   const deleteEntry = useDeleteJournalEntry();
+  const updateEntry = useUpdateJournalEntry();
 
   // Generate days based on trip dates or current week
   const days = useMemo(() => {
@@ -83,6 +84,17 @@ export default function Journal() {
   const handleDeleteEntry = async (id: string) => {
     await deleteEntry.mutateAsync(id);
     setViewingEntry(null);
+  };
+
+  const handleUpdateEntry = async (id: string, data: { content: string; location: string }) => {
+    await updateEntry.mutateAsync({
+      id,
+      content: data.content,
+      location: data.location,
+      title: data.location || "日誌",
+    });
+    // Update the viewing entry with new data
+    setViewingEntry(prev => prev ? { ...prev, content: data.content, location: data.location } : null);
   };
 
   const handleEntryClick = (entry: JournalEntryData) => {
@@ -231,6 +243,7 @@ export default function Journal() {
         open={!!viewingEntry}
         onOpenChange={(open) => !open && setViewingEntry(null)}
         onDelete={handleDeleteEntry}
+        onUpdate={handleUpdateEntry}
       />
 
       <BottomNav />
