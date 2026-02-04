@@ -1,37 +1,13 @@
 import express from "express";
-import session from "express-session";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
-import { pool } from "./db";
-import connectPgSimple from "connect-pg-simple";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-const PgStore = connectPgSimple(session);
-
-app.use(
-  session({
-    store: new PgStore({
-      pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || "trip-companion-secret-key-change-in-production",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      sameSite: 'none',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      partitioned: true,
-    } as any,
-  })
-);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -64,6 +40,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Setup Replit Auth (BEFORE other routes)
+  await setupAuth(app);
+  registerAuthRoutes(app);
+  
+  // Register application routes
   registerRoutes(app);
 
   const server = createServer(app);
