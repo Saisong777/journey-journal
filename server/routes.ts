@@ -694,4 +694,44 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to get location" });
     }
   });
+
+  // Devotional Courses Admin endpoints
+  app.get("/api/admin/trips/:tripId/devotional-courses", requireAdmin, async (req, res) => {
+    try {
+      const courses = await storage.getDevotionalCourses(req.params.tripId);
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch devotional courses" });
+    }
+  });
+
+  app.post("/api/admin/trips/:tripId/devotional-courses", requireAdmin, async (req, res) => {
+    try {
+      const course = await storage.createDevotionalCourse({
+        ...req.body,
+        tripId: req.params.tripId,
+      });
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create devotional course" });
+    }
+  });
+
+  app.patch("/api/admin/devotional-courses/:id", requireAdmin, async (req, res) => {
+    try {
+      const course = await storage.updateDevotionalCourse(req.params.id, req.body);
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update devotional course" });
+    }
+  });
+
+  app.delete("/api/admin/devotional-courses/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteDevotionalCourse(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete devotional course" });
+    }
+  });
 }

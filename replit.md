@@ -7,6 +7,16 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (February 4, 2026)
+- **Devotional Course Management**: Admin interface for creating devotional content per trip
+  - New `devotional_courses` database table with title, scripture, reflection, action, prayer fields
+  - CRUD API endpoints: `/api/admin/trips/:tripId/devotional-courses`
+  - AdminDevotionals.tsx page with full create/edit/delete functionality
+  - Optional day number assignment for daily devotionals
+- **Homepage Countdown**: Shows "平安旅者，距離旅遊時間還有倒數 X 天" before trip starts
+- **Simplified Homepage**: Removed header (title, bell, menu) and TripCard component
+- **Layout Reorder**: DailyDevotional appears before TodaySchedule
+- **Compact QuickActions**: Smaller, more refined feature cards (p-4, w-10 h-10 icons, text-sm/xs)
+- **Trip Statistics**: Admin trip days page shows flight/cruise/shuttle/meal/attraction counts
 - **Dynamic Homepage**: Connected homepage to real database data
   - Fetches current trip info, today's schedule, and member count
   - Dynamic greetings based on time of day

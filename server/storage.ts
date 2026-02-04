@@ -12,6 +12,7 @@ import {
   devotionalEntries,
   attractionFavorites,
   userLocations,
+  devotionalCourses,
   type User,
   type Profile,
   type Trip,
@@ -23,6 +24,7 @@ import {
   type DevotionalEntry,
   type AttractionFavorite,
   type UserLocation,
+  type DevotionalCourse,
   type InsertUser,
   type InsertProfile,
   type InsertTrip,
@@ -33,6 +35,7 @@ import {
   type InsertJournalPhoto,
   type InsertDevotionalEntry,
   type InsertAttractionFavorite,
+  type InsertDevotionalCourse,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -87,6 +90,12 @@ export interface IStorage {
 
   getMembers(tripId: string): Promise<(Profile & { group?: Group | null; role?: string })[]>;
   getAllProfiles(): Promise<Profile[]>;
+
+  getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]>;
+  getDevotionalCourse(id: string): Promise<DevotionalCourse | undefined>;
+  createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
+  updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
+  deleteDevotionalCourse(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -377,6 +386,33 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]> {
+    return db.select().from(devotionalCourses).where(eq(devotionalCourses.tripId, tripId)).orderBy(asc(devotionalCourses.dayNo));
+  }
+
+  async getDevotionalCourse(id: string): Promise<DevotionalCourse | undefined> {
+    const [course] = await db.select().from(devotionalCourses).where(eq(devotionalCourses.id, id));
+    return course;
+  }
+
+  async createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse> {
+    const [created] = await db.insert(devotionalCourses).values(course).returning();
+    return created;
+  }
+
+  async updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined> {
+    const [updated] = await db
+      .update(devotionalCourses)
+      .set({ ...course, updatedAt: new Date() })
+      .where(eq(devotionalCourses.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDevotionalCourse(id: string): Promise<void> {
+    await db.delete(devotionalCourses).where(eq(devotionalCourses.id, id));
   }
 }
 

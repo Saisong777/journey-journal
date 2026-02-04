@@ -124,6 +124,19 @@ export const attractionFavorites = pgTable("attraction_favorites", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const devotionalCourses = pgTable("devotional_courses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  dayNo: integer("day_no"),
+  title: text("title").notNull(),
+  scripture: text("scripture"),
+  reflection: text("reflection"),
+  action: text("action"),
+  prayer: text("prayer"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripSchema = createInsertSchema(trips).omit({ id: true, createdAt: true, updatedAt: true });
@@ -134,6 +147,7 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit(
 export const insertJournalPhotoSchema = createInsertSchema(journalPhotos).omit({ id: true, createdAt: true });
 export const insertDevotionalEntrySchema = createInsertSchema(devotionalEntries).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAttractionFavoriteSchema = createInsertSchema(attractionFavorites).omit({ id: true, createdAt: true });
+export const insertDevotionalCourseSchema = createInsertSchema(devotionalCourses).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -145,6 +159,7 @@ export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
 export type InsertJournalPhoto = z.infer<typeof insertJournalPhotoSchema>;
 export type InsertDevotionalEntry = z.infer<typeof insertDevotionalEntrySchema>;
 export type InsertAttractionFavorite = z.infer<typeof insertAttractionFavoriteSchema>;
+export type InsertDevotionalCourse = z.infer<typeof insertDevotionalCourseSchema>;
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -157,3 +172,4 @@ export type JournalPhoto = typeof journalPhotos.$inferSelect;
 export type DevotionalEntry = typeof devotionalEntries.$inferSelect;
 export type AttractionFavorite = typeof attractionFavorites.$inferSelect;
 export type UserLocation = typeof userLocations.$inferSelect;
+export type DevotionalCourse = typeof devotionalCourses.$inferSelect;

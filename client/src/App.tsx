@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTrips from "./pages/admin/AdminTrips";
 import AdminTripDays from "./pages/admin/AdminTripDays";
+import AdminDevotionals from "./pages/admin/AdminDevotionals";
 import AdminMembers from "./pages/admin/AdminMembers";
 import NotFound from "./pages/NotFound";
 
@@ -136,6 +137,22 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminTripDays />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/devotionals"
+              element={
+                <AdminRoute>
+                  <AdminDevotionals />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/devotionals/:tripId"
+              element={
+                <AdminRoute>
+                  <AdminDevotionals />
                 </AdminRoute>
               }
             />

@@ -447,3 +447,94 @@ export function useTripDayMutations(tripId: string | null) {
 
   return { createTripDay, updateTripDay, deleteTripDay };
 }
+
+export interface DevotionalCourse {
+  id: string;
+  tripId: string;
+  dayNo: number | null;
+  title: string;
+  scripture: string | null;
+  reflection: string | null;
+  action: string | null;
+  prayer: string | null;
+}
+
+export function useDevotionalCourses(tripId: string | null) {
+  return useQuery<DevotionalCourse[]>({
+    queryKey: ["admin-devotional-courses", tripId],
+    queryFn: async () => {
+      if (!tripId) return [];
+      const response = await fetch(`/api/admin/trips/${tripId}/devotional-courses`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch devotional courses");
+      }
+      return response.json();
+    },
+    enabled: !!tripId,
+  });
+}
+
+export function useDevotionalCourseMutations(tripId: string | null) {
+  const createDevotionalCourse = useMutation({
+    mutationFn: async (course: Omit<DevotionalCourse, "id" | "tripId">) => {
+      const response = await fetch(`/api/admin/trips/${tripId}/devotional-courses`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(course),
+      });
+      if (!response.ok) throw new Error("Failed to create devotional course");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-devotional-courses", tripId] });
+      toast({ title: "靈修課程已建立" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "建立失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateDevotionalCourse = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<DevotionalCourse> & { id: string }) => {
+      const response = await fetch(`/api/admin/devotional-courses/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update devotional course");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-devotional-courses", tripId] });
+      toast({ title: "靈修課程已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteDevotionalCourse = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/devotional-courses/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete devotional course");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-devotional-courses", tripId] });
+      toast({ title: "靈修課程已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { createDevotionalCourse, updateDevotionalCourse, deleteDevotionalCourse };
+}
