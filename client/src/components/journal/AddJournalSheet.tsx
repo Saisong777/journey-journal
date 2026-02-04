@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Camera, Image, MapPin, Smile, Loader2 } from "lucide-react";
+import { X, Camera, Image, MapPin, Smile, Loader2, Upload } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,8 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import { useAuth } from "@/hooks/use-auth";
+import { getAuthToken } from "@/lib/queryClient";
 
 interface AddJournalSheetProps {
   open: boolean;
@@ -31,28 +30,35 @@ const moods = [
 ];
 
 export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetProps) {
-  const { token } = useAuth();
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
-  const [locations, setLocations] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>(["其他景點"]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    if (open && token) {
+    if (open) {
       fetchLocations();
     }
-  }, [open, token]);
+  }, [open]);
 
   const fetchLocations = async () => {
     setIsLoadingLocations(true);
     try {
+      const token = getAuthToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch("/api/trip-days/today/attractions", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
+        headers,
       });
       if (response.ok) {
         const data = await response.json();
@@ -68,11 +74,63 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
     }
   };
 
-  const handlePhotoUploadComplete = (result: { successful: Array<{ response?: { objectPath?: string } }> }) => {
-    const newPhotoPaths = result.successful
-      .map(file => file.response?.objectPath)
-      .filter((path): path is string => !!path);
-    setPhotos(prev => [...prev, ...newPhotoPaths]);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    
+    try {
+      for (const file of Array.from(files)) {
+        const token = getAuthToken();
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        
+        // Step 1: Get presigned URL
+        const urlResponse = await fetch("/api/uploads/request-url", {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            name: file.name,
+            size: file.size,
+            contentType: file.type,
+          }),
+        });
+        
+        if (!urlResponse.ok) {
+          throw new Error("Failed to get upload URL");
+        }
+        
+        const { uploadURL, objectPath } = await urlResponse.json();
+        
+        // Step 2: Upload file directly to the presigned URL
+        const uploadResponse = await fetch(uploadURL, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type,
+          },
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload file");
+        }
+        
+        // Add the object path to photos
+        setPhotos(prev => [...prev, objectPath]);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      e.target.value = "";
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -152,7 +210,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
               {photos.map((photo, index) => (
                 <div key={index} className="relative flex-shrink-0">
                   <img
-                    src={photo.startsWith("http") ? photo : `/api/uploads/public/${photo}`}
+                    src={`/api/uploads/public/${encodeURIComponent(photo)}`}
                     alt={`照片 ${index + 1}`}
                     className="w-24 h-24 object-cover rounded-lg"
                     data-testid={`img-photo-${index}`}
@@ -166,36 +224,25 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
                   </button>
                 </div>
               ))}
-              <ObjectUploader
-                onGetUploadParameters={async (file) => {
-                  const res = await fetch("/api/uploads/request-url", {
-                    method: "POST",
-                    headers: { 
-                      "Content-Type": "application/json",
-                      "Authorization": `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                      name: file.name,
-                      size: file.size,
-                      contentType: file.type,
-                    }),
-                  });
-                  const { uploadURL, objectPath } = await res.json();
-                  return {
-                    method: "PUT" as const,
-                    url: uploadURL,
-                    headers: { "Content-Type": file.type },
-                    body: undefined,
-                    fields: { objectPath },
-                  };
-                }}
-                onComplete={handlePhotoUploadComplete}
-              >
-                <div className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
-                  <Image className="w-6 h-6" />
-                  <span className="text-caption">添加照片</span>
-                </div>
-              </ObjectUploader>
+              <label className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
+                {isUploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6" />
+                    <span className="text-caption">添加照片</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                  data-testid="input-photo-upload"
+                />
+              </label>
             </div>
           </div>
 

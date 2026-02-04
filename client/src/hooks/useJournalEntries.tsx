@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
+import { getAuthToken } from "@/lib/queryClient";
 
 export interface JournalEntryDB {
   id: string;
@@ -20,6 +21,17 @@ export interface JournalEntryDB {
   }>;
 }
 
+function getHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export function useJournalEntries(date?: string) {
   const { data: trip } = useTrip();
 
@@ -29,6 +41,7 @@ export function useJournalEntries(date?: string) {
       const url = date ? `/api/journal-entries?date=${date}` : "/api/journal-entries";
       const response = await fetch(url, {
         credentials: "include",
+        headers: getHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch journal entries");
@@ -58,7 +71,7 @@ export function useCreateJournalEntry() {
 
       const response = await fetch("/api/journal-entries", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         credentials: "include",
         body: JSON.stringify({
           title: entry.title,
@@ -69,6 +82,8 @@ export function useCreateJournalEntry() {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Journal entry creation failed:", errorText);
         throw new Error("Failed to create journal entry");
       }
 
