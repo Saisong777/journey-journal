@@ -63,16 +63,17 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   /**
-   * Serve uploaded objects.
+   * Serve uploaded objects by object path.
    *
-   * GET /api/uploads/public/:objectPath
+   * GET /api/uploads/file/:objectId
    *
-   * This serves files from object storage. For public files, no auth needed.
-   * For protected files, add authentication middleware and ACL checks.
+   * This serves files from the private object storage.
+   * objectId is the UUID of the uploaded file.
    */
-  app.get("/api/uploads/public/:objectPath", async (req, res) => {
+  app.get("/api/uploads/file/:objectId", async (req, res) => {
     try {
-      const objectPath = "/" + req.params.objectPath;
+      const objectId = req.params.objectId;
+      const objectPath = `/objects/uploads/${objectId}`;
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {

@@ -68,10 +68,14 @@ export function JournalEntry({ entry, onClick }: JournalEntryProps) {
       <div className="p-4 space-y-3">
         {/* Location & Time */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <MapPin className="w-4 h-4" />
-            <span className="text-body font-medium">{entry.location}</span>
-          </div>
+          {entry.location ? (
+            <div className="flex items-center gap-2 text-primary">
+              <MapPin className="w-4 h-4" />
+              <span className="text-body font-medium">{entry.location}</span>
+            </div>
+          ) : (
+            <div />
+          )}
           <div className="flex items-center gap-1 text-muted-foreground text-caption">
             <Clock className="w-3 h-3" />
             {entry.time}

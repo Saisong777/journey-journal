@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Camera, Image, MapPin, Smile, Loader2, Upload } from "lucide-react";
+import { X, Camera, MapPin, Smile, Loader2, Upload } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -33,7 +33,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<{ url: string; objectPath: string }[]>([]);
   const [locations, setLocations] = useState<string[]>(["其他景點"]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -121,10 +121,10 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
           throw new Error("Failed to upload file");
         }
         
-        // Store the public URL for the uploaded file
-        // Extract the base URL from the presigned URL (without query params)
-        const publicUrl = uploadURL.split("?")[0];
-        setPhotos(prev => [...prev, publicUrl]);
+        // Store both the display URL and object path
+        // Create a temporary URL for display (will use blob URL for preview)
+        const previewUrl = URL.createObjectURL(file);
+        setPhotos(prev => [...prev, { url: previewUrl, objectPath }]);
       }
     } catch (error) {
       console.error("Upload failed:", error);
@@ -136,19 +136,26 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
   };
 
   const handleRemovePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index));
+    setPhotos(prev => {
+      // Revoke object URL to free memory
+      URL.revokeObjectURL(prev[index].url);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSave = async () => {
-    if (selectedLocation && content) {
+    // Only content is required - location is optional
+    if (content.trim()) {
       setIsSaving(true);
       try {
         await onSave?.({
-          location: selectedLocation,
+          location: selectedLocation || "",
           content,
-          photos,
+          photos: photos.map(p => p.objectPath),
           mood: selectedMood,
         });
+        // Cleanup preview URLs
+        photos.forEach(p => URL.revokeObjectURL(p.url));
         // Reset form
         setSelectedLocation("");
         setContent("");
@@ -161,8 +168,8 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
     }
   };
 
-  // Location is optional now
-  const isValid = content.trim();
+  // Only content is required
+  const isValid = content.trim().length > 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -172,11 +179,11 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
         </SheetHeader>
 
         <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pb-4">
-          {/* Location Selection */}
+          {/* Location Selection - Optional */}
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
               <MapPin className="w-5 h-5 text-primary" />
-              選擇景點
+              選擇景點 <span className="text-muted-foreground text-caption">(選填)</span>
             </label>
             {isLoadingLocations ? (
               <div className="flex items-center justify-center py-4">
@@ -187,7 +194,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
                 {locations.map((location) => (
                   <button
                     key={location}
-                    onClick={() => setSelectedLocation(location)}
+                    onClick={() => setSelectedLocation(selectedLocation === location ? "" : location)}
                     data-testid={`button-location-${location}`}
                     className={cn(
                       "px-4 py-2 rounded-full text-body transition-all touch-target",
@@ -207,13 +214,13 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
               <Camera className="w-5 h-5 text-primary" />
-              照片記錄
+              照片記錄 <span className="text-muted-foreground text-caption">(選填)</span>
             </label>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {photos.map((photo, index) => (
                 <div key={index} className="relative flex-shrink-0">
                   <img
-                    src={photo}
+                    src={photo.url}
                     alt={`照片 ${index + 1}`}
                     className="w-24 h-24 object-cover rounded-lg"
                     data-testid={`img-photo-${index}`}
@@ -251,7 +258,9 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
 
           {/* Journal Content */}
           <div className="space-y-3">
-            <label className="text-body font-medium">寫下感言</label>
+            <label className="text-body font-medium">
+              寫下感言 <span className="text-destructive">*</span>
+            </label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -265,13 +274,13 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
               <Smile className="w-5 h-5 text-primary" />
-              此刻心情
+              此刻心情 <span className="text-muted-foreground text-caption">(選填)</span>
             </label>
             <div className="flex gap-3">
               {moods.map((mood) => (
                 <button
                   key={mood.key}
-                  onClick={() => setSelectedMood(mood.key)}
+                  onClick={() => setSelectedMood(selectedMood === mood.key ? "" : mood.key)}
                   data-testid={`button-mood-${mood.key}`}
                   className={cn(
                     "flex-1 py-3 rounded-lg flex flex-col items-center gap-1 transition-all touch-target",

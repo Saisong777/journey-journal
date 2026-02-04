@@ -109,6 +109,7 @@ export function useDeleteJournalEntry() {
       const response = await fetch(`/api/journal-entries/${entryId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getHeaders(),
       });
 
       if (!response.ok) {

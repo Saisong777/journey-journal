@@ -4,21 +4,37 @@ import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntry";
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
-import { useJournalEntries, useCreateJournalEntry } from "@/hooks/useJournalEntries";
+import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
+import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry } from "@/hooks/useJournalEntries";
 import { useTrip } from "@/hooks/useTrip";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfDay, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
+// Helper function to transform photo URLs to use the backend proxy
+function transformPhotoUrl(photoUrl: string): string {
+  // If it's a GCS URL, extract the object ID and use our proxy endpoint
+  if (photoUrl.includes("storage.googleapis.com") && photoUrl.includes("/uploads/")) {
+    const match = photoUrl.match(/\/uploads\/([a-f0-9-]+)/);
+    if (match) {
+      return `/api/uploads/file/${match[1]}`;
+    }
+  }
+  // Return as-is if it's already a proper URL or local path
+  return photoUrl;
+}
+
 export default function Journal() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewingEntry, setViewingEntry] = useState<JournalEntryData | null>(null);
   
   const { data: trip } = useTrip();
   const { data: entries, isLoading } = useJournalEntries(
     format(selectedDate, "yyyy-MM-dd")
   );
   const createEntry = useCreateJournalEntry();
+  const deleteEntry = useDeleteJournalEntry();
 
   // Generate days based on trip dates or current week
   const days = useMemo(() => {
@@ -40,13 +56,13 @@ export default function Journal() {
     (d) => format(d.fullDate, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
   );
 
-  // Transform database entries to component format
+  // Transform database entries to component format with proper photo URLs
   const transformedEntries: JournalEntryData[] = (entries || []).map((entry) => ({
     id: entry.id,
-    location: entry.location || "未知地點",
+    location: entry.location || "",
     time: entry.createdAt ? format(parseISO(entry.createdAt), "HH:mm") : "",
     content: entry.content || "",
-    photos: entry.photos?.map((p) => p.photoUrl) || [],
+    photos: entry.photos?.map((p) => transformPhotoUrl(p.photoUrl)) || [],
     mood: undefined,
   }));
 
@@ -57,11 +73,20 @@ export default function Journal() {
     mood: string;
   }) => {
     await createEntry.mutateAsync({
-      title: newEntry.location,
+      title: newEntry.location || "日誌",
       content: newEntry.content,
       location: newEntry.location,
       photos: newEntry.photos,
     });
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    await deleteEntry.mutateAsync(id);
+    setViewingEntry(null);
+  };
+
+  const handleEntryClick = (entry: JournalEntryData) => {
+    setViewingEntry(entry);
   };
 
   const totalPhotos = transformedEntries.reduce(
@@ -81,10 +106,18 @@ export default function Journal() {
               {format(selectedDate, "yyyy年M月", { locale: zhTW })}
             </h2>
             <div className="flex items-center gap-2">
-              <button className="p-2 rounded-lg hover:bg-muted transition-colors touch-target">
+              <button 
+                onClick={() => setSelectedDate(prev => addDays(prev, -7))}
+                className="p-2 rounded-lg hover:bg-muted transition-colors touch-target"
+                data-testid="button-prev-week"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-muted transition-colors touch-target">
+              <button 
+                onClick={() => setSelectedDate(prev => addDays(prev, 7))}
+                className="p-2 rounded-lg hover:bg-muted transition-colors touch-target"
+                data-testid="button-next-week"
+              >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
@@ -95,6 +128,7 @@ export default function Journal() {
               <button
                 key={index}
                 onClick={() => setSelectedDate(day.fullDate)}
+                data-testid={`button-day-${index}`}
                 className={cn(
                   "flex-shrink-0 w-16 py-3 rounded-xl flex flex-col items-center gap-1 transition-all touch-target",
                   selectedDayIndex === index
@@ -129,7 +163,7 @@ export default function Journal() {
             <div className="w-px h-12 bg-border" />
             <div>
               <p className="text-display text-terracotta">
-                {new Set(transformedEntries.map((e) => e.location)).size}
+                {new Set(transformedEntries.filter(e => e.location).map((e) => e.location)).size}
               </p>
               <p className="text-caption text-muted-foreground">景點打卡</p>
             </div>
@@ -147,7 +181,11 @@ export default function Journal() {
           ) : transformedEntries.length > 0 ? (
             <div className="space-y-4">
               {transformedEntries.map((entry) => (
-                <JournalEntry key={entry.id} entry={entry} />
+                <JournalEntry 
+                  key={entry.id} 
+                  entry={entry} 
+                  onClick={() => handleEntryClick(entry)}
+                />
               ))}
             </div>
           ) : (
@@ -165,6 +203,7 @@ export default function Journal() {
       <button
         onClick={() => setIsAddOpen(true)}
         disabled={createEntry.isPending}
+        data-testid="button-add-journal"
         className={cn(
           "fixed right-4 bottom-24 w-16 h-16 rounded-full",
           "gradient-warm text-primary-foreground shadow-elevated",
@@ -185,6 +224,13 @@ export default function Journal() {
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
         onSave={handleSaveEntry}
+      />
+
+      <ViewJournalSheet
+        entry={viewingEntry}
+        open={!!viewingEntry}
+        onOpenChange={(open) => !open && setViewingEntry(null)}
+        onDelete={handleDeleteEntry}
       />
 
       <BottomNav />
