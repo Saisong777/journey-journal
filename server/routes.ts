@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
 
 declare module "express-session" {
@@ -9,18 +10,53 @@ declare module "express-session" {
   }
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
+}
+
+// In-memory token store (in production, use Redis or database)
+const tokenStore = new Map<string, { userId: string; expiresAt: Date }>();
+
+function generateToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Middleware to extract user from token or session
+async function extractUser(req: Request, res: Response, next: NextFunction) {
+  // Check Authorization header first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const tokenData = tokenStore.get(token);
+    if (tokenData && tokenData.expiresAt > new Date()) {
+      req.userId = tokenData.userId;
+    }
+  }
+  
+  // Fall back to session
+  if (!req.userId && req.session.userId) {
+    req.userId = req.session.userId;
+  }
+  
+  next();
+}
+
 function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 }
 
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  const isAdmin = await storage.hasRole(req.session.userId, "admin");
+  const isAdmin = await storage.hasRole(req.userId, "admin");
   if (!isAdmin) {
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -28,6 +64,9 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export function registerRoutes(app: Express) {
+  // Apply extractUser middleware to all API routes
+  app.use("/api", extractUser);
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, name } = req.body;
@@ -53,13 +92,17 @@ export function registerRoutes(app: Express) {
         console.log(`Auto-assigned user ${email} to trip ${trips[0].title}`);
       }
       
+      // Generate auth token
+      const token = generateToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      tokenStore.set(token, { userId: user.id, expiresAt });
+      
       req.session.userId = user.id;
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.status(500).json({ error: "Session save failed" });
         }
-        res.json({ user: { id: user.id, email: user.email } });
+        res.json({ user: { id: user.id, email: user.email }, token });
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -101,13 +144,17 @@ export function registerRoutes(app: Express) {
         }
       }
 
+      // Generate auth token
+      const token = generateToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      tokenStore.set(token, { userId: user.id, expiresAt });
+
       req.session.userId = user.id;
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.status(500).json({ error: "Session save failed" });
         }
-        res.json({ user: { id: user.id, email: user.email } });
+        res.json({ user: { id: user.id, email: user.email }, token });
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -125,10 +172,10 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/auth/session", async (req, res) => {
-    if (!req.session.userId) {
+    if (!req.userId) {
       return res.json({ user: null });
     }
-    const user = await storage.getUser(req.session.userId);
+    const user = await storage.getUser(req.userId);
     if (!user) {
       return res.json({ user: null });
     }
@@ -137,7 +184,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/profile", requireAuth, async (req, res) => {
     try {
-      const profile = await storage.getProfile(req.session.userId!);
+      const profile = await storage.getProfile(req.userId!);
       res.json(profile || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to get profile" });
@@ -146,7 +193,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/profile", requireAuth, async (req, res) => {
     try {
-      const updated = await storage.updateProfile(req.session.userId!, req.body);
+      const updated = await storage.updateProfile(req.userId!, req.body);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update profile" });
@@ -155,7 +202,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trip", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.json(null);
       }
@@ -169,7 +216,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trips/current", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       console.log("Fetching current trip for user:", userId);
       const userRole = await storage.getUserRole(userId);
       console.log("User role found:", JSON.stringify(userRole));
@@ -191,7 +238,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/members", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -204,7 +251,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/groups", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -217,7 +264,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/journal-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -231,14 +278,14 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/journal-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
 
       const { title, content, location, photos } = req.body;
       const entry = await storage.createJournalEntry({
-        userId: req.session.userId!,
+        userId: req.userId!,
         tripId: userRole.tripId,
         title: title || location || "無標題",
         content: content || "",
@@ -274,7 +321,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.json([]);
       }
@@ -288,7 +335,7 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.session.userId!);
+      const userRole = await storage.getUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
@@ -296,7 +343,7 @@ export function registerRoutes(app: Express) {
       const entryDate = req.body.entryDate || new Date().toISOString().split("T")[0];
 
       const entry = await storage.createDevotionalEntry({
-        userId: req.session.userId!,
+        userId: req.userId!,
         tripId: userRole.tripId,
         scriptureReference: req.body.scriptureReference || "",
         reflection: req.body.reflection || "",
@@ -328,7 +375,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/is-admin", requireAuth, async (req, res) => {
     try {
-      const isAdmin = await storage.hasRole(req.session.userId!, "admin");
+      const isAdmin = await storage.hasRole(req.userId!, "admin");
       res.json({ isAdmin });
     } catch (error) {
       res.status(500).json({ error: "Failed to check admin status" });
@@ -477,7 +524,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/attraction-favorites", requireAuth, async (req, res) => {
     try {
-      const favorites = await storage.getAttractionFavorites(req.session.userId!);
+      const favorites = await storage.getAttractionFavorites(req.userId!);
       res.json(favorites);
     } catch (error) {
       res.status(500).json({ error: "Failed to get favorites" });
@@ -487,7 +534,7 @@ export function registerRoutes(app: Express) {
   app.post("/api/attraction-favorites", requireAuth, async (req, res) => {
     try {
       const fav = await storage.addAttractionFavorite({
-        userId: req.session.userId!,
+        userId: req.userId!,
         attractionId: req.body.attractionId,
       });
       res.json(fav);
@@ -498,7 +545,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/attraction-favorites/:attractionId", requireAuth, async (req, res) => {
     try {
-      await storage.removeAttractionFavorite(req.session.userId!, req.params.attractionId);
+      await storage.removeAttractionFavorite(req.userId!, req.params.attractionId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to remove favorite" });

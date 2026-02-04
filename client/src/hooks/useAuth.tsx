@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { getAuthToken, clearAuthToken } from "@/lib/queryClient";
 
 interface User {
   id: string;
@@ -26,8 +27,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkSession = async () => {
     try {
+      const token = getAuthToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch("/api/auth/session", {
         credentials: "include",
+        headers,
       });
       const data = await response.json();
       setUser(data.user);
@@ -40,10 +48,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      const token = getAuthToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
+        headers,
       });
+      clearAuthToken();
       setUser(null);
     } catch (error) {
       console.error("Logout failed:", error);

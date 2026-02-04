@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { setAuthToken } from "@/lib/queryClient";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
 
 type AuthView = "main" | "forgot-password";
@@ -55,6 +56,9 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
+        if (data.token) {
+          setAuthToken(data.token);
+        }
         setUser(data.user);
         toast({
           title: "登入成功",
@@ -117,6 +121,9 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
+        if (data.token) {
+          setAuthToken(data.token);
+        }
         setUser(data.user);
         toast({
           title: "註冊成功！",
