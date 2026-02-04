@@ -78,6 +78,7 @@ export interface IStorage {
   hasRole(userId: string, role: string): Promise<boolean>;
 
   getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
+  getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
   createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
   deleteJournalEntry(id: string): Promise<void>;
 
@@ -273,6 +274,34 @@ export class DatabaseStorage implements IStorage {
     let entriesQuery = db.select().from(journalEntries).where(eq(journalEntries.tripId, tripId));
     
     const entries = await entriesQuery.orderBy(desc(journalEntries.createdAt));
+    
+    const result = await Promise.all(
+      entries.map(async (entry) => {
+        const photos = await db
+          .select()
+          .from(journalPhotos)
+          .where(eq(journalPhotos.journalEntryId, entry.id));
+        return { ...entry, photos };
+      })
+    );
+
+    if (date) {
+      return result.filter((e) => e.entryDate === date);
+    }
+    return result;
+  }
+
+  async getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
+    const conditions = [eq(journalEntries.userId, userId)];
+    if (tripId) {
+      conditions.push(eq(journalEntries.tripId, tripId));
+    }
+    
+    const entries = await db
+      .select()
+      .from(journalEntries)
+      .where(and(...conditions))
+      .orderBy(desc(journalEntries.createdAt));
     
     const result = await Promise.all(
       entries.map(async (entry) => {

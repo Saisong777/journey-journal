@@ -261,7 +261,8 @@ export function registerRoutes(app: Express) {
         return res.json([]);
       }
       const date = req.query.date as string | undefined;
-      const entries = await storage.getJournalEntries(userRole.tripId, date);
+      // Security: Only return user's own journal entries
+      const entries = await storage.getJournalEntriesByUser(req.userId!, userRole.tripId, date);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ error: "Failed to get journal entries" });
@@ -506,6 +507,66 @@ export function registerRoutes(app: Express) {
       res.json(firstDay ? { ...firstDay, dayNumber: 1 } : null);
     } catch (error) {
       res.status(500).json({ error: "Failed to get today's schedule" });
+    }
+  });
+
+  // Get today's attractions for journal location selection
+  app.get("/api/trip-days/today/attractions", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const days = await storage.getTripDays(userRole.tripId);
+      
+      if (!days || days.length === 0) {
+        return res.json([]);
+      }
+      
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      
+      // Find today's schedule
+      let todaySchedule = days.find(d => d.date === today);
+      
+      // If trip hasn't started, use first day
+      if (!todaySchedule) {
+        const trip = await storage.getTrip(userRole.tripId);
+        if (trip && trip.startDate && today < trip.startDate) {
+          todaySchedule = days.find(d => d.dayNo === 1);
+        }
+      }
+      
+      // If trip has ended, use last day
+      if (!todaySchedule) {
+        const trip = await storage.getTrip(userRole.tripId);
+        if (trip && trip.endDate && today > trip.endDate) {
+          todaySchedule = days.reduce((max, d) => d.dayNo > max.dayNo ? d : max, days[0]);
+        }
+      }
+      
+      // Fallback to first day
+      if (!todaySchedule) {
+        todaySchedule = days.find(d => d.dayNo === 1);
+      }
+      
+      if (!todaySchedule) {
+        return res.json([]);
+      }
+      
+      // Parse attractions from the attractions field or highlights as fallback
+      const attractionsStr = todaySchedule.attractions || todaySchedule.highlights || "";
+      const attractions = attractionsStr.split("/").map((a: string) => a.trim()).filter(Boolean);
+      
+      // Add "其他景點" as fallback option
+      if (!attractions.includes("其他景點")) {
+        attractions.push("其他景點");
+      }
+      
+      res.json(attractions);
+    } catch (error) {
+      console.error("Error getting today's attractions:", error);
+      res.status(500).json({ error: "Failed to get attractions" });
     }
   });
 

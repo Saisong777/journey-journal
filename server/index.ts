@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -43,6 +44,9 @@ app.use((req, res, next) => {
   // Setup Replit Auth (BEFORE other routes)
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Register object storage routes
+  registerObjectStorageRoutes(app);
   
   // Register application routes
   registerRoutes(app);

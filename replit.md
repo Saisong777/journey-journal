@@ -7,6 +7,18 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (February 4, 2026)
+- **Object Storage Integration**: Integrated Replit Object Storage for photo uploads
+  - Presigned URL flow: client uploads directly to Google Cloud Storage
+  - ObjectUploader component with Uppy v5 integration
+  - API endpoint: `/api/uploads/request-url` for generating upload URLs
+  - Public file serving: `/api/uploads/public/:objectPath`
+- **Journal Security**: Users can only view their own journal entries
+  - Added `getJournalEntriesByUser` storage method for user-specific filtering
+- **Dynamic Journal Locations**: AddJournalSheet now fetches today's attractions from trip itinerary
+  - API endpoint: `/api/trip-days/today/attractions`
+  - Falls back to "其他景點" if no attractions available
+- **Homepage Countdown Enhancement**: TodaySchedule shows countdown when `isPreTrip` is true
+  - Displays "平安旅者，距離旅遊時間還有倒數 X 天" message
 - **Trip Invitation Code System**: Users join trips via verification codes
   - New `trip_invitations` database table with code, max uses, expiration support
   - Admin interface: `/admin/invitations` for creating/managing invitation codes

@@ -100,6 +100,15 @@ function parseHighlightsToSchedule(tripDay: TripDay): ScheduleItem[] {
   return items;
 }
 
+function calculateCountdown(tripDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tripStart = new Date(tripDate);
+  tripStart.setHours(0, 0, 0, 0);
+  const diffTime = tripStart.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
 export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) {
   if (isLoading) {
     return (
@@ -132,6 +141,25 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
         </div>
         <div className="bg-card rounded-lg shadow-card p-6 text-center text-muted-foreground">
           <p>尚無今日行程資料</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Show countdown if trip hasn't started
+  if (todaySchedule.isPreTrip && todaySchedule.date) {
+    const daysLeft = calculateCountdown(todaySchedule.date);
+    return (
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-title">行程倒數</h2>
+        </div>
+        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg shadow-card p-6 text-center">
+          <p className="text-body text-muted-foreground mb-2">平安旅者，距離旅遊時間還有倒數</p>
+          <p className="text-display text-primary font-bold">{daysLeft} 天</p>
+          {todaySchedule.title && (
+            <p className="text-body text-foreground mt-4">{todaySchedule.title}</p>
+          )}
         </div>
       </section>
     );

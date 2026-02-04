@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Camera, Image, MapPin, Smile } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Camera, Image, MapPin, Smile, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AddJournalSheetProps {
   open: boolean;
@@ -21,16 +23,6 @@ interface AddJournalSheetProps {
   }) => void;
 }
 
-const locations = [
-  "橄欖山",
-  "聖墓教堂",
-  "哭牆",
-  "客西馬尼園",
-  "苦路",
-  "加利利海",
-  "其他景點",
-];
-
 const moods = [
   { key: "happy", emoji: "😊", label: "開心" },
   { key: "peaceful", emoji: "🙏", label: "平靜" },
@@ -39,39 +31,73 @@ const moods = [
 ];
 
 export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetProps) {
+  const { token } = useAuth();
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAddPhoto = () => {
-    // 模擬添加照片 - 實際應用中會連接相機或相簿
-    const demoPhotos = [
-      "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400",
-      "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400",
-    ];
-    const randomPhoto = demoPhotos[Math.floor(Math.random() * demoPhotos.length)];
-    setPhotos([...photos, randomPhoto]);
+  useEffect(() => {
+    if (open && token) {
+      fetchLocations();
+    }
+  }, [open, token]);
+
+  const fetchLocations = async () => {
+    setIsLoadingLocations(true);
+    try {
+      const response = await fetch("/api/trip-days/today/attractions", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLocations(data.length > 0 ? data : ["其他景點"]);
+      } else {
+        setLocations(["其他景點"]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch locations:", error);
+      setLocations(["其他景點"]);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  const handlePhotoUploadComplete = (result: { successful: Array<{ response?: { objectPath?: string } }> }) => {
+    const newPhotoPaths = result.successful
+      .map(file => file.response?.objectPath)
+      .filter((path): path is string => !!path);
+    setPhotos(prev => [...prev, ...newPhotoPaths]);
   };
 
   const handleRemovePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedLocation && content) {
-      onSave?.({
-        location: selectedLocation,
-        content,
-        photos,
-        mood: selectedMood,
-      });
-      // Reset form
-      setSelectedLocation("");
-      setContent("");
-      setSelectedMood("");
-      setPhotos([]);
-      onOpenChange(false);
+      setIsSaving(true);
+      try {
+        await onSave?.({
+          location: selectedLocation,
+          content,
+          photos,
+          mood: selectedMood,
+        });
+        // Reset form
+        setSelectedLocation("");
+        setContent("");
+        setSelectedMood("");
+        setPhotos([]);
+        onOpenChange(false);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -91,22 +117,29 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
               <MapPin className="w-5 h-5 text-primary" />
               選擇景點
             </label>
-            <div className="flex flex-wrap gap-2">
-              {locations.map((location) => (
-                <button
-                  key={location}
-                  onClick={() => setSelectedLocation(location)}
-                  className={cn(
-                    "px-4 py-2 rounded-full text-body transition-all touch-target",
-                    selectedLocation === location
-                      ? "gradient-warm text-primary-foreground"
-                      : "bg-muted text-foreground hover:bg-muted/80"
-                  )}
-                >
-                  {location}
-                </button>
-              ))}
-            </div>
+            {isLoadingLocations ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {locations.map((location) => (
+                  <button
+                    key={location}
+                    onClick={() => setSelectedLocation(location)}
+                    data-testid={`button-location-${location}`}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-body transition-all touch-target",
+                      selectedLocation === location
+                        ? "gradient-warm text-primary-foreground"
+                        : "bg-muted text-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    {location}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Photos */}
@@ -119,25 +152,50 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
               {photos.map((photo, index) => (
                 <div key={index} className="relative flex-shrink-0">
                   <img
-                    src={photo}
+                    src={photo.startsWith("http") ? photo : `/api/uploads/public/${photo}`}
                     alt={`照片 ${index + 1}`}
                     className="w-24 h-24 object-cover rounded-lg"
+                    data-testid={`img-photo-${index}`}
                   />
                   <button
                     onClick={() => handleRemovePhoto(index)}
+                    data-testid={`button-remove-photo-${index}`}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
-              <button
-                onClick={handleAddPhoto}
-                className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              <ObjectUploader
+                onGetUploadParameters={async (file) => {
+                  const res = await fetch("/api/uploads/request-url", {
+                    method: "POST",
+                    headers: { 
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      name: file.name,
+                      size: file.size,
+                      contentType: file.type,
+                    }),
+                  });
+                  const { uploadURL, objectPath } = await res.json();
+                  return {
+                    method: "PUT" as const,
+                    url: uploadURL,
+                    headers: { "Content-Type": file.type },
+                    body: undefined,
+                    fields: { objectPath },
+                  };
+                }}
+                onComplete={handlePhotoUploadComplete}
               >
-                <Image className="w-6 h-6" />
-                <span className="text-caption">添加照片</span>
-              </button>
+                <div className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
+                  <Image className="w-6 h-6" />
+                  <span className="text-caption">添加照片</span>
+                </div>
+              </ObjectUploader>
             </div>
           </div>
 
@@ -149,6 +207,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
               onChange={(e) => setContent(e.target.value)}
               placeholder="此刻的心情與感動..."
               className="min-h-[120px] text-body resize-none"
+              data-testid="input-journal-content"
             />
           </div>
 
@@ -163,6 +222,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
                 <button
                   key={mood.key}
                   onClick={() => setSelectedMood(mood.key)}
+                  data-testid={`button-mood-${mood.key}`}
                   className={cn(
                     "flex-1 py-3 rounded-lg flex flex-col items-center gap-1 transition-all touch-target",
                     selectedMood === mood.key
@@ -182,10 +242,18 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
           <Button
             onClick={handleSave}
-            disabled={!isValid}
+            disabled={!isValid || isSaving}
             className="w-full h-14 text-body-lg gradient-warm text-primary-foreground rounded-xl"
+            data-testid="button-save-journal"
           >
-            儲存日誌
+            {isSaving ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                儲存中...
+              </>
+            ) : (
+              "儲存日誌"
+            )}
           </Button>
         </div>
       </SheetContent>
