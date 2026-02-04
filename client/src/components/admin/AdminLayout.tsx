@@ -4,7 +4,7 @@ import {
   LayoutDashboard, 
   Map, 
   Users, 
-  Settings,
+  CalendarDays,
   ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ interface AdminLayoutProps {
 const navItems = [
   { path: "/admin", label: "總覽", icon: LayoutDashboard },
   { path: "/admin/trips", label: "旅程管理", icon: Map },
+  { path: "/admin/trip-days", label: "每日行程", icon: CalendarDays },
   { path: "/admin/members", label: "會員管理", icon: Users },
 ];
 

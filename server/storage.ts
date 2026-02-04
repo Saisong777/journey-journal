@@ -1,9 +1,10 @@
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
   profiles,
   trips,
+  tripDays,
   groups,
   userRoles,
   journalEntries,
@@ -14,6 +15,7 @@ import {
   type User,
   type Profile,
   type Trip,
+  type TripDay,
   type Group,
   type UserRole,
   type JournalEntry,
@@ -24,6 +26,7 @@ import {
   type InsertUser,
   type InsertProfile,
   type InsertTrip,
+  type InsertTripDay,
   type InsertGroup,
   type InsertUserRole,
   type InsertJournalEntry,
@@ -46,6 +49,12 @@ export interface IStorage {
   createTrip(trip: InsertTrip): Promise<Trip>;
   updateTrip(id: string, trip: Partial<InsertTrip>): Promise<Trip | undefined>;
   deleteTrip(id: string): Promise<void>;
+
+  getTripDays(tripId: string): Promise<TripDay[]>;
+  getTripDay(id: string): Promise<TripDay | undefined>;
+  createTripDay(tripDay: InsertTripDay): Promise<TripDay>;
+  updateTripDay(id: string, tripDay: Partial<InsertTripDay>): Promise<TripDay | undefined>;
+  deleteTripDay(id: string): Promise<void>;
 
   getGroups(tripId: string): Promise<Group[]>;
   getAllGroups(): Promise<Group[]>;
@@ -140,6 +149,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrip(id: string): Promise<void> {
     await db.delete(trips).where(eq(trips.id, id));
+  }
+
+  async getTripDays(tripId: string): Promise<TripDay[]> {
+    return db.select().from(tripDays).where(eq(tripDays.tripId, tripId)).orderBy(asc(tripDays.dayNo));
+  }
+
+  async getTripDay(id: string): Promise<TripDay | undefined> {
+    const [tripDay] = await db.select().from(tripDays).where(eq(tripDays.id, id));
+    return tripDay;
+  }
+
+  async createTripDay(tripDay: InsertTripDay): Promise<TripDay> {
+    const [created] = await db.insert(tripDays).values(tripDay).returning();
+    return created;
+  }
+
+  async updateTripDay(id: string, tripDay: Partial<InsertTripDay>): Promise<TripDay | undefined> {
+    const [updated] = await db
+      .update(tripDays)
+      .set({ ...tripDay, updatedAt: new Date() })
+      .where(eq(tripDays.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTripDay(id: string): Promise<void> {
+    await db.delete(tripDays).where(eq(tripDays.id, id));
   }
 
   async getGroups(tripId: string): Promise<Group[]> {

@@ -418,6 +418,60 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Trip Days (每日行程) routes
+  app.get("/api/admin/trips/:tripId/days", requireAdmin, async (req, res) => {
+    try {
+      const days = await storage.getTripDays(req.params.tripId);
+      res.json(days);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip days" });
+    }
+  });
+
+  app.post("/api/admin/trips/:tripId/days", requireAdmin, async (req, res) => {
+    try {
+      const tripDay = await storage.createTripDay({
+        ...req.body,
+        tripId: req.params.tripId,
+      });
+      res.json(tripDay);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create trip day" });
+    }
+  });
+
+  app.patch("/api/admin/trip-days/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateTripDay(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update trip day" });
+    }
+  });
+
+  app.delete("/api/admin/trip-days/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteTripDay(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete trip day" });
+    }
+  });
+
+  // Public trip days endpoint for members
+  app.get("/api/trip-days", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const days = await storage.getTripDays(userRole.tripId);
+      res.json(days);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip days" });
+    }
+  });
+
   app.get("/api/admin/profiles", requireAdmin, async (req, res) => {
     try {
       const profileList = await storage.getAllProfiles();

@@ -341,3 +341,108 @@ export function useProfileMutations() {
 
   return { updateProfileGroup };
 }
+
+export interface TripDay {
+  id: string;
+  tripId: string;
+  dayNo: number;
+  date: string;
+  cityArea: string | null;
+  title: string | null;
+  highlights: string | null;
+  bibleRefs: string | null;
+  breakfast: string | null;
+  lunch: string | null;
+  dinner: string | null;
+  lodging: string | null;
+  lodgingLevel: string | null;
+  transport: string | null;
+  freeTimeFlag: boolean | null;
+  shoppingFlag: boolean | null;
+  mustKnow: string | null;
+  notes: string | null;
+}
+
+export function useTripDays(tripId: string | null) {
+  return useQuery<TripDay[]>({
+    queryKey: ["admin-trip-days", tripId],
+    queryFn: async () => {
+      if (!tripId) return [];
+      const response = await fetch(`/api/admin/trips/${tripId}/days`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch trip days");
+      }
+      return response.json();
+    },
+    enabled: !!tripId,
+  });
+}
+
+export function useTripDayMutations(tripId: string | null) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createTripDay = useMutation({
+    mutationFn: async (tripDay: Omit<TripDay, "id" | "tripId">) => {
+      if (!tripId) throw new Error("Trip ID is required");
+      const response = await fetch(`/api/admin/trips/${tripId}/days`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(tripDay),
+      });
+      if (!response.ok) throw new Error("Failed to create trip day");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-days", tripId] });
+      toast({ title: "每日行程已建立" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "建立失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateTripDay = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<TripDay> & { id: string }) => {
+      const response = await fetch(`/api/admin/trip-days/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update trip day");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-days", tripId] });
+      toast({ title: "每日行程已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteTripDay = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/trip-days/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete trip day");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trip-days", tripId] });
+      toast({ title: "每日行程已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { createTripDay, updateTripDay, deleteTripDay };
+}

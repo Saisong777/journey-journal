@@ -20,6 +20,7 @@ import TripSummary from "./pages/TripSummary";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTrips from "./pages/admin/AdminTrips";
+import AdminTripDays from "./pages/admin/AdminTripDays";
 import AdminMembers from "./pages/admin/AdminMembers";
 import NotFound from "./pages/NotFound";
 
@@ -119,6 +120,22 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminTrips />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/trip-days"
+              element={
+                <AdminRoute>
+                  <AdminTripDays />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/trip-days/:tripId"
+              element={
+                <AdminRoute>
+                  <AdminTripDays />
                 </AdminRoute>
               }
             />
