@@ -1,6 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { getAuthToken } from "@/lib/queryClient";
+
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function getAuthHeadersWithJson(): HeadersInit {
+  return {
+    ...getAuthHeaders(),
+    "Content-Type": "application/json",
+  };
+}
 
 export function useIsAdmin() {
   const { user } = useAuth();
@@ -12,6 +29,7 @@ export function useIsAdmin() {
 
       const response = await fetch("/api/is-admin", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) return false;
       const data = await response.json();
@@ -27,6 +45,7 @@ export function useAllTrips() {
     queryFn: async () => {
       const response = await fetch("/api/admin/trips", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch trips");
@@ -42,6 +61,7 @@ export function useAllProfiles() {
     queryFn: async () => {
       const response = await fetch("/api/admin/profiles", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch profiles");
@@ -57,6 +77,7 @@ export function useAllUserRoles() {
     queryFn: async () => {
       const response = await fetch("/api/admin/user-roles", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch user roles");
@@ -72,6 +93,7 @@ export function useAllGroups() {
     queryFn: async () => {
       const response = await fetch("/api/admin/groups", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch groups");
@@ -95,7 +117,7 @@ export function useTripMutations() {
     }) => {
       const response = await fetch("/api/admin/trips", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify(trip),
       });
@@ -125,7 +147,7 @@ export function useTripMutations() {
     }) => {
       const response = await fetch(`/api/admin/trips/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify(updates),
       });
@@ -146,6 +168,7 @@ export function useTripMutations() {
       const response = await fetch(`/api/admin/trips/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) throw new Error("Failed to delete trip");
     },
@@ -169,7 +192,7 @@ export function useGroupMutations() {
     mutationFn: async (group: { name: string; tripId: string }) => {
       const response = await fetch("/api/admin/groups", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify(group),
       });
@@ -190,7 +213,7 @@ export function useGroupMutations() {
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
       const response = await fetch(`/api/admin/groups/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify({ name }),
       });
@@ -212,6 +235,7 @@ export function useGroupMutations() {
       const response = await fetch(`/api/admin/groups/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) throw new Error("Failed to delete group");
     },
@@ -244,7 +268,7 @@ export function useUserRoleMutations() {
     }) => {
       const response = await fetch("/api/admin/user-roles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify({ userId, tripId, role }),
       });
@@ -265,7 +289,7 @@ export function useUserRoleMutations() {
     mutationFn: async ({ userId, tripId }: { userId: string; tripId: string }) => {
       const response = await fetch("/api/admin/user-roles", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify({ userId, tripId }),
       });
@@ -298,7 +322,7 @@ export function useProfileMutations() {
     }) => {
       const response = await fetch(`/api/admin/profiles/${profileId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeadersWithJson(),
         credentials: "include",
         body: JSON.stringify({ groupId }),
       });
