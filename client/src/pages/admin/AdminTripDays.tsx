@@ -38,9 +38,92 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Calendar, MapPin, Book, Utensils, Hotel, Bus } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Calendar, MapPin, Book, Utensils, Hotel, Bus, Plane, Ship, Car, Landmark } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
+
+// Helper functions for statistics
+function getDayStats(day: TripDay) {
+  const transport = (day.transport || "").toLowerCase();
+  const highlights = day.highlights || "";
+  const attractions = day.attractions || "";
+  
+  // Count flights
+  const flightKeywords = ["飛機", "航班", "班機", "起飛", "降落", "轉機"];
+  const departureKeywords = ["出境", "離開", "起飛", "搭機"];
+  const arrivalKeywords = ["入境", "抵達", "降落", "接機"];
+  
+  let departures = 0;
+  let arrivals = 0;
+  
+  if (flightKeywords.some(k => transport.includes(k) || highlights.includes(k))) {
+    if (departureKeywords.some(k => highlights.includes(k))) departures++;
+    if (arrivalKeywords.some(k => highlights.includes(k))) arrivals++;
+    // If only "飛機" mentioned without direction, count as one flight
+    if (departures === 0 && arrivals === 0) {
+      if (transport.includes("飛機") || transport.includes("航班")) departures = 1;
+    }
+  }
+  
+  // Count cruises/sailing
+  const cruiseKeywords = ["郵輪", "渡輪", "航行", "船"];
+  const cruises = cruiseKeywords.some(k => transport.includes(k) || highlights.includes(k)) ? 1 : 0;
+  
+  // Count shuttles/transfers
+  const shuttleKeywords = ["接駁", "接送", "接機", "送機", "機場接送"];
+  const shuttles = shuttleKeywords.some(k => highlights.includes(k)) ? 1 : 0;
+  
+  // Count attractions
+  const attractionCount = attractions ? attractions.split("/").map(a => a.trim()).filter(Boolean).length : 0;
+  
+  return { departures, arrivals, cruises, shuttles, attractionCount };
+}
+
+function getTotalStats(days: TripDay[]) {
+  let totalDepartures = 0;
+  let totalArrivals = 0;
+  let totalCruises = 0;
+  let totalShuttles = 0;
+  let totalAttractions = 0;
+  
+  // Meal counts
+  let airplaneMeals = 0;
+  let cruiseMeals = 0;
+  let hotelMeals = 0;
+  
+  days.forEach(day => {
+    const stats = getDayStats(day);
+    totalDepartures += stats.departures;
+    totalArrivals += stats.arrivals;
+    totalCruises += stats.cruises;
+    totalShuttles += stats.shuttles;
+    totalAttractions += stats.attractionCount;
+    
+    // Count meals
+    const meals = [day.breakfast, day.lunch, day.dinner].filter(Boolean);
+    meals.forEach(meal => {
+      const m = (meal || "").toLowerCase();
+      if (m.includes("機上") || m.includes("飛機")) airplaneMeals++;
+      else if (m.includes("郵輪") || m.includes("船上")) cruiseMeals++;
+      else if (m.includes("hotel") || m.includes("飯店") || m.includes("酒店")) hotelMeals++;
+      else hotelMeals++; // Default to hotel meal
+    });
+  });
+  
+  return {
+    departures: totalDepartures,
+    arrivals: totalArrivals,
+    cruises: totalCruises,
+    shuttles: totalShuttles,
+    attractions: totalAttractions,
+    meals: {
+      airplane: airplaneMeals,
+      cruise: cruiseMeals,
+      hotel: hotelMeals,
+      total: airplaneMeals + cruiseMeals + hotelMeals
+    }
+  };
+}
 
 interface TripDayFormData {
   dayNo: number;
@@ -449,9 +532,55 @@ export default function AdminTripDays() {
           </Dialog>
         </div>
 
+        {/* Overall Statistics */}
+        {tripDays && tripDays.length > 0 && (() => {
+          const stats = getTotalStats(tripDays);
+          return (
+            <div className="bg-card rounded-lg shadow-card p-4">
+              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">行程統計</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {(stats.departures > 0 || stats.arrivals > 0) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Plane className="w-4 h-4 text-blue-500" />
+                    <span>飛行 {stats.departures + stats.arrivals} 次</span>
+                    <span className="text-xs text-muted-foreground">
+                      (出{stats.departures}/入{stats.arrivals})
+                    </span>
+                  </div>
+                )}
+                {stats.cruises > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Ship className="w-4 h-4 text-cyan-500" />
+                    <span>航行 {stats.cruises} 次</span>
+                  </div>
+                )}
+                {stats.shuttles > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Car className="w-4 h-4 text-green-500" />
+                    <span>接駁 {stats.shuttles} 次</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Utensils className="w-4 h-4 text-orange-500" />
+                  <span>共 {stats.meals.total} 餐</span>
+                  <span className="text-xs text-muted-foreground">
+                    (機上{stats.meals.airplane}/船上{stats.meals.cruise}/飯店{stats.meals.hotel})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Landmark className="w-4 h-4 text-amber-500" />
+                  <span>{stats.attractions} 個景點</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="space-y-4">
           {tripDays?.length ? (
-            tripDays.map((day) => (
+            tripDays.map((day) => {
+              const dayStats = getDayStats(day);
+              return (
               <div
                 key={day.id}
                 className="bg-card rounded-lg shadow-card p-6"
@@ -570,16 +699,44 @@ export default function AdminTripDays() {
                   {day.dinner && <span>晚: {day.dinner}</span>}
                 </div>
 
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {day.freeTimeFlag && (
                     <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">自由時間</span>
                   )}
                   {day.shoppingFlag && (
                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">購物行程</span>
                   )}
+                  {/* Per-day statistics */}
+                  {(dayStats.departures > 0 || dayStats.arrivals > 0) && (
+                    <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs flex items-center gap-1">
+                      <Plane className="w-3 h-3" />
+                      {dayStats.departures > 0 && `出境${dayStats.departures}`}
+                      {dayStats.departures > 0 && dayStats.arrivals > 0 && "/"}
+                      {dayStats.arrivals > 0 && `入境${dayStats.arrivals}`}
+                    </span>
+                  )}
+                  {dayStats.cruises > 0 && (
+                    <span className="px-2 py-1 bg-cyan-50 text-cyan-600 rounded text-xs flex items-center gap-1">
+                      <Ship className="w-3 h-3" />
+                      航行
+                    </span>
+                  )}
+                  {dayStats.shuttles > 0 && (
+                    <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs flex items-center gap-1">
+                      <Car className="w-3 h-3" />
+                      接駁
+                    </span>
+                  )}
+                  {dayStats.attractionCount > 0 && (
+                    <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs flex items-center gap-1">
+                      <Landmark className="w-3 h-3" />
+                      {dayStats.attractionCount} 景點
+                    </span>
+                  )}
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div className="bg-card rounded-lg shadow-card p-12 text-center">
               <p className="text-body text-muted-foreground mb-4">目前沒有任何每日行程</p>

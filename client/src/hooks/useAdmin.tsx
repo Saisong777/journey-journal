@@ -350,6 +350,7 @@ export interface TripDay {
   cityArea: string | null;
   title: string | null;
   highlights: string | null;
+  attractions: string | null;
   bibleRefs: string | null;
   breakfast: string | null;
   lunch: string | null;
