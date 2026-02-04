@@ -243,14 +243,42 @@ export default function AdminTripDays() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="attractions">景點（僅列出觀光景點）</Label>
-        <Textarea
-          id="attractions"
-          value={formData.attractions}
-          onChange={(e) => setFormData({ ...formData, attractions: e.target.value })}
-          placeholder="聖索菲亞 / 藍色清真寺 / 跑馬場（只列景點，不含接機、購物等活動）"
-          rows={2}
-        />
+        <Label>勾選景點（從行程亮點中選擇觀光景點）</Label>
+        {formData.highlights ? (
+          <div className="grid grid-cols-2 gap-2 p-3 bg-muted/50 rounded-md max-h-40 overflow-y-auto">
+            {formData.highlights.split("/").map((h) => h.trim()).filter(Boolean).map((highlight, index) => {
+              const selectedAttractions = formData.attractions.split("/").map(a => a.trim()).filter(Boolean);
+              const isChecked = selectedAttractions.includes(highlight);
+              return (
+                <div key={index} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`attraction-${index}`}
+                    checked={isChecked}
+                    onCheckedChange={(checked) => {
+                      let newAttractions: string[];
+                      if (checked) {
+                        newAttractions = [...selectedAttractions, highlight];
+                      } else {
+                        newAttractions = selectedAttractions.filter(a => a !== highlight);
+                      }
+                      setFormData({ ...formData, attractions: newAttractions.join(" / ") });
+                    }}
+                  />
+                  <label
+                    htmlFor={`attraction-${index}`}
+                    className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {highlight}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-md">
+            請先填寫行程亮點，再勾選景點
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
