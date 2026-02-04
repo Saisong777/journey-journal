@@ -478,6 +478,9 @@ export function useDevotionalCourses(tripId: string | null) {
 }
 
 export function useDevotionalCourseMutations(tripId: string | null) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const createDevotionalCourse = useMutation({
     mutationFn: async (course: Omit<DevotionalCourse, "id" | "tripId">) => {
       const response = await fetch(`/api/admin/trips/${tripId}/devotional-courses`, {
