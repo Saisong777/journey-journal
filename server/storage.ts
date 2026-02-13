@@ -1,5 +1,6 @@
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { db } from "./db";
+import { gt, lt } from "drizzle-orm";
 import {
   users,
   profiles,
@@ -14,6 +15,7 @@ import {
   userLocations,
   devotionalCourses,
   tripInvitations,
+  authTokens,
   type User,
   type Profile,
   type Trip,
@@ -510,6 +512,27 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTripInvitation(id: string): Promise<void> {
     await db.delete(tripInvitations).where(eq(tripInvitations.id, id));
+  }
+
+  async storeAuthToken(token: string, userId: string, expiresAt: Date): Promise<void> {
+    await db.insert(authTokens).values({ token, userId, expiresAt });
+  }
+
+  async getAuthToken(token: string): Promise<{ userId: string; expiresAt: Date } | undefined> {
+    const [result] = await db
+      .select()
+      .from(authTokens)
+      .where(and(eq(authTokens.token, token), gt(authTokens.expiresAt, new Date())));
+    if (!result) return undefined;
+    return { userId: result.userId, expiresAt: result.expiresAt };
+  }
+
+  async deleteAuthToken(token: string): Promise<void> {
+    await db.delete(authTokens).where(eq(authTokens.token, token));
+  }
+
+  async deleteExpiredTokens(): Promise<void> {
+    await db.delete(authTokens).where(lt(authTokens.expiresAt, new Date()));
   }
 }
 
