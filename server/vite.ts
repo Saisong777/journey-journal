@@ -8,18 +8,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 
-const viteConfig = {
-  configFile: path.resolve(rootDir, "vite.config.ts"),
-  root: path.resolve(rootDir, "client"),
-  server: {
-    middlewareMode: true,
-    hmr: { overlay: false },
-  },
-  appType: "custom" as const,
-};
-
 export async function setupVite(app: Express, server: any) {
-  const vite: ViteDevServer = await createViteServer(viteConfig);
+  const vite: ViteDevServer = await createViteServer({
+    configFile: path.resolve(rootDir, "vite.config.ts"),
+    root: path.resolve(rootDir, "client"),
+    server: {
+      middlewareMode: true,
+      hmr: { server },
+    },
+    appType: "custom" as const,
+  });
   app.use(vite.middlewares);
 
   app.use(async (req, res, next) => {
