@@ -6,17 +6,7 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
-## Recent Changes (February 13, 2026)
-- **Code Cleanup**: Removed all Lovable platform remnants (`lovable-tagger`, `@lovable.dev/cloud-auth-js`)
-- **Type Error Fixes**: Fixed 12 drizzle-zod type compatibility errors in shared/schema.ts by using `$inferInsert`
-- **Persistent Token Storage**: Migrated auth tokens from in-memory Map to `auth_tokens` database table
-  - Users no longer get logged out when server restarts
-  - Token creation, validation, and deletion all database-backed
-  - Expired token cleanup support
-- **API Error Handling**: Added proper null checks for profile updates, fixed Express route param types
-- **Cache Control**: Added no-cache headers for HTML responses to prevent stale content
-
-## Previous Changes (February 4, 2026)
+## Recent Changes (February 4, 2026)
 - **Object Storage Integration**: Integrated Replit Object Storage for photo uploads
   - Presigned URL flow: client uploads directly to Google Cloud Storage
   - ObjectUploader component with Uppy v5 integration

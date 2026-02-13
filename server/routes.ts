@@ -18,6 +18,9 @@ declare global {
   }
 }
 
+// In-memory token store (in production, use Redis or database)
+const tokenStore = new Map<string, { userId: string; expiresAt: Date }>();
+
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -28,8 +31,8 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    const tokenData = await storage.getAuthToken(token);
-    if (tokenData) {
+    const tokenData = tokenStore.get(token);
+    if (tokenData && tokenData.expiresAt > new Date()) {
       req.userId = tokenData.userId;
     }
   }
@@ -93,7 +96,7 @@ export function registerRoutes(app: Express) {
       // Generate auth token
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await storage.storeAuthToken(token, user.id, expiresAt);
+      tokenStore.set(token, { userId: user.id, expiresAt });
       
       req.session.userId = user.id;
       req.session.save((err) => {
@@ -125,6 +128,7 @@ export function registerRoutes(app: Express) {
       // User must use invitation code to join a trip - no auto-assignment
       const userRole = await storage.getUserRole(user.id);
       if (!userRole) {
+        // Create role without trip for legacy users who don't have a role yet
         await storage.createUserRole({
           userId: user.id,
           tripId: null,
@@ -132,9 +136,10 @@ export function registerRoutes(app: Express) {
         });
       }
 
+      // Generate auth token
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await storage.storeAuthToken(token, user.id, expiresAt);
+      tokenStore.set(token, { userId: user.id, expiresAt });
 
       req.session.userId = user.id;
       req.session.save((err) => {
@@ -149,12 +154,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/logout", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      await storage.deleteAuthToken(token);
-    }
+  app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ error: "Logout failed" });
@@ -186,9 +186,6 @@ export function registerRoutes(app: Express) {
   app.patch("/api/profile", requireAuth, async (req, res) => {
     try {
       const updated = await storage.updateProfile(req.userId!, req.body);
-      if (!updated) {
-        return res.status(404).json({ error: "Profile not found" });
-      }
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update profile" });
@@ -309,7 +306,7 @@ export function registerRoutes(app: Express) {
   app.patch("/api/journal-entries/:id", requireAuth, async (req, res) => {
     try {
       const { title, content, location } = req.body;
-      const entry = await storage.updateJournalEntry(req.params.id as string, {
+      const entry = await storage.updateJournalEntry(req.params.id, {
         title,
         content,
         location,
@@ -322,7 +319,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/journal-entries/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deleteJournalEntry(req.params.id as string);
+      await storage.deleteJournalEntry(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete journal entry" });
@@ -370,7 +367,7 @@ export function registerRoutes(app: Express) {
   app.patch("/api/devotional-entries/:id", requireAuth, async (req, res) => {
     try {
       const { scriptureReference, reflection, prayer } = req.body;
-      const updated = await storage.updateDevotionalEntry(req.params.id as string, {
+      const updated = await storage.updateDevotionalEntry(req.params.id, {
         scriptureReference: scriptureReference || "",
         reflection: reflection || "",
         prayer: prayer || "",
@@ -412,7 +409,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/trips/:id", requireAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateTrip(req.params.id as string, req.body);
+      const updated = await storage.updateTrip(req.params.id, req.body);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update trip" });
@@ -421,7 +418,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/admin/trips/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteTrip(req.params.id as string);
+      await storage.deleteTrip(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete trip" });
@@ -431,7 +428,7 @@ export function registerRoutes(app: Express) {
   // Trip Days (每日行程) routes
   app.get("/api/admin/trips/:tripId/days", requireAdmin, async (req, res) => {
     try {
-      const days = await storage.getTripDays(req.params.tripId as string);
+      const days = await storage.getTripDays(req.params.tripId);
       res.json(days);
     } catch (error) {
       res.status(500).json({ error: "Failed to get trip days" });
@@ -452,7 +449,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/trip-days/:id", requireAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateTripDay(req.params.id as string, req.body);
+      const updated = await storage.updateTripDay(req.params.id, req.body);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update trip day" });
@@ -461,7 +458,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/admin/trip-days/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteTripDay(req.params.id as string);
+      await storage.deleteTripDay(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete trip day" });
@@ -661,7 +658,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/groups/:id", requireAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateGroup(req.params.id as string, req.body.name);
+      const updated = await storage.updateGroup(req.params.id, req.body.name);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update group" });
@@ -670,7 +667,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/admin/groups/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteGroup(req.params.id as string);
+      await storage.deleteGroup(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete group" });
@@ -714,7 +711,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/attraction-favorites/:attractionId", requireAuth, async (req, res) => {
     try {
-      await storage.removeAttractionFavorite(req.userId!, req.params.attractionId as string);
+      await storage.removeAttractionFavorite(req.userId!, req.params.attractionId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to remove favorite" });
@@ -768,7 +765,7 @@ export function registerRoutes(app: Express) {
   // Devotional Courses Admin endpoints
   app.get("/api/admin/trips/:tripId/devotional-courses", requireAdmin, async (req, res) => {
     try {
-      const courses = await storage.getDevotionalCourses(req.params.tripId as string);
+      const courses = await storage.getDevotionalCourses(req.params.tripId);
       res.json(courses);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch devotional courses" });
@@ -789,7 +786,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/devotional-courses/:id", requireAdmin, async (req, res) => {
     try {
-      const course = await storage.updateDevotionalCourse(req.params.id as string, req.body);
+      const course = await storage.updateDevotionalCourse(req.params.id, req.body);
       res.json(course);
     } catch (error) {
       res.status(500).json({ error: "Failed to update devotional course" });
@@ -798,7 +795,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/admin/devotional-courses/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteDevotionalCourse(req.params.id as string);
+      await storage.deleteDevotionalCourse(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete devotional course" });
@@ -817,7 +814,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/admin/trips/:tripId/invitations", requireAdmin, async (req, res) => {
     try {
-      const invitations = await storage.getTripInvitations(req.params.tripId as string);
+      const invitations = await storage.getTripInvitations(req.params.tripId);
       res.json(invitations);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch trip invitations" });
@@ -830,7 +827,7 @@ export function registerRoutes(app: Express) {
       const code = crypto.randomBytes(4).toString('hex').toUpperCase();
       
       const invitation = await storage.createTripInvitation({
-        tripId: req.params.tripId as string,
+        tripId: req.params.tripId,
         code,
         description,
         maxUses: maxUses || null,
@@ -845,7 +842,7 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/trip-invitations/:id", requireAdmin, async (req, res) => {
     try {
-      const invitation = await storage.updateTripInvitation(req.params.id as string, req.body);
+      const invitation = await storage.updateTripInvitation(req.params.id, req.body);
       res.json(invitation);
     } catch (error) {
       res.status(500).json({ error: "Failed to update invitation" });
@@ -854,7 +851,7 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/admin/trip-invitations/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteTripInvitation(req.params.id as string);
+      await storage.deleteTripInvitation(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete invitation" });

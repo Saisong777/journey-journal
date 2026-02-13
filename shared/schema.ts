@@ -165,14 +165,6 @@ export const tripInvitations = pgTable("trip_invitations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const authTokens = pgTable("auth_tokens", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  token: text("token").notNull().unique(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
-
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripSchema = createInsertSchema(trips).omit({ id: true, createdAt: true, updatedAt: true });
@@ -186,18 +178,18 @@ export const insertAttractionFavoriteSchema = createInsertSchema(attractionFavor
 export const insertDevotionalCourseSchema = createInsertSchema(devotionalCourses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 
-export type InsertUser = typeof users.$inferInsert;
-export type InsertProfile = typeof profiles.$inferInsert;
-export type InsertTrip = typeof trips.$inferInsert;
-export type InsertTripDay = typeof tripDays.$inferInsert;
-export type InsertGroup = typeof groups.$inferInsert;
-export type InsertUserRole = typeof userRoles.$inferInsert;
-export type InsertJournalEntry = typeof journalEntries.$inferInsert;
-export type InsertJournalPhoto = typeof journalPhotos.$inferInsert;
-export type InsertDevotionalEntry = typeof devotionalEntries.$inferInsert;
-export type InsertAttractionFavorite = typeof attractionFavorites.$inferInsert;
-export type InsertDevotionalCourse = typeof devotionalCourses.$inferInsert;
-export type InsertTripInvitation = typeof tripInvitations.$inferInsert;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertProfile = z.infer<typeof insertProfileSchema>;
+export type InsertTrip = z.infer<typeof insertTripSchema>;
+export type InsertTripDay = z.infer<typeof insertTripDaySchema>;
+export type InsertGroup = z.infer<typeof insertGroupSchema>;
+export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
+export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+export type InsertJournalPhoto = z.infer<typeof insertJournalPhotoSchema>;
+export type InsertDevotionalEntry = z.infer<typeof insertDevotionalEntrySchema>;
+export type InsertAttractionFavorite = z.infer<typeof insertAttractionFavoriteSchema>;
+export type InsertDevotionalCourse = z.infer<typeof insertDevotionalCourseSchema>;
+export type InsertTripInvitation = z.infer<typeof insertTripInvitationSchema>;
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
