@@ -1,8 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
+import { tokenStore, generateToken, createAuthToken } from "./tokenStore";
 
 declare module "express-session" {
   interface SessionData {
@@ -16,13 +16,6 @@ declare global {
       userId?: string;
     }
   }
-}
-
-// In-memory token store (in production, use Redis or database)
-const tokenStore = new Map<string, { userId: string; expiresAt: Date }>();
-
-function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
 }
 
 // Middleware to extract user from token, session, or Replit Auth

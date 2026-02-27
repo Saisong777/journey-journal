@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { getAuthToken, clearAuthToken } from "@/lib/queryClient";
+import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/queryClient";
 
 interface User {
   id: string;
@@ -22,6 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authToken = params.get("authToken");
+    if (authToken) {
+      setAuthToken(authToken);
+      params.delete("authToken");
+      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+      window.history.replaceState({}, "", newUrl);
+    }
     checkSession();
   }, []);
 

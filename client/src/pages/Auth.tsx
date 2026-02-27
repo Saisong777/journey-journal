@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,15 @@ type AuthView = "main" | "forgot-password";
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setUser } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<AuthView>("main");
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
   
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");

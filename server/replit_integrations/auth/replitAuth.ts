@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { createAuthToken } from "../../tokenStore";
 
 const getOidcConfig = memoize(
   async () => {
@@ -103,8 +104,13 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    if (req.isAuthenticated && req.isAuthenticated() && (req.user as any)?.dbUserId) {
+      return res.redirect("/");
+    }
+    if ((req.session as any)?.userId) {
+      return res.redirect("/");
+    }
     ensureStrategy(req.hostname);
-    // Force session save before OAuth redirect to ensure state is persisted
     req.session.save((err) => {
       if (err) {
         console.error("Session save error:", err);
@@ -132,7 +138,14 @@ export async function setupAuth(app: Express) {
           console.error("Auth login error:", loginErr);
           return res.redirect("/auth?error=login_error");
         }
-        return res.redirect("/");
+        (req.session as any).userId = user.dbUserId;
+        const token = createAuthToken(user.dbUserId);
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error after login:", saveErr);
+          }
+          return res.redirect(`/?authToken=${token}`);
+        });
       });
     })(req, res, next);
   });
