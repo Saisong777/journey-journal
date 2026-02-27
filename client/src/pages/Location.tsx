@@ -111,28 +111,46 @@ export default function Location() {
     if (!navigator.geolocation) {
       toast({
         title: "不支援定位",
-        description: "您的瀏覽器不支援定位功能",
+        description: "您的瀏覽器不支援定位功能，請使用新分頁開啟此頁面",
         variant: "destructive",
       });
       setIsLocating(false);
       return;
     }
 
+    let didRespond = false;
+    const fallbackTimer = setTimeout(() => {
+      if (!didRespond) {
+        didRespond = true;
+        setIsLocating(false);
+        toast({
+          title: "定位逾時",
+          description: "無法取得定位，請在新分頁中開啟此頁面再試一次",
+          variant: "destructive",
+        });
+      }
+    }, 15000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        if (didRespond) return;
+        didRespond = true;
+        clearTimeout(fallbackTimer);
         try {
           await updateLocation.mutateAsync({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
+          setMyPosition([position.coords.latitude, position.coords.longitude]);
           toast({
             title: "位置已更新",
             description: "您的位置已成功分享給團隊",
           });
         } catch (error) {
+          console.error("Location update failed:", error);
           toast({
             title: "更新失敗",
-            description: "無法更新您的位置",
+            description: "無法更新您的位置，請稍後再試",
             variant: "destructive",
           });
         } finally {
@@ -140,9 +158,17 @@ export default function Location() {
         }
       },
       (error) => {
+        if (didRespond) return;
+        didRespond = true;
+        clearTimeout(fallbackTimer);
+        console.error("Geolocation error:", error.code, error.message);
         let message = "無法取得您的位置";
         if (error.code === error.PERMISSION_DENIED) {
-          message = "請允許存取您的位置";
+          message = "定位權限被拒絕，請在瀏覽器設定中允許定位，或在新分頁中開啟此頁面";
+        } else if (error.code === error.TIMEOUT) {
+          message = "定位逾時，請確認定位功能已開啟後再試一次";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          message = "目前無法取得定位資訊，請稍後再試";
         }
         toast({
           title: "定位失敗",
