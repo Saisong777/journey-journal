@@ -55,7 +55,7 @@ export function useTripPhotos() {
             id: photo.id,
             url: photo.photoUrl,
             caption: photo.caption || entry.title,
-            date: format(parseISO(entry.entryDate), "M月d日", { locale: zhTW }),
+            date: entry.entryDate ? format(parseISO(entry.entryDate), "M月d日", { locale: zhTW }) : "",
             location: entry.location || "未知地點",
           });
         }
@@ -89,7 +89,7 @@ export function useTripHighlights() {
             type: "spiritual",
             title: d.scriptureReference,
             description: d.reflection,
-            date: format(parseISO(d.entryDate), "M月d日", { locale: zhTW }),
+            date: d.entryDate ? format(parseISO(d.entryDate), "M月d日", { locale: zhTW }) : "",
           });
         }
       }
@@ -101,7 +101,7 @@ export function useTripHighlights() {
             type: "experience",
             title: j.title,
             description: j.content,
-            date: format(parseISO(j.entryDate), "M月d日", { locale: zhTW }),
+            date: j.entryDate ? format(parseISO(j.entryDate), "M月d日", { locale: zhTW }) : "",
           });
         }
       }

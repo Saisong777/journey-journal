@@ -27,9 +27,9 @@ const TripSummary = () => {
   const { toast } = useToast();
 
   // Build schedule data from journals
-  const scheduleData = (journals || []).map((journal, index) => ({
+  const scheduleData = (journals || []).filter(j => j.entryDate).map((journal, index) => ({
     day: index + 1,
-    date: format(parseISO(journal.entry_date), "M月d日（EEEE）", { locale: zhTW }),
+    date: format(parseISO(journal.entryDate), "M月d日（EEEE）", { locale: zhTW }),
     title: journal.title,
     locations: journal.location ? [journal.location] : [],
     highlights: journal.content || "",
@@ -52,14 +52,14 @@ const TripSummary = () => {
   const tripData = {
     title: trip?.title || "朝聖之旅",
     destination: trip?.destination || "目的地",
-    dateRange: trip?.start_date && trip?.end_date
-      ? formatTripDateRange(trip.start_date, trip.end_date)
+    dateRange: trip?.startDate && trip?.endDate
+      ? formatTripDateRange(trip.startDate, trip.endDate)
       : "尚未設定日期",
-    duration: trip?.start_date && trip?.end_date
-      ? calculateTripDuration(trip.start_date, trip.end_date)
+    duration: trip?.startDate && trip?.endDate
+      ? calculateTripDuration(trip.startDate, trip.endDate)
       : 0,
     memberCount: stats?.memberCount || 0,
-    coverImage: trip?.cover_image_url || defaultCoverImage,
+    coverImage: trip?.coverImageUrl || defaultCoverImage,
     tripId: trip?.id,
   };
 
@@ -77,7 +77,7 @@ const TripSummary = () => {
     id: h.id,
     type: h.type,
     title: h.title,
-    description: h.description.length > 100 ? h.description.slice(0, 100) + "..." : h.description,
+    description: (h.description || "").length > 100 ? (h.description || "").slice(0, 100) + "..." : (h.description || ""),
     date: h.date,
   }));
 

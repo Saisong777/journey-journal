@@ -23,16 +23,16 @@ export default function Members() {
     return (membersData || []).map((member) => ({
       id: member.id,
       name: member.name,
-      avatar: member.avatar_url || undefined,
+      avatar: member.avatarUrl || undefined,
       role: (member.role === "admin" ? "guide" : member.role) as MemberData["role"],
       group: member.group?.name || "未分組",
       phone: member.phone || "",
       email: member.email || undefined,
       roomNumber: undefined,
-      emergencyContact: member.emergency_contact_name
-        ? `${member.emergency_contact_name} ${member.emergency_contact_phone || ""}`
+      emergencyContact: member.emergencyContactName
+        ? `${member.emergencyContactName} ${member.emergencyContactPhone || ""}`
         : undefined,
-      notes: member.dietary_restrictions || member.medical_notes || undefined,
+      notes: member.dietaryRestrictions || member.medicalNotes || undefined,
     }));
   }, [membersData]);
 

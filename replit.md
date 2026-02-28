@@ -6,7 +6,25 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
-## Recent Changes (February 4, 2026)
+## Recent Changes (February 28, 2026)
+- **Snake_case → camelCase field name fixes**: Fixed remaining snake_case field references across multiple pages
+  - TripSummary.tsx: `entry_date`→`entryDate`, `start_date`→`startDate`, `end_date`→`endDate`, `cover_image_url`→`coverImageUrl`
+  - AdminDashboard.tsx: `start_date`→`startDate`, `end_date`→`endDate`, `avatar_url`→`avatarUrl`
+  - Members.tsx: `avatar_url`→`avatarUrl`, `emergency_contact_name`→`emergencyContactName`, etc.
+  - Added null safety guards for `parseISO()` calls in useTripSummary.tsx
+- **Auth token system**: Added token generation after Replit Auth callback to prevent login loops
+  - Shared `server/tokenStore.ts` module for token management
+  - Callback redirects with `?authToken=` param; frontend stores in localStorage
+  - Guard on `/api/login` prevents re-authentication when already logged in
+  - Auth page redirects authenticated users to homepage
+- **ESM build fix**: Changed production build from CJS to ESM format
+  - `dist/index.js` (ESM) instead of `dist/index.cjs` (CJS)
+  - Fixes `import.meta.url` crash in production deployment
+- **Location sharing improvements**: Better error handling for geolocation API
+  - 15-second fallback timeout for unresponsive geolocation
+  - Specific error messages for permission denied, timeout, unavailable
+
+## Previous Changes (February 4, 2026)
 - **Object Storage Integration**: Integrated Replit Object Storage for photo uploads
   - Presigned URL flow: client uploads directly to Google Cloud Storage
   - ObjectUploader component with Uppy v5 integration

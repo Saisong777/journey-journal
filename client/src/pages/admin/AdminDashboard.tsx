@@ -18,7 +18,7 @@ export default function AdminDashboard() {
 
   // Get upcoming trips
   const upcomingTrips = trips
-    ?.filter((t) => new Date(t.start_date) > new Date())
+    ?.filter((t) => new Date(t.startDate) > new Date())
     .slice(0, 3);
 
   return (
@@ -78,8 +78,8 @@ export default function AdminDashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="text-body font-medium truncate">{trip.title}</p>
                       <p className="text-caption text-muted-foreground">
-                        {format(new Date(trip.start_date), "MM/dd", { locale: zhTW })} -{" "}
-                        {format(new Date(trip.end_date), "MM/dd", { locale: zhTW })}
+                        {format(new Date(trip.startDate), "MM/dd", { locale: zhTW })} -{" "}
+                        {format(new Date(trip.endDate), "MM/dd", { locale: zhTW })}
                       </p>
                     </div>
                   </div>
@@ -112,9 +112,9 @@ export default function AdminDashboard() {
                     className="flex items-center gap-3 p-3 bg-muted rounded-lg"
                   >
                     <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center overflow-hidden">
-                      {profile.avatar_url ? (
+                      {profile.avatarUrl ? (
                         <img
-                          src={profile.avatar_url}
+                          src={profile.avatarUrl}
                           alt={profile.name}
                           className="w-full h-full object-cover"
                         />
