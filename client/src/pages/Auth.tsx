@@ -357,7 +357,7 @@ export default function Auth() {
                     type="button"
                     variant="outline"
                     className="w-full h-12"
-                    onClick={() => window.open("/api/login", "_blank")}
+                    onClick={() => window.location.href = "/api/login"}
                     data-testid="button-google-login"
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -483,7 +483,7 @@ export default function Auth() {
                     type="button"
                     variant="outline"
                     className="w-full h-12"
-                    onClick={() => window.open("/api/login", "_blank")}
+                    onClick={() => window.location.href = "/api/login"}
                     data-testid="button-google-signup"
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">

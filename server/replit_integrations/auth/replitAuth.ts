@@ -81,12 +81,10 @@ export async function setupAuth(app: Express) {
       const code_verifier = client.randomPKCECodeVerifier();
       const code_challenge = await client.calculatePKCECodeChallenge(code_verifier);
 
+      const callbackURL = `https://${req.hostname}/api/callback`;
       oidcStateStore.set(state, { nonce, code_verifier, createdAt: Date.now() });
 
-      const callbackURL = `https://${req.hostname}/api/callback`;
-      const params = new URLSearchParams({
-        client_id: process.env.REPL_ID!,
-        response_type: "code",
+      const authUrl = client.buildAuthorizationUrl(config, {
         redirect_uri: callbackURL,
         scope: "openid email profile offline_access",
         state,
@@ -96,9 +94,8 @@ export async function setupAuth(app: Express) {
         prompt: "login consent",
       });
 
-      const authUrl = `${config.serverMetadata().authorization_endpoint}?${params.toString()}`;
       console.log("[Auth] /api/login redirecting, state:", state.substring(0, 8) + "...");
-      res.redirect(authUrl);
+      res.redirect(authUrl.href);
     } catch (err) {
       console.error("[Auth] /api/login error:", err);
       res.redirect("/auth?error=login_init_error");
@@ -144,7 +141,7 @@ export async function setupAuth(app: Express) {
 
       (req.session as any).userId = dbUser.id;
       req.session.save(() => {
-        res.redirect(`/auth/callback-success?authToken=${authToken}`);
+        res.redirect(`/?authToken=${authToken}`);
       });
     } catch (err: any) {
       console.error("[Auth] callback error:", err?.message || err);
