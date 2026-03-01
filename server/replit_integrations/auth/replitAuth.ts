@@ -142,7 +142,7 @@ export async function setupAuth(app: Express) {
           if (saveErr) {
             console.error("Session save error after login:", saveErr);
           }
-          return res.redirect(`/?authToken=${token}`);
+          return res.redirect(`/auth/callback-success?authToken=${token}`);
         });
       });
     })(req, res, next);

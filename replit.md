@@ -6,7 +6,16 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
-## Recent Changes (February 28, 2026)
+## Recent Changes (March 1, 2026)
+- **Google login fix (new-tab flow)**: Fixed OIDC login failure caused by iframe cookie blocking
+  - Session cookies are blocked in Replit webview iframe during OIDC redirect flow
+  - Google login now opens in a new browser tab where cookies work normally
+  - New `/auth/callback-success` page stores token in localStorage and auto-closes
+  - `useAuth.tsx` listens for `storage` events to detect login from another tab
+  - Session cookie changed from `sameSite: "none"` to `"lax"`
+  - Added session pruning (every 15 min) and expire index for performance
+
+## Previous Changes (February 28, 2026)
 - **Snake_case → camelCase field name fixes**: Fixed remaining snake_case field references across multiple pages
   - TripSummary.tsx: `entry_date`→`entryDate`, `start_date`→`startDate`, `end_date`→`endDate`, `cover_image_url`→`coverImageUrl`
   - AdminDashboard.tsx: `start_date`→`startDate`, `end_date`→`endDate`, `avatar_url`→`avatarUrl`

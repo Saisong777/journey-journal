@@ -31,6 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.history.replaceState({}, "", newUrl);
     }
     checkSession();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "auth_token" && e.newValue) {
+        checkSession();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const checkSession = async () => {
