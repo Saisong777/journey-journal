@@ -1,5 +1,4 @@
 import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
@@ -43,15 +42,16 @@ export function getSession() {
   });
 }
 
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
-}
+const oidcStateStore = new Map<string, { nonce: string; code_verifier: string; createdAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of oidcStateStore) {
+    if (now - val.createdAt > 10 * 60 * 1000) {
+      oidcStateStore.delete(key);
+    }
+  }
+}, 60 * 1000);
 
 async function upsertUser(claims: any) {
   return await authStorage.upsertReplitUser({
@@ -69,83 +69,87 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
-
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    const user: any = {};
-    updateUserSession(user, tokens);
-    const dbUser = await upsertUser(tokens.claims());
-    user.dbUserId = dbUser.id;
-    verified(null, user);
-  };
-
-  const registeredStrategies = new Set<string>();
-
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
-
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  app.get("/api/login", (req, res, next) => {
-    if (req.isAuthenticated && req.isAuthenticated() && (req.user as any)?.dbUserId) {
-      return res.redirect("/");
+  const config = await getOidcConfig();
+
+  app.get("/api/login", async (req, res) => {
+    try {
+      const state = client.randomState();
+      const nonce = client.randomNonce();
+      const code_verifier = client.randomPKCECodeVerifier();
+      const code_challenge = await client.calculatePKCECodeChallenge(code_verifier);
+
+      oidcStateStore.set(state, { nonce, code_verifier, createdAt: Date.now() });
+
+      const callbackURL = `https://${req.hostname}/api/callback`;
+      const params = new URLSearchParams({
+        client_id: process.env.REPL_ID!,
+        response_type: "code",
+        redirect_uri: callbackURL,
+        scope: "openid email profile offline_access",
+        state,
+        nonce,
+        code_challenge,
+        code_challenge_method: "S256",
+        prompt: "login consent",
+      });
+
+      const authUrl = `${config.serverMetadata().authorization_endpoint}?${params.toString()}`;
+      console.log("[Auth] /api/login redirecting, state:", state.substring(0, 8) + "...");
+      res.redirect(authUrl);
+    } catch (err) {
+      console.error("[Auth] /api/login error:", err);
+      res.redirect("/auth?error=login_init_error");
     }
-    if ((req.session as any)?.userId) {
-      return res.redirect("/");
-    }
-    ensureStrategy(req.hostname);
-    console.log("[Auth] /api/login sessionID:", req.sessionID);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
-    console.log("[Auth] /api/callback sessionID:", req.sessionID);
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
-      if (err) {
-        console.error("Auth callback error:", err);
-        return res.redirect("/auth?error=auth_error");
+  app.get("/api/callback", async (req, res) => {
+    try {
+      const stateFromUrl = req.query.state as string;
+      const codeFromUrl = req.query.code as string;
+
+      if (!stateFromUrl || !codeFromUrl) {
+        console.error("[Auth] callback missing state or code");
+        return res.redirect("/auth?error=missing_params");
       }
-      if (!user) {
-        console.error("Auth callback no user:", info);
-        return res.redirect("/auth?error=no_user");
+
+      const stored = oidcStateStore.get(stateFromUrl);
+      if (!stored) {
+        console.error("[Auth] callback state not found in store:", stateFromUrl.substring(0, 8) + "...");
+        return res.redirect("/auth?error=invalid_state");
       }
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Auth login error:", loginErr);
-          return res.redirect("/auth?error=login_error");
-        }
-        (req.session as any).userId = user.dbUserId;
-        const token = createAuthToken(user.dbUserId);
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error("Session save error after login:", saveErr);
-          }
-          return res.redirect(`/auth/callback-success?authToken=${token}`);
-        });
+
+      oidcStateStore.delete(stateFromUrl);
+
+      const callbackURL = `https://${req.hostname}/api/callback`;
+      const currentUrl = new URL(`${callbackURL}?${new URLSearchParams(req.query as Record<string, string>).toString()}`);
+
+      const tokens = await client.authorizationCodeGrant(config, currentUrl, {
+        pkceCodeVerifier: stored.code_verifier,
+        expectedNonce: stored.nonce,
+        expectedState: stateFromUrl,
       });
-    })(req, res, next);
+
+      const claims = tokens.claims();
+      if (!claims) {
+        console.error("[Auth] callback: no claims in tokens");
+        return res.redirect("/auth?error=no_claims");
+      }
+
+      console.log("[Auth] callback success, email:", claims.email);
+      const dbUser = await upsertUser(claims);
+      const authToken = createAuthToken(dbUser.id);
+
+      (req.session as any).userId = dbUser.id;
+      req.session.save(() => {
+        res.redirect(`/auth/callback-success?authToken=${authToken}`);
+      });
+    } catch (err: any) {
+      console.error("[Auth] callback error:", err?.message || err);
+      res.redirect("/auth?error=auth_error");
+    }
   });
 
   app.get("/api/logout", (req, res) => {
@@ -161,30 +165,5 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
+  return res.status(401).json({ message: "Unauthorized" });
 };
