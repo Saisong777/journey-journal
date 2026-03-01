@@ -27,6 +27,7 @@ export function getSession() {
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
+    pruneSessionInterval: 60 * 15,
   });
   return session({
     secret: process.env.SESSION_SECRET!,
@@ -36,7 +37,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
-      sameSite: "none" as const,
+      sameSite: "lax" as const,
       maxAge: sessionTtl,
     },
   });
@@ -111,18 +112,15 @@ export async function setupAuth(app: Express) {
       return res.redirect("/");
     }
     ensureStrategy(req.hostname);
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err);
-      }
-      passport.authenticate(`replitauth:${req.hostname}`, {
-        prompt: "login consent",
-        scope: ["openid", "email", "profile", "offline_access"],
-      })(req, res, next);
-    });
+    console.log("[Auth] /api/login sessionID:", req.sessionID);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
+    console.log("[Auth] /api/callback sessionID:", req.sessionID);
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
       if (err) {
