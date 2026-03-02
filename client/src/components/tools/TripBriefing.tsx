@@ -105,9 +105,9 @@ export function TripBriefing() {
   return (
     <div className="space-y-4" data-testid="trip-briefing-list">
       <div className="bg-card rounded-lg shadow-card p-4">
-        <h3 className="text-body font-semibold mb-2">出團說明資料</h3>
+        <h3 className="text-body font-semibold mb-2">注意事項</h3>
         <p className="text-caption text-muted-foreground">
-          行前必讀資訊，共 {notes.length} 項說明
+          行前必讀資訊，共 {notes.length} 項須知
         </p>
       </div>
 
