@@ -28,7 +28,7 @@ The application follows a full-stack architecture with a React-based frontend, a
 - **Itinerary & Schedule:** Displays dynamic daily itineraries, including attractions, meals, and lodging. Before a trip starts, a countdown is shown on the homepage.
 - **Location Tracking:** Real-time team member location tracking is implemented using Leaflet maps and OpenStreetMap, leveraging the browser's Geolocation API. Locations are auto-refreshed periodically.
 - **Data Management:** All data is stored in a PostgreSQL database, managed with Drizzle ORM. Field names are standardized to `camelCase` across the entire codebase and database schema.
-- **Admin Features:** Provides extensive admin dashboards for managing trips, users, groups, devotional courses, and invitation codes. Admins can bypass invitation code checks.
+- **Admin Features:** Provides extensive admin dashboards for managing trips, users, groups, devotional courses, and invitation codes. Admins can bypass invitation code checks. CSV import for batch member creation (Name + Email → auto-generates 4-digit temp password, creates user/profile/role). Email notification system via Resend API sends pre-trip welcome emails with invitation codes, temp passwords, and QR codes.
 - **Error Handling:** Enhanced error handling for geolocation API with specific messages for permission issues and timeouts.
 - **Build System:** Uses Vite for client/server/shared project structure and an ESM build for production.
 
@@ -43,3 +43,4 @@ The application follows a full-stack architecture with a React-based frontend, a
 - **OpenStreetMap:** Provides map data for location tracking features.
 - **Uppy v5:** Used as the file uploader component for managing photo uploads.
 - **openid-client:** Utilized for manual OpenID Connect (OIDC) flow to manage Google login without relying on session cookies.
+- **Resend:** Integrated via Replit connector for sending transactional emails (pre-trip notifications with invitation codes, temp passwords, and QR codes).

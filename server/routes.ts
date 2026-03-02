@@ -1005,6 +1005,252 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // CSV Import Members endpoint
+  app.post("/api/admin/trips/:tripId/import-members", requireAdmin, async (req, res) => {
+    try {
+      const { tripId } = req.params;
+      const { members } = req.body as { members: { name: string; email: string }[] };
+
+      if (!members || !Array.isArray(members) || members.length === 0) {
+        return res.status(400).json({ error: "請提供團員資料" });
+      }
+
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "找不到此行程" });
+      }
+
+      const results: { name: string; email: string; tempPassword: string; userId: string; status: string }[] = [];
+
+      for (const member of members) {
+        const email = member.email?.trim().toLowerCase();
+        const name = member.name?.trim();
+        if (!email || !name) continue;
+
+        try {
+          let user = await storage.getUserByEmail(email);
+          const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+
+          if (user) {
+            await storage.updateUser(user.id, { tempPassword: tempPwd });
+            const existingProfile = await storage.getProfile(user.id);
+            if (!existingProfile) {
+              await storage.createProfile({ userId: user.id, name, email });
+            }
+          } else {
+            const hashedPassword = await bcrypt.hash(tempPwd, 10);
+            user = await storage.createUser({
+              email,
+              password: hashedPassword,
+              tempPassword: tempPwd,
+              firstName: name,
+            });
+            await storage.createProfile({ userId: user.id, name, email });
+          }
+
+          const existingRoles = await storage.getAllUserRolesForUser(user.id);
+          const alreadyInTrip = existingRoles.some(r => r.tripId === tripId);
+          if (!alreadyInTrip) {
+            await storage.createUserRole({ userId: user.id, role: "member", tripId });
+          }
+
+          results.push({
+            name,
+            email,
+            tempPassword: tempPwd,
+            userId: user.id,
+            status: alreadyInTrip ? "already_exists" : "created",
+          });
+        } catch (err: any) {
+          console.error(`[import-members] error for ${email}:`, err);
+          results.push({ name, email, tempPassword: "", userId: "", status: "error: " + err.message });
+        }
+      }
+
+      res.json({ results, total: results.length });
+    } catch (error) {
+      console.error("[import-members] error:", error);
+      res.status(500).json({ error: "匯入團員失敗" });
+    }
+  });
+
+  // Send pre-trip notification emails via Resend
+  app.post("/api/admin/trips/:tripId/send-notifications", requireAdmin, async (req, res) => {
+    try {
+      const { tripId } = req.params;
+      const { userIds, invitationCode } = req.body as { userIds: string[]; invitationCode: string };
+
+      if (!userIds || userIds.length === 0) {
+        return res.status(400).json({ error: "請選擇團員" });
+      }
+      if (!invitationCode) {
+        return res.status(400).json({ error: "請提供行程登入碼" });
+      }
+
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "找不到此行程" });
+      }
+
+      const { getResendClient } = await import("./resend");
+      const { client: resend, fromEmail } = await getResendClient();
+
+      const usersData = await storage.getUsersByIds(userIds);
+      const profilesData = await Promise.all(userIds.map(id => storage.getProfile(id)));
+      const profileMap = new Map(profilesData.filter(Boolean).map(p => [p!.userId, p!]));
+
+      const appUrl = process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : process.env.REPL_SLUG
+          ? `https://${process.env.REPL_SLUG}.replit.app`
+          : "https://your-app.replit.app";
+
+      const verifyUrl = `${appUrl}/verify-trip?code=${invitationCode}`;
+
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verifyUrl)}`;
+
+      const sentResults: { email: string; status: string }[] = [];
+
+      for (const user of usersData) {
+        const profile = profileMap.get(user.id);
+        const memberName = profile?.name || user.firstName || user.email;
+        const tempPwd = user.tempPassword || "（請使用 Google 登入）";
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fef7ed; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 30px; }
+    .header { text-align: center; padding: 30px 0; }
+    .logo { width: 80px; height: 80px; border-radius: 50%; background: #d97706; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold; }
+    .title { font-size: 24px; color: #92400e; margin: 15px 0 5px; }
+    .subtitle { color: #b45309; font-size: 14px; }
+    .card { background: white; border-radius: 12px; padding: 30px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .greeting { font-size: 18px; color: #1f2937; margin-bottom: 15px; }
+    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+    .info-label { color: #6b7280; font-size: 14px; }
+    .info-value { color: #1f2937; font-weight: 600; font-size: 14px; }
+    .code-box { background: #fffbeb; border: 2px solid #d97706; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+    .code-label { font-size: 13px; color: #92400e; margin-bottom: 8px; }
+    .code-value { font-size: 32px; font-weight: bold; color: #d97706; letter-spacing: 6px; }
+    .pwd-box { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+    .pwd-label { font-size: 13px; color: #166534; margin-bottom: 8px; }
+    .pwd-value { font-size: 28px; font-weight: bold; color: #16a34a; letter-spacing: 4px; }
+    .qr-section { text-align: center; margin: 25px 0; }
+    .qr-label { font-size: 13px; color: #6b7280; margin-bottom: 10px; }
+    .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; }
+    .btn { display: inline-block; background: #d97706; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">T</div>
+      <div class="title">與神同行</div>
+      <div class="subtitle">Walking in His Love</div>
+    </div>
+    <div class="card">
+      <div class="greeting">親愛的 ${memberName}，您好！</div>
+      <p style="color: #4b5563; line-height: 1.6;">
+        歡迎您加入 <strong>${trip.title}</strong>！我們非常期待與您一同踏上這段與神同行的旅程。
+      </p>
+      <p style="color: #4b5563; line-height: 1.6;">
+        旅程日期：<strong>${trip.startDate} ~ ${trip.endDate}</strong><br>
+        目的地：<strong>${trip.destination}</strong>
+      </p>
+
+      <div class="code-box">
+        <div class="code-label">行程登入碼</div>
+        <div class="code-value">${invitationCode}</div>
+      </div>
+
+      <div class="pwd-box">
+        <div class="pwd-label">您的臨時密碼</div>
+        <div class="pwd-value">${tempPwd}</div>
+      </div>
+
+      <div class="qr-section">
+        <div class="qr-label">掃描 QR Code 快速加入行程</div>
+        <img src="${qrApiUrl}" alt="QR Code" width="200" height="200" style="border-radius: 8px;">
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${verifyUrl}" class="btn" style="color: white;">立即加入行程</a>
+      </div>
+
+      <p style="color: #6b7280; font-size: 13px; margin-top: 20px; line-height: 1.5;">
+        登入步驟：<br>
+        1. 點擊上方按鈕或掃描 QR Code<br>
+        2. 使用您的 Email（${user.email}）與臨時密碼登入<br>
+        3. 輸入行程登入碼加入旅程<br>
+        4. 建議登入後至設定頁面更改密碼
+      </p>
+    </div>
+    <div class="footer">
+      <p>享受一段與神同行的旅程！</p>
+      <p>Enjoy the journey of walking with God!</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+        try {
+          await resend.emails.send({
+            from: fromEmail || "Trip Companion <onboarding@resend.dev>",
+            to: user.email,
+            subject: `🌟 歡迎加入 ${trip.title} - 行前通知`,
+            html: htmlContent,
+          });
+          sentResults.push({ email: user.email, status: "sent" });
+        } catch (emailErr: any) {
+          console.error(`[send-notification] failed for ${user.email}:`, emailErr);
+          sentResults.push({ email: user.email, status: "error: " + emailErr.message });
+        }
+      }
+
+      res.json({ results: sentResults, total: sentResults.length });
+    } catch (error) {
+      console.error("[send-notifications] error:", error);
+      res.status(500).json({ error: "發送通知失敗" });
+    }
+  });
+
+  // Get members with temp passwords for a specific trip (admin only)
+  app.get("/api/admin/trips/:tripId/members", requireAdmin, async (req, res) => {
+    try {
+      const { tripId } = req.params;
+      const roles = await storage.getUserRoles(tripId);
+      const userIds = roles.map(r => r.userId);
+      const usersData = await storage.getUsersByIds(userIds);
+      const profiles = await Promise.all(userIds.map(id => storage.getProfile(id)));
+
+      const profileMap = new Map(profiles.filter(Boolean).map(p => [p!.userId, p!]));
+      const roleMap = new Map(roles.map(r => [r.userId, r]));
+
+      const members = usersData.map(u => {
+        const profile = profileMap.get(u.id);
+        const role = roleMap.get(u.id);
+        return {
+          userId: u.id,
+          name: profile?.name || u.firstName || "",
+          email: u.email,
+          tempPassword: u.tempPassword || "",
+          role: role?.role || "member",
+          phone: profile?.phone || "",
+          groupId: profile?.groupId || null,
+        };
+      });
+
+      res.json(members);
+    } catch (error) {
+      console.error("[get-trip-members] error:", error);
+      res.status(500).json({ error: "Failed to get trip members" });
+    }
+  });
+
   // Check if user needs to verify (no trip assigned)
   app.get("/api/check-trip-status", requireAuth, async (req, res) => {
     try {
