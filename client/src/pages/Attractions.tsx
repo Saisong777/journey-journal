@@ -265,7 +265,7 @@ const Attractions = () => {
               return (
                 <div className="space-y-3 px-4">
                   <MapPin className="w-10 h-10 mx-auto text-muted-foreground/40" />
-                  <p className="text-body font-medium text-muted-foreground">今天沒有景點行程</p>
+                  <p className="text-body font-medium text-muted-foreground">今天沒有安排景點</p>
                   {dayData && (
                     <div className="text-caption text-muted-foreground space-y-1">
                       {dayData.title && <p>{dayData.title}</p>}
