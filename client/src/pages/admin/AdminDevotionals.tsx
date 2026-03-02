@@ -195,6 +195,7 @@ export default function AdminDevotionals() {
         mode: importMode,
       });
       queryClient.invalidateQueries({ queryKey: ["admin-devotional-courses", selectedTripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/current/devotional-courses"] });
       toast({ title: `成功匯入 ${csvPreview.length} 筆靈修課程` });
       setIsImportOpen(false);
       setCsvPreview([]);
