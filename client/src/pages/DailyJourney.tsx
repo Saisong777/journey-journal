@@ -9,7 +9,7 @@ import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntr
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
 import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
-import { useDevotionalEntries, useMyDevotionalEntry, useSaveDevotional } from "@/hooks/useDevotional";
+import { useDevotionalEntries, useMyDevotionalEntry, useSaveDevotional, useTripDevotionalCourses, useBibleLookup } from "@/hooks/useDevotional";
 import { useEveningReflection, useSaveEveningReflection } from "@/hooks/useEveningReflection";
 import { useTrip } from "@/hooks/useTrip";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,7 +34,7 @@ function transformPhotoUrl(photoUrl: string): string {
   return photoUrl;
 }
 
-const dailyScriptures: Record<number, ScriptureData> = {
+const fallbackScriptures: Record<number, ScriptureData> = {
   1: {
     reference: "以賽亞書 40:31",
     theme: "啟程 - 出發的心志",
@@ -140,7 +140,35 @@ export default function DailyJourney() {
     return Math.max(1, diff);
   }, [trip?.startDate, selectedDate]);
 
-  const todayScripture = dailyScriptures[currentDay] || dailyScriptures[((currentDay - 1) % 5) + 1];
+  const { data: devotionalCourses } = useTripDevotionalCourses();
+
+  const todayCourse = useMemo(() => {
+    if (!devotionalCourses || devotionalCourses.length === 0) return null;
+    return devotionalCourses.find(c => c.dayNo === currentDay) || null;
+  }, [devotionalCourses, currentDay]);
+
+  const scriptureRef = todayCourse?.scripture || null;
+  const { data: bibleLookup, isLoading: bibleLoading } = useBibleLookup(scriptureRef);
+
+  const todayScripture: ScriptureData = useMemo(() => {
+    if (todayCourse && bibleLookup && bibleLookup.verses.length > 0) {
+      return {
+        reference: todayCourse.scripture || "",
+        theme: todayCourse.title,
+        verses: bibleLookup.verses,
+        reflection: todayCourse.reflection || "",
+      };
+    }
+    if (todayCourse) {
+      return {
+        reference: todayCourse.scripture || "",
+        theme: todayCourse.title,
+        verses: [],
+        reflection: todayCourse.reflection || "",
+      };
+    }
+    return fallbackScriptures[currentDay] || fallbackScriptures[((currentDay - 1) % 5) + 1];
+  }, [todayCourse, bibleLookup, currentDay]);
 
   const days = useMemo(() => {
     const selected = startOfDay(selectedDate);
@@ -359,7 +387,7 @@ export default function DailyJourney() {
         {/* Morning Devotion Tab */}
         {activeTab === "morning" && (
           <section className="space-y-5 animate-fade-in">
-            {devotionalLoading ? (
+            {(devotionalLoading || bibleLoading) ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>

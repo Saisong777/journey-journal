@@ -1,6 +1,9 @@
 import { db } from "./db";
-import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations, platformRoles, tripNotes, tripNoteAssignments } from "@shared/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { pool } from "./db";
+import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations, platformRoles, tripNotes, tripNoteAssignments, bibleVerses } from "@shared/schema";
+import { eq, and, isNull, sql } from "drizzle-orm";
+import fs from "fs";
+import path from "path";
 
 const ADMIN_EMAIL = "saisong@gmail.com";
 
@@ -262,6 +265,95 @@ async function seedTripNotes(tripId: string) {
   }
 }
 
+async function importBibleVerses() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bible_verses (
+          id SERIAL PRIMARY KEY,
+          book_name TEXT NOT NULL,
+          book_number INTEGER NOT NULL,
+          chapter INTEGER NOT NULL,
+          verse INTEGER NOT NULL,
+          text TEXT NOT NULL
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_bible_book_chapter_verse ON bible_verses (book_name, chapter, verse)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_bible_book_number ON bible_verses (book_number)`);
+
+      const countResult = await client.query("SELECT COUNT(*) as cnt FROM bible_verses");
+      const count = parseInt(countResult.rows[0].cnt, 10);
+      if (count > 0) {
+        console.log(`[bible-import] bible_verses already has ${count} rows, skipping import`);
+        return;
+      }
+
+      const csvPath = path.resolve(process.cwd(), "attached_assets/chinese_union_trad_xx_corrected_1772467521173.csv");
+      if (!fs.existsSync(csvPath)) {
+        console.log("[bible-import] CSV file not found at", csvPath);
+        return;
+      }
+
+      console.log("[bible-import] importing Bible verses from CSV...");
+      let raw = fs.readFileSync(csvPath, "utf-8");
+      if (raw.charCodeAt(0) === 0xFEFF) {
+        raw = raw.slice(1);
+      }
+
+      const lines = raw.split("\n");
+      const BATCH_SIZE = 500;
+      let inserted = 0;
+
+      for (let i = 1; i < lines.length; i += BATCH_SIZE) {
+        const batch = lines.slice(i, i + BATCH_SIZE);
+        const values: string[] = [];
+        const params: any[] = [];
+        let paramIdx = 0;
+
+        for (const line of batch) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          const firstComma = trimmed.indexOf(",");
+          const secondComma = trimmed.indexOf(",", firstComma + 1);
+          const thirdComma = trimmed.indexOf(",", secondComma + 1);
+          const fourthComma = trimmed.indexOf(",", thirdComma + 1);
+          const fifthComma = trimmed.indexOf(",", fourthComma + 1);
+
+          if (fifthComma === -1) continue;
+
+          const bookName = trimmed.substring(firstComma + 1, secondComma);
+          const bookNumber = parseInt(trimmed.substring(secondComma + 1, thirdComma), 10);
+          const chapter = parseInt(trimmed.substring(thirdComma + 1, fourthComma), 10);
+          const verse = parseInt(trimmed.substring(fourthComma + 1, fifthComma), 10);
+          const text = trimmed.substring(fifthComma + 1).replace(/ +/g, "");
+
+          if (isNaN(bookNumber) || isNaN(chapter) || isNaN(verse)) continue;
+
+          values.push(`($${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, $${paramIdx + 5})`);
+          params.push(bookName, bookNumber, chapter, verse, text);
+          paramIdx += 5;
+        }
+
+        if (values.length > 0) {
+          await client.query(
+            `INSERT INTO bible_verses (book_name, book_number, chapter, verse, text) VALUES ${values.join(", ")}`,
+            params
+          );
+          inserted += values.length;
+        }
+      }
+
+      console.log(`[bible-import] imported ${inserted} Bible verses`);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("[bible-import] error:", error);
+  }
+}
+
 export async function runStartupMigration() {
   try {
     console.log("[startup-migration] checking admin role...");
@@ -316,6 +408,8 @@ export async function runStartupMigration() {
     if (allTrips.length) {
       await seedTripNotes(allTrips[0].id);
     }
+
+    await importBibleVerses();
 
     console.log("[startup-migration] complete");
   } catch (error) {

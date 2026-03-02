@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -225,6 +225,18 @@ export const tripNoteAssignments = pgTable("trip_note_assignments", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const bibleVerses = pgTable("bible_verses", {
+  id: serial("id").primaryKey(),
+  bookName: text("book_name").notNull(),
+  bookNumber: integer("book_number").notNull(),
+  chapter: integer("chapter").notNull(),
+  verse: integer("verse").notNull(),
+  text: text("text").notNull(),
+}, (table) => [
+  index("idx_bible_book_chapter_verse").on(table.bookName, table.chapter, table.verse),
+  index("idx_bible_book_number").on(table.bookNumber),
+]);
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
@@ -263,5 +275,6 @@ export type EveningReflection = typeof eveningReflections.$inferSelect;
 export type PlatformRole = typeof platformRoles.$inferSelect;
 export type TripNote = typeof tripNotes.$inferSelect;
 export type TripNoteAssignment = typeof tripNoteAssignments.$inferSelect;
+export type BibleVerse = typeof bibleVerses.$inferSelect;
 export type InsertTripNote = z.infer<typeof insertTripNoteSchema>;
 export type InsertTripNoteAssignment = z.infer<typeof insertTripNoteAssignmentSchema>;

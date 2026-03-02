@@ -25,6 +25,49 @@ export interface DevotionalEntryDB {
   updatedAt: string;
 }
 
+export interface DevotionalCourseDB {
+  id: string;
+  tripId: string;
+  dayNo: number | null;
+  title: string;
+  scripture: string | null;
+  reflection: string | null;
+  action: string | null;
+  prayer: string | null;
+}
+
+export interface BibleLookupResult {
+  reference: string;
+  bookName: string;
+  chapter: number;
+  verses: { number: number; text: string }[];
+}
+
+export function useTripDevotionalCourses() {
+  return useQuery<DevotionalCourseDB[]>({
+    queryKey: ["/api/trips/current/devotional-courses"],
+  });
+}
+
+export function useBibleLookup(ref: string | null | undefined) {
+  return useQuery<BibleLookupResult>({
+    queryKey: ["/api/bible/lookup", ref],
+    queryFn: async () => {
+      if (!ref) throw new Error("No reference");
+      const response = await fetch(`/api/bible/lookup?ref=${encodeURIComponent(ref)}`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to lookup scripture");
+      }
+      return response.json();
+    },
+    enabled: !!ref && ref.trim().length > 0,
+    staleTime: Infinity,
+  });
+}
+
 export function useDevotionalEntries(date?: string) {
   const { data: trip } = useTrip();
 

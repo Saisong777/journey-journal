@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -7,6 +7,7 @@ import {
   useDevotionalCourseMutations,
   type DevotionalCourse,
 } from "@/hooks/useAdmin";
+import { useBibleLookup } from "@/hooks/useDevotional";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, BookOpen, AlertCircle } from "lucide-react";
 
 interface DevotionalFormData {
   dayNo: number | null;
@@ -69,6 +70,18 @@ export default function AdminDevotionals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<DevotionalCourse | null>(null);
   const [formData, setFormData] = useState<DevotionalFormData>(emptyForm);
+  const [debouncedScripture, setDebouncedScripture] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedScripture(formData.scripture.trim());
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.scripture]);
+
+  const { data: scripturePreview, isLoading: previewLoading, isError: previewError } = useBibleLookup(
+    isDialogOpen && debouncedScripture ? debouncedScripture : null
+  );
 
   const resetForm = () => {
     setFormData(emptyForm);
@@ -317,6 +330,41 @@ export default function AdminDevotionals() {
                   }
                   data-testid="input-scripture"
                 />
+                {debouncedScripture && (
+                  <div className="mt-2">
+                    {previewLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground text-caption p-3 bg-muted/50 rounded-lg">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>查詢經文中...</span>
+                      </div>
+                    ) : previewError ? (
+                      <div className="flex items-center gap-2 text-destructive text-caption p-3 bg-destructive/5 rounded-lg">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>無法找到此經文，請確認格式（例如：詩篇 23:1-6）</span>
+                      </div>
+                    ) : scripturePreview && scripturePreview.verses.length > 0 ? (
+                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200/50 dark:border-amber-700/30" data-testid="scripture-preview">
+                        <p className="text-caption font-semibold text-amber-700 dark:text-amber-300 mb-2">
+                          <BookOpen className="w-3 h-3 inline mr-1" />
+                          經文預覽 — {scripturePreview.reference}
+                        </p>
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {scripturePreview.verses.map((v) => (
+                            <p key={v.number} className="text-caption leading-relaxed text-foreground">
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold mr-1">{v.number}</span>
+                              {v.text}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : scripturePreview && scripturePreview.verses.length === 0 ? (
+                      <div className="flex items-center gap-2 text-muted-foreground text-caption p-3 bg-muted/50 rounded-lg">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>找不到對應的經文節數</span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               <div>

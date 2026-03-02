@@ -18,6 +18,7 @@ import {
   platformRoles,
   tripNotes,
   tripNoteAssignments,
+  bibleVerses,
   type User,
   type Profile,
   type Trip,
@@ -51,6 +52,7 @@ import {
   type InsertTripNote,
   type TripNoteAssignment,
   type InsertTripNoteAssignment,
+  type BibleVerse,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -120,6 +122,9 @@ export interface IStorage {
   createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
   updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
   deleteDevotionalCourse(id: string): Promise<void>;
+
+  lookupBibleVerses(bookName: string, chapter: number, verseStart?: number, verseEnd?: number): Promise<BibleVerse[]>;
+  getBibleBooks(): Promise<{ bookName: string; bookNumber: number }[]>;
 
   getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined>;
   saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection>;
@@ -726,6 +731,28 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(tripNoteAssignments)
       .where(and(eq(tripNoteAssignments.tripId, tripId), eq(tripNoteAssignments.noteId, noteId)));
+  }
+
+  async lookupBibleVerses(bookName: string, chapter: number, verseStart?: number, verseEnd?: number): Promise<BibleVerse[]> {
+    const conditions = [
+      eq(bibleVerses.bookName, bookName),
+      eq(bibleVerses.chapter, chapter),
+    ];
+    let results = await db.select().from(bibleVerses).where(and(...conditions)).orderBy(asc(bibleVerses.verse));
+    if (verseStart !== undefined && verseEnd !== undefined) {
+      results = results.filter(v => v.verse >= verseStart && v.verse <= verseEnd);
+    } else if (verseStart !== undefined) {
+      results = results.filter(v => v.verse === verseStart);
+    }
+    return results;
+  }
+
+  async getBibleBooks(): Promise<{ bookName: string; bookNumber: number }[]> {
+    const results = await db
+      .selectDistinct({ bookName: bibleVerses.bookName, bookNumber: bibleVerses.bookNumber })
+      .from(bibleVerses)
+      .orderBy(asc(bibleVerses.bookNumber));
+    return results;
   }
 }
 

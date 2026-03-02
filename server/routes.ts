@@ -5,6 +5,20 @@ import bcrypt from "bcrypt";
 import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
 import { tokenStore, generateToken, createAuthToken } from "./tokenStore";
 
+function parseScriptureReference(ref: string): { bookName: string; chapter: number; verseStart?: number; verseEnd?: number } | null {
+  const trimmed = ref.trim();
+  const match = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+)(?:\s*[-–]\s*(\d+))?)?$/);
+  if (!match) return null;
+
+  const bookName = match[1].trim();
+  const chapter = parseInt(match[2], 10);
+  const verseStart = match[3] ? parseInt(match[3], 10) : undefined;
+  const verseEnd = match[4] ? parseInt(match[4], 10) : verseStart;
+
+  if (isNaN(chapter)) return null;
+  return { bookName, chapter, verseStart, verseEnd };
+}
+
 declare module "express-session" {
   interface SessionData {
     userId?: string;
@@ -1117,6 +1131,53 @@ export function registerRoutes(app: Express) {
   });
 
   // User-facing: get notes for current trip
+  app.get("/api/bible/lookup", requireAuth, async (req, res) => {
+    try {
+      const ref = (req.query.ref as string || "").trim();
+      if (!ref) {
+        return res.status(400).json({ error: "Missing ref parameter" });
+      }
+
+      const parsed = parseScriptureReference(ref);
+      if (!parsed) {
+        return res.status(400).json({ error: "Invalid scripture reference format", reference: ref });
+      }
+
+      const verses = await storage.lookupBibleVerses(parsed.bookName, parsed.chapter, parsed.verseStart, parsed.verseEnd);
+      res.json({
+        reference: ref,
+        bookName: parsed.bookName,
+        chapter: parsed.chapter,
+        verses: verses.map(v => ({ number: v.verse, text: v.text })),
+      });
+    } catch (error) {
+      console.error("Bible lookup error:", error);
+      res.status(500).json({ error: "Failed to lookup scripture" });
+    }
+  });
+
+  app.get("/api/bible/books", requireAuth, async (req, res) => {
+    try {
+      const books = await storage.getBibleBooks();
+      res.json(books);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Bible books" });
+    }
+  });
+
+  app.get("/api/trips/current/devotional-courses", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const courses = await storage.getDevotionalCourses(userRole.tripId);
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get devotional courses" });
+    }
+  });
+
   app.get("/api/trips/current/notes", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.userId!);
