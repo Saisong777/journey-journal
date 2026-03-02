@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getAuthToken } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,17 @@ export default function VerifyTrip() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const urlCode = searchParams.get("code");
+    if (urlCode) {
+      setCode(urlCode.toUpperCase());
+    }
+  }, [searchParams]);
 
   const { data: tripStatus, isLoading: tripStatusLoading } = useQuery({
     queryKey: ["trip-status", user?.id],
@@ -70,7 +78,7 @@ export default function VerifyTrip() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) {
-      setError("請輸入驗證碼");
+      setError("請輸入邀請碼");
       return;
     }
     setError(null);
@@ -107,9 +115,9 @@ export default function VerifyTrip() {
                     setCode(e.target.value.toUpperCase());
                     setError(null);
                   }}
-                  placeholder="請輸入邀請碼"
-                  className="text-center text-2xl font-mono tracking-widest h-14"
-                  maxLength={10}
+                  placeholder="請輸入4位邀請碼"
+                  className="text-center text-3xl font-mono tracking-[0.5em] h-16"
+                  maxLength={4}
                   autoFocus
                   data-testid="input-invitation-code"
                 />

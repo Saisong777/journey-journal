@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
@@ -898,7 +899,23 @@ export function registerRoutes(app: Express) {
   app.post("/api/admin/trips/:tripId/invitations", requireAdmin, async (req, res) => {
     try {
       const { description, maxUses, expiresAt } = req.body;
-      const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+      
+      const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      let code = "";
+      let attempts = 0;
+      while (attempts < 10) {
+        code = "";
+        const bytes = crypto.randomBytes(4);
+        for (let i = 0; i < 4; i++) {
+          code += chars[bytes[i] % chars.length];
+        }
+        const existing = await storage.getTripInvitationByCode(code);
+        if (!existing) break;
+        attempts++;
+      }
+      if (attempts >= 10) {
+        return res.status(500).json({ error: "Failed to generate unique code" });
+      }
       
       const invitation = await storage.createTripInvitation({
         tripId: req.params.tripId,
@@ -910,6 +927,7 @@ export function registerRoutes(app: Express) {
       });
       res.json(invitation);
     } catch (error) {
+      console.error("[create-invitation] error:", error);
       res.status(500).json({ error: "Failed to create invitation" });
     }
   });
