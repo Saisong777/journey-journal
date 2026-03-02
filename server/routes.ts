@@ -373,6 +373,42 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/evening-reflections", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.json(null);
+      }
+      const date = (req.query.date as string) || new Date().toISOString().split("T")[0];
+      const reflection = await storage.getEveningReflection(req.userId!, userRole.tripId, date);
+      res.json(reflection || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get evening reflection" });
+    }
+  });
+
+  app.post("/api/evening-reflections", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.status(400).json({ error: "User not in a trip" });
+      }
+      const entryDate = req.body.entryDate || new Date().toISOString().split("T")[0];
+      const reflection = await storage.saveEveningReflection({
+        userId: req.userId!,
+        tripId: userRole.tripId,
+        gratitude: req.body.gratitude || "",
+        highlight: req.body.highlight || "",
+        prayerForTomorrow: req.body.prayerForTomorrow || "",
+        entryDate,
+      });
+      res.json(reflection);
+    } catch (error) {
+      console.error("Failed to save evening reflection:", error);
+      res.status(500).json({ error: "Failed to save evening reflection" });
+    }
+  });
+
   app.get("/api/is-admin", requireAuth, async (req, res) => {
     try {
       const isAdmin = await storage.hasRole(req.userId!, "admin");

@@ -176,7 +176,20 @@ export const insertJournalPhotoSchema = createInsertSchema(journalPhotos).omit({
 export const insertDevotionalEntrySchema = createInsertSchema(devotionalEntries).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAttractionFavoriteSchema = createInsertSchema(attractionFavorites).omit({ id: true, createdAt: true });
 export const insertDevotionalCourseSchema = createInsertSchema(devotionalCourses).omit({ id: true, createdAt: true, updatedAt: true });
+export const eveningReflections = pgTable("evening_reflections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  gratitude: text("gratitude"),
+  highlight: text("highlight"),
+  prayerForTomorrow: text("prayer_for_tomorrow"),
+  entryDate: date("entry_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
+export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -190,6 +203,7 @@ export type InsertDevotionalEntry = z.infer<typeof insertDevotionalEntrySchema>;
 export type InsertAttractionFavorite = z.infer<typeof insertAttractionFavoriteSchema>;
 export type InsertDevotionalCourse = z.infer<typeof insertDevotionalCourseSchema>;
 export type InsertTripInvitation = z.infer<typeof insertTripInvitationSchema>;
+export type InsertEveningReflection = z.infer<typeof insertEveningReflectionSchema>;
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -204,3 +218,4 @@ export type AttractionFavorite = typeof attractionFavorites.$inferSelect;
 export type UserLocation = typeof userLocations.$inferSelect;
 export type DevotionalCourse = typeof devotionalCourses.$inferSelect;
 export type TripInvitation = typeof tripInvitations.$inferSelect;
+export type EveningReflection = typeof eveningReflections.$inferSelect;

@@ -14,6 +14,7 @@ import {
   userLocations,
   devotionalCourses,
   tripInvitations,
+  eveningReflections,
   type User,
   type Profile,
   type Trip,
@@ -39,6 +40,8 @@ import {
   type InsertAttractionFavorite,
   type InsertDevotionalCourse,
   type InsertTripInvitation,
+  type EveningReflection,
+  type InsertEveningReflection,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -101,6 +104,9 @@ export interface IStorage {
   createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
   updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
   deleteDevotionalCourse(id: string): Promise<void>;
+
+  getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined>;
+  saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection>;
 
   getTripInvitations(tripId: string): Promise<TripInvitation[]>;
   getAllTripInvitations(): Promise<TripInvitation[]>;
@@ -510,6 +516,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTripInvitation(id: string): Promise<void> {
     await db.delete(tripInvitations).where(eq(tripInvitations.id, id));
+  }
+
+  async getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined> {
+    const [reflection] = await db
+      .select()
+      .from(eveningReflections)
+      .where(
+        and(
+          eq(eveningReflections.userId, userId),
+          eq(eveningReflections.tripId, tripId),
+          eq(eveningReflections.entryDate, date)
+        )
+      );
+    return reflection;
+  }
+
+  async saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection> {
+    const existing = await this.getEveningReflection(data.userId, data.tripId, data.entryDate!);
+    if (existing) {
+      const [updated] = await db
+        .update(eveningReflections)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(eveningReflections.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(eveningReflections).values(data).returning();
+    return created;
   }
 }
 

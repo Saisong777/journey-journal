@@ -7,6 +7,16 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (March 2, 2026)
+- **Unified Daily Journey page**: Combined journal + devotional + new evening reflection into single page
+  - Three tabs: 晨光靈修 (Morning Devotion), 旅途探險 (Journal Adventures), 夜間感恩 (Evening Gratitude)
+  - New `evening_reflections` database table for gratitude, highlight, and prayer-for-tomorrow entries
+  - New API endpoints: `GET/POST /api/evening-reflections`
+  - New hook: `useEveningReflection.tsx`, `useSaveEveningReflection()`
+  - New page: `DailyJourney.tsx` at `/daily-journey`
+  - Old `/journal` and `/devotional` routes redirect to `/daily-journey`
+  - BottomNav updated: "日誌" → "旅程" with Compass icon
+  - QuickActions updated: "每日日誌" → "每日旅程", removed separate "靈修禱告" entry
+  - DailyDevotional homepage card links to `/daily-journey`
 - **Auth header fix for all hooks**: Fixed 401 errors on `/api/trips/current` and other endpoints
   - Root cause: Custom `queryFn` in hooks sent `credentials: "include"` but not the Bearer token header
   - Fixed `useTrip.tsx`, `useMembers.tsx`, `useDevotional.tsx` to include `Authorization: Bearer` header

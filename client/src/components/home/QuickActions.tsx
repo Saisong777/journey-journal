@@ -3,7 +3,6 @@ import {
   BookOpen,
   MapPin,
   Info,
-  Book,
   Wrench,
   Users,
   FileText,
@@ -13,10 +12,10 @@ import { FeatureCard } from "@/components/ui/FeatureCard";
 const features = [
   {
     icon: BookOpen,
-    title: "每日日誌",
-    description: "記錄感言與拍照留念",
+    title: "每日旅程",
+    description: "靈修、日誌、感恩",
     variant: "primary" as const,
-    path: "/journal",
+    path: "/daily-journey",
   },
   {
     icon: MapPin,
@@ -38,13 +37,6 @@ const features = [
     description: "景點介紹與歷史背景",
     variant: "secondary" as const,
     path: "/attractions",
-  },
-  {
-    icon: Book,
-    title: "靈修禱告",
-    description: "每日靈修與感言",
-    variant: "secondary" as const,
-    path: "/devotional",
   },
   {
     icon: Wrench,

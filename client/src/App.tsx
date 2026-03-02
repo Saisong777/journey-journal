@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Journal from "./pages/Journal";
 import Location from "./pages/Location";
 import Devotional from "./pages/Devotional";
+import DailyJourney from "./pages/DailyJourney";
 import Tools from "./pages/Tools";
 import Members from "./pages/Members";
 import Settings from "./pages/Settings";
@@ -56,10 +57,26 @@ const App = () => (
               }
             />
             <Route
+              path="/daily-journey"
+              element={
+                <ProtectedRoute>
+                  <DailyJourney />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/journal"
               element={
                 <ProtectedRoute>
-                  <Journal />
+                  <DailyJourney />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/devotional"
+              element={
+                <ProtectedRoute>
+                  <DailyJourney />
                 </ProtectedRoute>
               }
             />
@@ -68,14 +85,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Location />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/devotional"
-              element={
-                <ProtectedRoute>
-                  <Devotional />
                 </ProtectedRoute>
               }
             />

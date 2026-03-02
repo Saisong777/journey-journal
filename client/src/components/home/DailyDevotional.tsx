@@ -16,7 +16,7 @@ export function DailyDevotional({ bibleRefs }: DailyDevotionalProps) {
       <h2 className="text-title px-1">今日靈修</h2>
       
       <button 
-        onClick={() => navigate("/devotional")}
+        onClick={() => navigate("/daily-journey")}
         className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:scale-[0.99]"
         data-testid="button-devotional"
       >
