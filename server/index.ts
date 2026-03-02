@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { runStartupMigration } from "./startupMigration";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -47,6 +48,9 @@ app.use((req, res, next) => {
   
   // Register object storage routes
   registerObjectStorageRoutes(app);
+  
+  // Run startup migration (ensure admin roles and trip data exist)
+  await runStartupMigration();
   
   // Register application routes
   registerRoutes(app);
