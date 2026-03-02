@@ -14,6 +14,7 @@ import { getAuthToken } from "@/lib/queryClient";
 interface AddJournalSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  date?: string;
   onSave?: (entry: {
     location: string;
     content: string;
@@ -29,7 +30,7 @@ const moods = [
   { key: "amazed", emoji: "✨", label: "驚嘆" },
 ];
 
-export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetProps) {
+export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournalSheetProps) {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
@@ -43,7 +44,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
     if (open) {
       fetchLocations();
     }
-  }, [open]);
+  }, [open, date]);
 
   const fetchLocations = async () => {
     setIsLoadingLocations(true);
@@ -56,7 +57,10 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const response = await fetch("/api/trip-days/today/attractions", {
+      const attractionsUrl = date
+        ? `/api/trip-days/attractions?date=${date}`
+        : "/api/trip-days/today/attractions";
+      const response = await fetch(attractionsUrl, {
         credentials: "include",
         headers,
       });

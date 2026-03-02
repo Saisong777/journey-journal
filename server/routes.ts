@@ -759,6 +759,45 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/trip-days/attractions", requireAuth, async (req, res) => {
+    try {
+      const dateParam = req.query.date as string | undefined;
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const days = await storage.getTripDays(userRole.tripId);
+      if (!days || days.length === 0) {
+        return res.json([]);
+      }
+
+      let targetDay = dateParam ? days.find(d => d.date === dateParam) : null;
+
+      if (!targetDay) {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        targetDay = days.find(d => d.date === today);
+        if (!targetDay) {
+          targetDay = days.find(d => d.dayNo === 1);
+        }
+      }
+
+      if (!targetDay) {
+        return res.json(["其他景點"]);
+      }
+
+      const attractionsStr = targetDay.attractions || targetDay.highlights || "";
+      const attractions = attractionsStr.split("/").map((a: string) => a.trim()).filter(Boolean);
+      if (!attractions.includes("其他景點")) {
+        attractions.push("其他景點");
+      }
+      res.json(attractions);
+    } catch (error) {
+      console.error("Error getting attractions by date:", error);
+      res.status(500).json({ error: "Failed to get attractions" });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const allUsers = await storage.getAllUsers();

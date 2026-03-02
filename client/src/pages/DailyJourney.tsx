@@ -1065,6 +1065,7 @@ export default function DailyJourney() {
       <AddJournalSheet
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
+        date={dateStr}
         onSave={handleSaveJournal}
       />
 
