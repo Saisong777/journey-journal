@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
   Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil, MapPin, HandHeart, MessageCircleHeart,
-  ChevronDown, Copy, ClipboardCheck,
+  ChevronDown, Copy,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/layout/Header";
@@ -109,14 +109,14 @@ export default function DailyJourney() {
   const [isEditingDevotional, setIsEditingDevotional] = useState(false);
   const [isEditingEvening, setIsEditingEvening] = useState(false);
   const [versesExpanded, setVersesExpanded] = useState(false);
-  const [copiedVerseId, setCopiedVerseId] = useState<number | null>(null);
+  const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
     setIsEditingDevotional(false);
     setIsEditingEvening(false);
     setVersesExpanded(false);
-    setCopiedVerseId(null);
+    setSelectedVerses(new Set());
     setReflection("");
     setSelectedTopics([]);
     setPrayerContent("");
@@ -141,10 +141,9 @@ export default function DailyJourney() {
   const saveEvening = useSaveEveningReflection();
 
   const currentDay = useMemo(() => {
-    if (!trip?.startDate) return 1;
+    if (!trip?.startDate) return 0;
     const start = parseISO(trip.startDate);
-    const diff = differenceInDays(selectedDate, start) + 1;
-    return Math.max(1, diff);
+    return differenceInDays(selectedDate, start) + 1;
   }, [trip?.startDate, selectedDate]);
 
   const { data: devotionalCourses } = useTripDevotionalCourses();
@@ -188,19 +187,31 @@ export default function DailyJourney() {
     return null;
   }, [todayCourse, bibleLookup, currentDay, hasCourses]);
 
-  const copyVerses = (verses: { number: number; text: string }[], reference: string) => {
-    const realVerses = verses.filter(v => v.number > 0);
-    const text = `${reference}\n${realVerses.map(v => `${v.number} ${v.text}`).join("\n")}`;
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: "已複製經文" });
+  const toggleVerseSelection = (idx: number) => {
+    setSelectedVerses(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
     });
   };
 
-  const copySingleVerse = (verse: { number: number; text: string }, reference: string) => {
-    const text = `${reference} ${verse.number}\n${verse.text}`;
+  const selectAllVerses = (verses: { number: number; text: string }[]) => {
+    const indices = verses.map((v, i) => v.number > 0 ? i : -1).filter(i => i >= 0);
+    setSelectedVerses(prev => {
+      const allSelected = indices.every(i => prev.has(i));
+      if (allSelected) return new Set();
+      return new Set(indices);
+    });
+  };
+
+  const copySelectedVerses = (verses: { number: number; text: string }[], reference: string) => {
+    const selected = verses.filter((v, i) => selectedVerses.has(i) && v.number > 0);
+    if (selected.length === 0) return;
+    const text = `${reference}\n${selected.map(v => `${v.number} ${v.text}`).join("\n")}`;
     navigator.clipboard.writeText(text).then(() => {
-      setCopiedVerseId(verse.number);
-      setTimeout(() => setCopiedVerseId(null), 1500);
+      toast({ title: `已複製 ${selected.length} 節經文` });
+      setSelectedVerses(new Set());
     });
   };
 
@@ -426,10 +437,111 @@ export default function DailyJourney() {
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : !todayScripture ? (
-              <div className="bg-card rounded-lg shadow-card p-12 text-center space-y-3">
-                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto" />
-                <p className="text-title font-semibold text-muted-foreground">今日沒有安排靈修</p>
-                <p className="text-body text-muted-foreground/70">享受旅途中的自由時光吧！</p>
+              <div className="space-y-4">
+                <div className="bg-card rounded-lg shadow-card p-8 text-center space-y-3">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto" />
+                  <p className="text-title font-semibold text-muted-foreground">今日沒有安排靈修經文</p>
+                  <p className="text-body text-muted-foreground/70">享受旅途中的自由時光吧！</p>
+                </div>
+                {myDevotional?.reflection && !isEditingDevotional ? (
+                  <div className="bg-card rounded-lg shadow-card p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 flex items-start gap-2 flex-1">
+                        <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-caption font-medium text-green-700 dark:text-green-300">我的靈修心得</p>
+                          <p className="text-body text-foreground mt-1">{myDevotional.reflection}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleEditDevotional}
+                        className="p-2 rounded-lg hover:bg-muted transition-colors ml-2"
+                        data-testid="button-edit-devotional-nodevotional"
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </div>
+                    {myDevotional.prayer && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-caption font-medium text-muted-foreground mb-1">禱告</p>
+                        <p className="text-body text-foreground">{myDevotional.prayer}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-lg shadow-card p-5 space-y-4">
+                    <div className="space-y-3">
+                      <label className="text-body font-medium flex items-center gap-2">
+                        <Heart className="w-5 h-5 text-terracotta" />
+                        今日感動
+                      </label>
+                      <Textarea
+                        value={reflection}
+                        onChange={(e) => setReflection(e.target.value)}
+                        placeholder="今天有什麼感動或領受..."
+                        className="min-h-[100px] text-body resize-none"
+                        data-testid="input-reflection-nodevotional"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-body font-medium">禱告主題</label>
+                      <div className="flex flex-wrap gap-2">
+                        {prayerTopics.map((topic) => (
+                          <button
+                            key={topic}
+                            onClick={() => setSelectedTopics(prev =>
+                              prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+                            )}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-caption transition-all touch-target",
+                              selectedTopics.includes(topic)
+                                ? "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200"
+                                : "bg-muted text-foreground hover:bg-muted/80"
+                            )}
+                            data-testid={`topic-nodev-${topic}`}
+                          >
+                            {topic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-body font-medium">禱告內容</label>
+                      <Textarea
+                        value={prayerContent}
+                        onChange={(e) => setPrayerContent(e.target.value)}
+                        placeholder="親愛的天父，感謝祢..."
+                        className="min-h-[80px] text-body resize-none"
+                        data-testid="input-prayer-nodevotional"
+                      />
+                    </div>
+                    {isEditingDevotional && (
+                      <Button
+                        onClick={() => {
+                          setIsEditingDevotional(false);
+                          setReflection("");
+                          setSelectedTopics([]);
+                          setPrayerContent("");
+                        }}
+                        variant="outline"
+                        className="w-full h-12 rounded-xl"
+                        data-testid="button-cancel-devotional-nodevotional"
+                      >
+                        取消編輯
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleSaveDevotional}
+                      disabled={!reflection.trim() || saveDevotional.isPending}
+                      className="w-full h-12 gradient-warm text-primary-foreground rounded-xl"
+                      data-testid="button-save-devotional-nodevotional"
+                    >
+                      {saveDevotional.isPending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : isEditingDevotional ? "儲存修改" : "記錄感動"}
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : myDevotional?.reflection && !isEditingDevotional ? (
               <div className="space-y-4">
@@ -460,7 +572,7 @@ export default function DailyJourney() {
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button
-                          onClick={() => setVersesExpanded(!versesExpanded)}
+                          onClick={() => { setVersesExpanded(!versesExpanded); setSelectedVerses(new Set()); }}
                           className="w-full flex items-center justify-between p-3 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
                           data-testid="button-toggle-verses-completed"
                         >
@@ -468,42 +580,55 @@ export default function DailyJourney() {
                             <BookOpen className="w-3.5 h-3.5" />
                             經文 ({todayScripture.verses.filter(v => v.number > 0).length} 節)
                           </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); copyVerses(todayScripture.verses, todayScripture.reference); }}
-                              className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors"
-                              data-testid="button-copy-all-verses-completed"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            </button>
-                            <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
-                          </div>
+                          <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
                         </button>
                         {versesExpanded && (
-                          <div className="px-3 pb-3 space-y-2">
+                          <div className="px-3 pb-3 space-y-1">
+                            <div className="flex justify-end mb-1">
+                              <button
+                                onClick={() => selectAllVerses(todayScripture.verses)}
+                                className="text-xs text-amber-600 dark:text-amber-400 hover:underline px-1"
+                                data-testid="button-select-all-completed"
+                              >
+                                {todayScripture.verses.filter((v, i) => v.number > 0 && selectedVerses.has(i)).length === todayScripture.verses.filter(v => v.number > 0).length ? "取消全選" : "全選"}
+                              </button>
+                            </div>
                             {todayScripture.verses.map((verse, idx) => (
                               verse.number === 0 ? (
                                 <p key={`label-${idx}`} className="text-caption text-amber-600 dark:text-amber-400 font-medium pt-2">{verse.text}</p>
                               ) : (
-                                <div key={`v-${idx}-${verse.number}`} className="flex items-start gap-1">
+                                <button
+                                  key={`v-${idx}-${verse.number}`}
+                                  onClick={() => toggleVerseSelection(idx)}
+                                  className={cn(
+                                    "w-full flex items-start gap-2 p-2 rounded-lg text-left transition-colors",
+                                    selectedVerses.has(idx) ? "bg-amber-200/60 dark:bg-amber-800/40" : "hover:bg-amber-100/40 dark:hover:bg-amber-900/20"
+                                  )}
+                                  data-testid={`button-select-verse-${verse.number}`}
+                                >
+                                  <div className={cn(
+                                    "w-4 h-4 rounded border flex-shrink-0 mt-1 flex items-center justify-center transition-colors",
+                                    selectedVerses.has(idx) ? "bg-amber-600 border-amber-600 text-white" : "border-amber-400"
+                                  )}>
+                                    {selectedVerses.has(idx) && <Check className="w-3 h-3" />}
+                                  </div>
                                   <p className="text-body text-foreground leading-relaxed flex-1">
                                     <span className="text-caption font-semibold text-amber-700 dark:text-amber-400 mr-1">{verse.number}</span>
                                     {verse.text}
                                   </p>
-                                  <button
-                                    onClick={() => copySingleVerse(verse, todayScripture.reference)}
-                                    className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors flex-shrink-0 mt-0.5 opacity-40 hover:opacity-100"
-                                    data-testid={`button-copy-verse-${verse.number}`}
-                                  >
-                                    {copiedVerseId === verse.number ? (
-                                      <ClipboardCheck className="w-3.5 h-3.5 text-green-600" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5 text-amber-500" />
-                                    )}
-                                  </button>
-                                </div>
+                                </button>
                               )
                             ))}
+                            {selectedVerses.size > 0 && (
+                              <button
+                                onClick={() => copySelectedVerses(todayScripture.verses, todayScripture.reference)}
+                                className="w-full mt-2 py-2.5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                                data-testid="button-copy-selected-completed"
+                              >
+                                <Copy className="w-4 h-4" />
+                                複製 {todayScripture.verses.filter((v, i) => selectedVerses.has(i) && v.number > 0).length} 節經文
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -570,7 +695,7 @@ export default function DailyJourney() {
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/40 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button
-                          onClick={() => setVersesExpanded(!versesExpanded)}
+                          onClick={() => { setVersesExpanded(!versesExpanded); setSelectedVerses(new Set()); }}
                           className="w-full flex items-center justify-between p-3 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
                           data-testid="button-toggle-verses"
                         >
@@ -578,42 +703,55 @@ export default function DailyJourney() {
                             <BookOpen className="w-3.5 h-3.5" />
                             經文 ({todayScripture.verses.filter(v => v.number > 0).length} 節)
                           </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); copyVerses(todayScripture.verses, todayScripture.reference); }}
-                              className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors"
-                              data-testid="button-copy-all-verses"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            </button>
-                            <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
-                          </div>
+                          <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
                         </button>
                         {versesExpanded && (
-                          <div className="px-3 pb-3 space-y-2">
+                          <div className="px-3 pb-3 space-y-1">
+                            <div className="flex justify-end mb-1">
+                              <button
+                                onClick={() => selectAllVerses(todayScripture.verses)}
+                                className="text-xs text-amber-600 dark:text-amber-400 hover:underline px-1"
+                                data-testid="button-select-all"
+                              >
+                                {todayScripture.verses.filter((v, i) => v.number > 0 && selectedVerses.has(i)).length === todayScripture.verses.filter(v => v.number > 0).length ? "取消全選" : "全選"}
+                              </button>
+                            </div>
                             {todayScripture.verses.map((verse, idx) => (
                               verse.number === 0 ? (
                                 <p key={`label-${idx}`} className="text-caption text-amber-600 dark:text-amber-400 font-medium pt-2">{verse.text}</p>
                               ) : (
-                                <div key={`v-${idx}-${verse.number}`} className="flex items-start gap-1">
+                                <button
+                                  key={`v-${idx}-${verse.number}`}
+                                  onClick={() => toggleVerseSelection(idx)}
+                                  className={cn(
+                                    "w-full flex items-start gap-2 p-2 rounded-lg text-left transition-colors",
+                                    selectedVerses.has(idx) ? "bg-amber-200/60 dark:bg-amber-800/40" : "hover:bg-amber-100/40 dark:hover:bg-amber-900/20"
+                                  )}
+                                  data-testid={`button-select-verse-${verse.number}`}
+                                >
+                                  <div className={cn(
+                                    "w-4 h-4 rounded border flex-shrink-0 mt-1 flex items-center justify-center transition-colors",
+                                    selectedVerses.has(idx) ? "bg-amber-600 border-amber-600 text-white" : "border-amber-400"
+                                  )}>
+                                    {selectedVerses.has(idx) && <Check className="w-3 h-3" />}
+                                  </div>
                                   <p className="text-body leading-relaxed flex-1">
                                     <span className="text-primary font-semibold text-caption align-super mr-1">{verse.number}</span>
                                     {verse.text}
                                   </p>
-                                  <button
-                                    onClick={() => copySingleVerse(verse, todayScripture.reference)}
-                                    className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors flex-shrink-0 mt-0.5 opacity-40 hover:opacity-100"
-                                    data-testid={`button-copy-verse-${verse.number}`}
-                                  >
-                                    {copiedVerseId === verse.number ? (
-                                      <ClipboardCheck className="w-3.5 h-3.5 text-green-600" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5 text-amber-500" />
-                                    )}
-                                  </button>
-                                </div>
+                                </button>
                               )
                             ))}
+                            {selectedVerses.size > 0 && (
+                              <button
+                                onClick={() => copySelectedVerses(todayScripture.verses, todayScripture.reference)}
+                                className="w-full mt-2 py-2.5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                                data-testid="button-copy-selected"
+                              >
+                                <Copy className="w-4 h-4" />
+                                複製 {todayScripture.verses.filter((v, i) => selectedVerses.has(i) && v.number > 0).length} 節經文
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
