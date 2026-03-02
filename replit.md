@@ -1,231 +1,43 @@
 # Trip Companion - Pilgrimage Journey App (朝聖之旅)
 
 ## Overview
-Trip Companion is a web application designed for Christian pilgrimage/mission trips. It enables team members to share journals, devotional entries, track locations, manage groups, and create trip summaries. The UI is in Chinese Traditional (繁體中文) with a warm spiritual design using amber/gold colors.
-
-## Project Status
-**Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
-
-## Recent Changes (March 2, 2026)
-- **Devotional completed view shows scripture**: After saving a devotional, the completed view now displays the full scripture verses and reflection text alongside the user's own reflection and prayer
-- **Journal photo editing**: ViewJournalSheet now supports adding/removing photos in edit mode
-  - Max 7 photos per journal entry enforced in both AddJournalSheet and ViewJournalSheet
-  - Backend PATCH `/api/journal-entries/:id` now accepts `photos` array to sync photo changes
-  - Added `deleteJournalPhoto` and `getJournalPhotos` storage methods
-  - `JournalEntryData` now includes `originalPhotoPaths` for tracking raw object paths
-- **Unified Daily Journey page**: Combined journal + devotional + new evening reflection into single page
-  - Three tabs: 晨光靈修 (Morning Devotion), 旅途探險 (Journal Adventures), 夜間感恩 (Evening Gratitude)
-  - New `evening_reflections` database table for gratitude, highlight, and prayer-for-tomorrow entries
-  - New API endpoints: `GET/POST /api/evening-reflections`
-  - New hook: `useEveningReflection.tsx`, `useSaveEveningReflection()`
-  - New page: `DailyJourney.tsx` at `/daily-journey`
-  - Old `/journal` and `/devotional` routes redirect to `/daily-journey`
-  - BottomNav updated: "日誌" → "旅程" with Compass icon
-  - QuickActions updated: "每日日誌" → "每日旅程", removed separate "靈修禱告" entry
-  - DailyDevotional homepage card links to `/daily-journey`
-- **Auth header fix for all hooks**: Fixed 401 errors on `/api/trips/current` and other endpoints
-  - Root cause: Custom `queryFn` in hooks sent `credentials: "include"` but not the Bearer token header
-  - Fixed `useTrip.tsx`, `useMembers.tsx`, `useDevotional.tsx` to include `Authorization: Bearer` header
-  - All hooks now consistently use token-based auth, not session cookies
-
-## Previous Changes (March 1, 2026)
-- **Google login fix (manual OIDC flow)**: Fixed OIDC login failure caused by iframe cookie blocking
-  - Session cookies are blocked in Replit webview iframe during OIDC redirect flow
-  - Replaced passport-based OIDC with manual flow using `openid-client` directly
-  - OIDC state stored in server-side Map (not session), bypassing cookie dependency
-  - `useAuth.tsx` listens for `storage` events to detect login from another tab
-  - Session cookie changed from `sameSite: "none"` to `"lax"`
-  - Added session pruning (every 15 min) and expire index for performance
-
-## Previous Changes (February 28, 2026)
-- **Snake_case → camelCase field name fixes**: Fixed remaining snake_case field references across multiple pages
-  - TripSummary.tsx: `entry_date`→`entryDate`, `start_date`→`startDate`, `end_date`→`endDate`, `cover_image_url`→`coverImageUrl`
-  - AdminDashboard.tsx: `start_date`→`startDate`, `end_date`→`endDate`, `avatar_url`→`avatarUrl`
-  - Members.tsx: `avatar_url`→`avatarUrl`, `emergency_contact_name`→`emergencyContactName`, etc.
-  - Added null safety guards for `parseISO()` calls in useTripSummary.tsx
-- **Auth token system**: Added token generation after Replit Auth callback to prevent login loops
-  - Shared `server/tokenStore.ts` module for token management
-  - Callback redirects with `?authToken=` param; frontend stores in localStorage
-  - Guard on `/api/login` prevents re-authentication when already logged in
-  - Auth page redirects authenticated users to homepage
-- **ESM build fix**: Changed production build from CJS to ESM format
-  - `dist/index.js` (ESM) instead of `dist/index.cjs` (CJS)
-  - Fixes `import.meta.url` crash in production deployment
-- **Location sharing improvements**: Better error handling for geolocation API
-  - 15-second fallback timeout for unresponsive geolocation
-  - Specific error messages for permission denied, timeout, unavailable
-
-## Previous Changes (February 4, 2026)
-- **Object Storage Integration**: Integrated Replit Object Storage for photo uploads
-  - Presigned URL flow: client uploads directly to Google Cloud Storage
-  - ObjectUploader component with Uppy v5 integration
-  - API endpoint: `/api/uploads/request-url` for generating upload URLs
-  - Public file serving: `/api/uploads/public/:objectPath`
-- **Journal Security**: Users can only view their own journal entries
-  - Added `getJournalEntriesByUser` storage method for user-specific filtering
-- **Dynamic Journal Locations**: AddJournalSheet now fetches today's attractions from trip itinerary
-  - API endpoint: `/api/trip-days/today/attractions`
-  - Falls back to "其他景點" if no attractions available
-- **Homepage Countdown Enhancement**: TodaySchedule shows countdown when `isPreTrip` is true
-  - Displays "平安旅者，距離旅遊時間還有倒數 X 天" message
-- **Trip Invitation Code System**: Users join trips via verification codes
-  - New `trip_invitations` database table with code, max uses, expiration support
-  - Admin interface: `/admin/invitations` for creating/managing invitation codes
-  - User verification page: `/verify-trip` for entering invitation codes
-  - Auto-redirect: Users without a trip are redirected to verification page
-  - API endpoints: `/api/verify-invitation`, `/api/check-trip-status`, admin CRUD
-- **Devotional Course Management**: Admin interface for creating devotional content per trip
-  - New `devotional_courses` database table with title, scripture, reflection, action, prayer fields
-  - CRUD API endpoints: `/api/admin/trips/:tripId/devotional-courses`
-  - AdminDevotionals.tsx page with full create/edit/delete functionality
-  - Optional day number assignment for daily devotionals
-- **Homepage Countdown**: Shows "平安旅者，距離旅遊時間還有倒數 X 天" before trip starts
-- **Simplified Homepage**: Removed header (title, bell, menu) and TripCard component
-- **Layout Reorder**: DailyDevotional appears before TodaySchedule
-- **Compact QuickActions**: Smaller, more refined feature cards (p-4, w-10 h-10 icons, text-sm/xs)
-- **Trip Statistics**: Admin trip days page shows flight/cruise/shuttle/meal/attraction counts
-- **Dynamic Homepage**: Connected homepage to real database data
-  - Fetches current trip info, today's schedule, and member count
-  - Dynamic greetings based on time of day
-  - Real-time trip card with actual dates and member count
-- **Daily Itinerary Display**: TodaySchedule component shows real trip day data
-  - Parses highlights into schedule items with times
-  - Shows meals (breakfast, lunch, dinner) and lodging
-  - Highlights the next upcoming activity
-- **Daily Devotional**: Shows Bible references from current trip day
-- **Trip Days Management**: Admin interface for managing daily itineraries
-  - CRUD operations for trip days
-  - CSV-based data structure support
-- **Trip Data Import**: Imported 16-day Turkey-Greece pilgrimage itinerary
-  - Complete with Bible references, highlights, meals, and lodging
-- **New API Endpoint**: Added `/api/trip-days/today` for today's schedule
-- **Dynamic Attractions Page**: Attractions now display based on trip itinerary
-  - Uses dedicated `attractions` field (not highlights) to distinguish tourist sights from general activities
-  - Filters by day number
-  - Shows Bible references and location for each attraction
-  - Only displays attractions from current trip
-- **Attractions vs Activities**: Added `attractions` field to trip_days table
-  - `highlights` = all activities (including airport pickup, shopping, etc.)
-  - `attractions` = tourist sights only (temples, churches, historical sites, etc.)
-  - Admin interface includes separate input for attractions
-- **Token-based authentication**: Replaced cookie-based sessions with JWT-like tokens stored in localStorage to bypass Replit iframe third-party cookie restrictions
-- **Interactive Map**: Implemented real-time team member location tracking with Leaflet maps
-  - Real OpenStreetMap integration
-  - Share location button using browser Geolocation API
-  - Auto-refresh every 30 seconds
-  - Visual markers for team members with popup info
-- **Location API endpoints**: Added `/api/locations`, `/api/my-location` for location tracking
-
-### Previous Changes (February 2, 2026)
-- Fixed duplicate `/api/trip` route in routes.ts
-- Standardized all field names to camelCase throughout the codebase
-- Fixed AdminMembers.tsx to use camelCase field references (userId, tripId, groupId, profileId)
-- Added proper null checks for tripId in API routes
-- Global admin role system with nullable trip_id for system-wide permissions
-- **Auto-assignment of trips**: New users are automatically assigned to the first available trip when they register
-- **Login trip assignment**: Existing users without a trip are automatically assigned when they login
-- Added `updateUserRoleTrip` method to storage for updating user role trip assignments
-
-### Migration Summary
-- Completely removed all Supabase dependencies (`@supabase/supabase-js`)
-- Deleted all Supabase-related configuration files and migration folders
-- Implemented token-based authentication (tokens stored in localStorage, sent via Authorization header)
-- Created Drizzle ORM schema matching original Supabase structure
-- Built RESTful API endpoints for all features
-- Updated all frontend hooks to use fetch API instead of Supabase client
-- Configured Vite for client/server/shared project structure
-- Standardized all API responses and frontend components to use camelCase field names
-
-## Key Features
-- User authentication (email/password)
-- Role-based access control (admin, leader, guide, member)
-- Journal entries with photos
-- Daily devotionals with scripture references
-- Group and member management
-- Trip statistics and summaries
-- Location tracking
-
-## Tech Stack
-- **Frontend**: React, TypeScript, Vite, TailwindCSS, Shadcn/UI
-- **Backend**: Express.js, Node.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Express sessions with bcrypt password hashing
-
-## Project Structure
-```
-├── client/               # Frontend React application
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── hooks/        # Custom React hooks
-│   │   ├── pages/        # Page components
-│   │   └── lib/          # Utility functions
-│   └── index.html
-├── server/               # Backend Express application
-│   ├── index.ts          # Server entry point
-│   ├── routes.ts         # API routes
-│   ├── storage.ts        # Data access layer
-│   ├── db.ts             # Database connection
-│   └── vite.ts           # Vite dev server config
-├── shared/               # Shared types and schemas
-│   └── schema.ts         # Drizzle ORM schema
-└── drizzle.config.ts     # Drizzle configuration
-```
-
-## Development Commands
-- `npm run dev` - Start development server on port 5000
-- `npm run db:push` - Push schema changes to database
-- `npm run build` - Build for production
-
-## Database Schema
-Main tables:
-- `users` - User authentication
-- `profiles` - User profile information
-- `trips` - Trip information
-- `groups` - Groups within trips
-- `user_roles` - Role assignments (admin/leader/guide/member)
-- `journal_entries` - Journal posts
-- `journal_photos` - Photos attached to journal entries
-- `devotional_entries` - Daily devotional reflections
-- `attraction_favorites` - Saved attractions
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/session` - Get current session
-
-### User Data
-- `GET /api/profile` - Get user profile
-- `PATCH /api/profile` - Update profile
-- `GET /api/trip` - Get user's trip
-- `GET /api/members` - Get trip members
-- `GET /api/groups` - Get trip groups
-
-### Journal & Devotional
-- `GET /api/journal-entries` - Get journal entries
-- `POST /api/journal-entries` - Create journal entry
-- `DELETE /api/journal-entries/:id` - Delete journal entry
-- `GET /api/devotional-entries` - Get devotional entries
-- `POST /api/devotional-entries` - Create/update devotional entry
-
-### Admin Routes
-- `GET /api/admin/trips` - Get all trips
-- `POST /api/admin/trips` - Create trip
-- `PATCH /api/admin/trips/:id` - Update trip
-- `DELETE /api/admin/trips/:id` - Delete trip
-- (Similar CRUD for groups, profiles, user-roles)
-
-## Recent Changes (Feb 2, 2026)
-- Migrated from Supabase to Replit PostgreSQL
-- Converted auth from Supabase Auth to session-based auth
-- Removed Google OAuth (simplified to email/password only)
-- Updated all frontend hooks to use fetch API
-- Configured Vite for client/server project structure
-- Pushed database schema with Drizzle
+Trip Companion is a web application designed for Christian pilgrimage/mission trips. It enables team members to share journals, devotional entries, track locations, manage groups, and create trip summaries. The application focuses on providing a centralized platform for trip participants to document their spiritual journeys, foster community, and access trip-related information. Key capabilities include user authentication, role-based access control, journaling with photos, daily devotionals, group management, and real-time location tracking. The project aims to enhance the pilgrimage experience through digital tools.
 
 ## User Preferences
 - Chinese Traditional (繁體中文) UI language
 - Warm, spiritual design theme with amber/gold primary colors
 - Mobile-first responsive design
+
+## System Architecture
+The application follows a full-stack architecture with a React-based frontend, an Express.js backend, and a PostgreSQL database.
+
+**UI/UX Decisions:**
+- The user interface is in Traditional Chinese (繁體中文).
+- The design theme is warm and spiritual, utilizing amber/gold primary colors.
+- The application prioritizes a mobile-first responsive design.
+- The main navigation is consolidated into a unified "Daily Journey" page (`/daily-journey`) with three tabs: Morning Devotion, Journal Adventures, and Evening Gratitude.
+- Quick actions are compact and refined for improved usability.
+
+**Technical Implementations & Feature Specifications:**
+- **Authentication System:** Implemented a token-based authentication system using Express sessions and bcrypt for password hashing. Auth tokens are persistent, stored in a PostgreSQL `auth_tokens` table, allowing users to remain logged in across server restarts. A manual OIDC flow is used for Google login to bypass iframe cookie blocking.
+- **Journaling:** Users can create and edit journal entries with photo attachments. Up to 7 photos per entry are supported, utilizing Replit Object Storage for uploads via presigned URLs. Journal entries are user-specific.
+- **Daily Devotionals:** Integrates daily devotionals with scripture references. An admin interface allows for creating and managing devotional content per trip. A new "Evening Gratitude" feature allows users to record gratitude, highlights, and prayers.
+- **Trip Management:** Includes a comprehensive trip invitation code system for users to join trips, with admin interfaces for code generation and management.
+- **Itinerary & Schedule:** Displays dynamic daily itineraries, including attractions, meals, and lodging. Before a trip starts, a countdown is shown on the homepage.
+- **Location Tracking:** Real-time team member location tracking is implemented using Leaflet maps and OpenStreetMap, leveraging the browser's Geolocation API. Locations are auto-refreshed periodically.
+- **Data Management:** All data is stored in a PostgreSQL database, managed with Drizzle ORM. Field names are standardized to `camelCase` across the entire codebase and database schema.
+- **Admin Features:** Provides extensive admin dashboards for managing trips, users, groups, devotional courses, and invitation codes. Admins can bypass invitation code checks.
+- **Error Handling:** Enhanced error handling for geolocation API with specific messages for permission issues and timeouts.
+- **Build System:** Uses Vite for client/server/shared project structure and an ESM build for production.
+
+**System Design Choices:**
+- **Database Schema:** Standardized schema including `users`, `profiles`, `trips`, `groups`, `user_roles`, `journal_entries`, `journal_photos`, `devotional_entries`, `evening_reflections`, `devotional_courses`, `trip_invitations`, and `auth_tokens` tables.
+- **API Structure:** A RESTful API provides endpoints for authentication, user data, journal, devotional, and comprehensive admin functionalities.
+- **Modularity:** Project structured with separate `client/`, `server/`, and `shared/` directories for clear separation of concerns.
+
+## External Dependencies
+- **Replit Object Storage:** Used for storing journal photos and other media files.
+- **Leaflet Maps:** Integrated for displaying interactive maps and team member locations.
+- **OpenStreetMap:** Provides map data for location tracking features.
+- **Uppy v5:** Used as the file uploader component for managing photo uploads.
+- **openid-client:** Utilized for manual OpenID Connect (OIDC) flow to manage Google login without relying on session cookies.

@@ -24,7 +24,7 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    const tokenData = tokenStore.get(token);
+    const tokenData = await tokenStore.get(token);
     if (tokenData && tokenData.expiresAt > new Date()) {
       req.userId = tokenData.userId;
     }
@@ -89,7 +89,7 @@ export function registerRoutes(app: Express) {
       // Generate auth token
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      tokenStore.set(token, { userId: user.id, expiresAt });
+      await tokenStore.set(token, { userId: user.id, expiresAt });
       
       req.session.userId = user.id;
       req.session.save((err) => {
@@ -132,7 +132,7 @@ export function registerRoutes(app: Express) {
       // Generate auth token
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      tokenStore.set(token, { userId: user.id, expiresAt });
+      await tokenStore.set(token, { userId: user.id, expiresAt });
 
       req.session.userId = user.id;
       req.session.save((err) => {
@@ -162,6 +162,10 @@ export function registerRoutes(app: Express) {
     }
     const user = await storage.getUser(req.userId);
     if (!user) {
+      if (req.session) {
+        req.session.userId = undefined;
+        req.session.save(() => {});
+      }
       return res.json({ user: null });
     }
     res.json({ user: { id: user.id, email: user.email } });
@@ -966,17 +970,32 @@ export function registerRoutes(app: Express) {
   // Check if user needs to verify (no trip assigned)
   app.get("/api/check-trip-status", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
-      if (!userRole || !userRole.tripId) {
-        const isAdmin = await storage.hasRole(req.userId!, "admin");
-        if (isAdmin) {
-          return res.json({ needsVerification: false, isAdmin: true });
-        }
-        return res.json({ needsVerification: true });
+      const userId = req.userId!;
+      console.log("[check-trip-status] userId:", userId);
+
+      const userRole = await storage.getUserRole(userId);
+      console.log("[check-trip-status] userRole:", JSON.stringify(userRole));
+
+      if (userRole && userRole.tripId) {
+        const trip = await storage.getTrip(userRole.tripId);
+        return res.json({ needsVerification: false, trip });
       }
-      const trip = await storage.getTrip(userRole.tripId);
-      res.json({ needsVerification: false, trip });
+
+      const isAdmin = await storage.hasRole(userId, "admin");
+      console.log("[check-trip-status] isAdmin:", isAdmin);
+      if (isAdmin) {
+        const allRoles = await storage.getAllUserRolesForUser(userId);
+        const roleWithTrip = allRoles.find(r => r.tripId);
+        if (roleWithTrip) {
+          const trip = await storage.getTrip(roleWithTrip.tripId!);
+          return res.json({ needsVerification: false, trip, isAdmin: true });
+        }
+        return res.json({ needsVerification: false, isAdmin: true });
+      }
+
+      return res.json({ needsVerification: true });
     } catch (error) {
+      console.error("[check-trip-status] error:", error);
       res.status(500).json({ error: "Failed to check trip status" });
     }
   });

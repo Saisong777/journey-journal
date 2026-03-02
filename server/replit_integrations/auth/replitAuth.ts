@@ -137,7 +137,7 @@ export async function setupAuth(app: Express) {
 
       console.log("[Auth] callback success, email:", claims.email);
       const dbUser = await upsertUser(claims);
-      const authToken = createAuthToken(dbUser.id);
+      const authToken = await createAuthToken(dbUser.id);
 
       (req.session as any).userId = dbUser.id;
       req.session.save(() => {
