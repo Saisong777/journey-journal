@@ -30,8 +30,8 @@ export default function Landing() {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl font-bold text-foreground tracking-wide">朝聖之旅</h1>
-          <p className="text-sm text-muted-foreground">Trip Companion</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-wide">與神同行</h1>
+          <p className="text-sm text-muted-foreground">Walking in His Love</p>
         </div>
 
         <div className="space-y-2">
