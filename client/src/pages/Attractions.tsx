@@ -259,8 +259,24 @@ const Attractions = () => {
         </div>
 
         {filteredAttractions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-body text-muted-foreground">找不到符合條件的景點</p>
+          <div className="text-center py-12 bg-card rounded-lg">
+            {selectedDay !== null ? (() => {
+              const dayData = tripDays?.find(d => d.dayNo === selectedDay);
+              return (
+                <div className="space-y-3 px-4">
+                  <MapPin className="w-10 h-10 mx-auto text-muted-foreground/40" />
+                  <p className="text-body font-medium text-muted-foreground">今天沒有景點行程</p>
+                  {dayData && (
+                    <div className="text-caption text-muted-foreground space-y-1">
+                      {dayData.title && <p>{dayData.title}</p>}
+                      {dayData.highlights && <p className="text-primary/70">{dayData.highlights}</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
+              <p className="text-body text-muted-foreground">找不到符合條件的景點</p>
+            )}
           </div>
         )}
       </main>
