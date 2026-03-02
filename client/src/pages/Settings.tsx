@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   User,
   ChevronRight,
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SettingItem {
   icon: typeof User;
@@ -34,33 +36,64 @@ interface SettingItem {
   onClick?: () => void;
 }
 
-const defaultProfile: ProfileData = {
-  name: "林雅婷",
-  phone: "0967-890-123",
-  email: "lin.yt@example.com",
-  emergencyContact: "林媽媽",
-  emergencyPhone: "0977-111-222",
-  dietaryRestrictions: "素食",
-  medicalNotes: "",
-};
+function dbToProfileData(dbProfile: any, fallbackEmail?: string, fallbackName?: string): ProfileData {
+  return {
+    name: dbProfile?.name || fallbackName || "",
+    phone: dbProfile?.phone || "",
+    email: dbProfile?.email || fallbackEmail || "",
+    emergencyContact: dbProfile?.emergencyContactName || "",
+    emergencyPhone: dbProfile?.emergencyContactPhone || "",
+    dietaryRestrictions: dbProfile?.dietaryRestrictions || "",
+    medicalNotes: dbProfile?.medicalNotes || "",
+  };
+}
+
+function profileDataToDb(profile: ProfileData) {
+  return {
+    name: profile.name,
+    phone: profile.phone,
+    email: profile.email,
+    emergencyContactName: profile.emergencyContact,
+    emergencyContactPhone: profile.emergencyPhone,
+    dietaryRestrictions: profile.dietaryRestrictions,
+    medicalNotes: profile.medicalNotes,
+  };
+}
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useIsAdmin();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<ProfileData>({
-    ...defaultProfile,
-    email: user?.email || defaultProfile.email,
-    name: user?.user_metadata?.name || defaultProfile.name,
+
+  const { data: dbProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ["/api/profile"],
   });
+
+  const profile: ProfileData = dbToProfileData(dbProfile, user?.email, user?.user_metadata?.name);
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
+  const saveProfileMutation = useMutation({
+    mutationFn: async (newProfile: ProfileData) => {
+      const res = await apiRequest("PATCH", "/api/profile", profileDataToDb(newProfile));
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      setIsProfileOpen(false);
+      toast({ title: "儲存成功", description: "個人資料已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleSaveProfile = (newProfile: ProfileData) => {
-    setProfile(newProfile);
+    saveProfileMutation.mutate(newProfile);
   };
 
   const handleLogout = async () => {
@@ -276,6 +309,7 @@ export default function Settings() {
         onOpenChange={setIsProfileOpen}
         profile={profile}
         onSave={handleSaveProfile}
+        isSaving={saveProfileMutation.isPending}
       />
 
       <BottomNav />

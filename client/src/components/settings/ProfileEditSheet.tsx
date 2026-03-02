@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Camera, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Camera, Save, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +25,7 @@ interface ProfileEditSheetProps {
   onOpenChange: (open: boolean) => void;
   profile: ProfileData;
   onSave?: (profile: ProfileData) => void;
+  isSaving?: boolean;
 }
 
 export function ProfileEditSheet({
@@ -32,8 +33,15 @@ export function ProfileEditSheet({
   onOpenChange,
   profile,
   onSave,
+  isSaving,
 }: ProfileEditSheetProps) {
   const [formData, setFormData] = useState<ProfileData>(profile);
+
+  useEffect(() => {
+    if (open) {
+      setFormData(profile);
+    }
+  }, [open, profile]);
 
   const handleChange = (field: keyof ProfileData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -41,7 +49,6 @@ export function ProfileEditSheet({
 
   const handleSave = () => {
     onSave?.(formData);
-    onOpenChange(false);
   };
 
   return (
@@ -52,7 +59,6 @@ export function ProfileEditSheet({
         </SheetHeader>
 
         <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pb-4">
-          {/* Avatar */}
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden shadow-card">
@@ -60,19 +66,22 @@ export function ProfileEditSheet({
                   {formData.name.charAt(0)}
                 </span>
               </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-warm flex items-center justify-center shadow-card">
+              <button
+                data-testid="button-change-avatar"
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-warm flex items-center justify-center shadow-card"
+              >
                 <Camera className="w-4 h-4 text-primary-foreground" />
               </button>
             </div>
           </div>
 
-          {/* Basic Info */}
           <div className="space-y-4">
             <h3 className="text-body font-semibold">基本資料</h3>
             
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">姓名</label>
               <Input
+                data-testid="input-profile-name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 className="h-12 text-body"
@@ -82,6 +91,7 @@ export function ProfileEditSheet({
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">電話號碼</label>
               <Input
+                data-testid="input-profile-phone"
                 value={formData.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
                 className="h-12 text-body"
@@ -92,6 +102,7 @@ export function ProfileEditSheet({
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">電子郵件</label>
               <Input
+                data-testid="input-profile-email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 className="h-12 text-body"
@@ -100,13 +111,13 @@ export function ProfileEditSheet({
             </div>
           </div>
 
-          {/* Emergency Contact */}
           <div className="space-y-4">
             <h3 className="text-body font-semibold">緊急聯絡人</h3>
             
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">聯絡人姓名</label>
               <Input
+                data-testid="input-profile-emergency-contact"
                 value={formData.emergencyContact}
                 onChange={(e) => handleChange("emergencyContact", e.target.value)}
                 className="h-12 text-body"
@@ -116,6 +127,7 @@ export function ProfileEditSheet({
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">聯絡人電話</label>
               <Input
+                data-testid="input-profile-emergency-phone"
                 value={formData.emergencyPhone}
                 onChange={(e) => handleChange("emergencyPhone", e.target.value)}
                 className="h-12 text-body"
@@ -124,13 +136,13 @@ export function ProfileEditSheet({
             </div>
           </div>
 
-          {/* Special Needs */}
           <div className="space-y-4">
             <h3 className="text-body font-semibold">特殊需求</h3>
             
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">飲食限制</label>
               <Input
+                data-testid="input-profile-dietary"
                 value={formData.dietaryRestrictions}
                 onChange={(e) => handleChange("dietaryRestrictions", e.target.value)}
                 className="h-12 text-body"
@@ -141,6 +153,7 @@ export function ProfileEditSheet({
             <div className="space-y-2">
               <label className="text-caption text-muted-foreground">醫療備註</label>
               <Input
+                data-testid="input-profile-medical"
                 value={formData.medicalNotes}
                 onChange={(e) => handleChange("medicalNotes", e.target.value)}
                 className="h-12 text-body"
@@ -150,14 +163,19 @@ export function ProfileEditSheet({
           </div>
         </div>
 
-        {/* Save Button */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
           <Button
+            data-testid="button-save-profile"
             onClick={handleSave}
+            disabled={isSaving}
             className="w-full h-14 text-body-lg gradient-warm text-primary-foreground rounded-xl"
           >
-            <Save className="w-5 h-5 mr-2" />
-            儲存變更
+            {isSaving ? (
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5 mr-2" />
+            )}
+            {isSaving ? "儲存中..." : "儲存變更"}
           </Button>
         </div>
       </SheetContent>

@@ -20,6 +20,7 @@ The application follows a full-stack architecture with a React-based frontend, a
 
 **Technical Implementations & Feature Specifications:**
 - **Authentication System:** Implemented a token-based authentication system using Express sessions and bcrypt for password hashing. Auth tokens are persistent, stored in a PostgreSQL `auth_tokens` table, allowing users to remain logged in across server restarts. A manual OIDC flow is used for Google login to bypass iframe cookie blocking.
+- **Profile Editing:** Profile data persists to the database via `PATCH /api/profile` (upserts if profile doesn't exist). Frontend field mapping: `emergencyContact` → `emergencyContactName`, `emergencyPhone` → `emergencyContactPhone`. Profile loaded from DB on Settings page via `GET /api/profile`.
 - **Journaling:** Users can create and edit journal entries with photo attachments. Up to 7 photos per entry are supported, utilizing Replit Object Storage for uploads via presigned URLs. Journal entries are user-specific.
 - **Daily Devotionals:** Integrates daily devotionals with scripture references. An admin interface allows for creating and managing devotional content per trip. A new "Evening Gratitude" feature allows users to record gratitude, highlights, and prayers.
 - **Trip Management:** Includes a comprehensive trip invitation code system for users to join trips, with admin interfaces for code generation and management.

@@ -182,9 +182,16 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/profile", requireAuth, async (req, res) => {
     try {
-      const updated = await storage.updateProfile(req.userId!, req.body);
-      res.json(updated);
+      const existing = await storage.getProfile(req.userId!);
+      let result;
+      if (existing) {
+        result = await storage.updateProfile(req.userId!, req.body);
+      } else {
+        result = await storage.createProfile({ ...req.body, userId: req.userId! });
+      }
+      res.json(result);
     } catch (error) {
+      console.error("Failed to update profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
