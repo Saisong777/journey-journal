@@ -122,6 +122,7 @@ export interface IStorage {
   createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
   updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
   deleteDevotionalCourse(id: string): Promise<void>;
+  deleteDevotionalCoursesByTrip(tripId: string): Promise<void>;
 
   lookupBibleVerses(bookName: string, chapter: number, verseStart?: number, verseEnd?: number): Promise<BibleVerse[]>;
   getBibleBooks(): Promise<{ bookName: string; bookNumber: number }[]>;
@@ -543,6 +544,10 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDevotionalCourse(id: string): Promise<void> {
     await db.delete(devotionalCourses).where(eq(devotionalCourses.id, id));
+  }
+
+  async deleteDevotionalCoursesByTrip(tripId: string): Promise<void> {
+    await db.delete(devotionalCourses).where(eq(devotionalCourses.tripId, tripId));
   }
 
   async getPlatformRole(userId: string): Promise<PlatformRole | undefined> {

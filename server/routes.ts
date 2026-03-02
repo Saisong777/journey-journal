@@ -1247,6 +1247,36 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/admin/trips/:tripId/devotional-courses/import", requireAdmin, async (req, res) => {
+    try {
+      const { courses, mode } = req.body;
+      if (!Array.isArray(courses) || courses.length === 0) {
+        return res.status(400).json({ error: "No courses to import" });
+      }
+      if (mode === "replace") {
+        await storage.deleteDevotionalCoursesByTrip(req.params.tripId);
+      }
+      const created = [];
+      for (const c of courses) {
+        const course = await storage.createDevotionalCourse({
+          tripId: req.params.tripId,
+          dayNo: c.dayNo || null,
+          title: c.title,
+          place: c.place || null,
+          scripture: c.scripture || null,
+          reflection: c.reflection || null,
+          action: c.action || null,
+          prayer: c.prayer || null,
+        });
+        created.push(course);
+      }
+      res.json({ imported: created.length, courses: created });
+    } catch (error) {
+      console.error("Failed to import devotional courses:", error);
+      res.status(500).json({ error: "Failed to import devotional courses" });
+    }
+  });
+
   app.delete("/api/admin/devotional-courses/:id", requireAdmin, async (req, res) => {
     try {
       await storage.deleteDevotionalCourse(req.params.id);

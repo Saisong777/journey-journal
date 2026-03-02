@@ -9,6 +9,9 @@ export interface ScriptureData {
   }[];
   theme: string;
   reflection: string;
+  place?: string;
+  action?: string;
+  prayer?: string;
 }
 
 interface ScriptureCardProps {

@@ -149,6 +149,7 @@ export const devotionalCourses = pgTable("devotional_courses", {
   tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
   dayNo: integer("day_no"),
   title: text("title").notNull(),
+  place: text("place"),
   scripture: text("scripture"),
   reflection: text("reflection"),
   action: text("action"),

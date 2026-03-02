@@ -30,6 +30,7 @@ export interface DevotionalCourseDB {
   tripId: string;
   dayNo: number | null;
   title: string;
+  place: string | null;
   scripture: string | null;
   reflection: string | null;
   action: string | null;

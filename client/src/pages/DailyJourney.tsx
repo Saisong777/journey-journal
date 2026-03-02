@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
-  Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil,
+  Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil, MapPin, HandHeart, MessageCircleHeart,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -157,6 +157,9 @@ export default function DailyJourney() {
         theme: todayCourse.title,
         verses: bibleLookup.verses,
         reflection: todayCourse.reflection || "",
+        place: todayCourse.place || undefined,
+        action: todayCourse.action || undefined,
+        prayer: todayCourse.prayer || undefined,
       };
     }
     if (todayCourse) {
@@ -165,6 +168,9 @@ export default function DailyJourney() {
         theme: todayCourse.title,
         verses: [],
         reflection: todayCourse.reflection || "",
+        place: todayCourse.place || undefined,
+        action: todayCourse.action || undefined,
+        prayer: todayCourse.prayer || undefined,
       };
     }
     return fallbackScriptures[currentDay] || fallbackScriptures[((currentDay - 1) % 5) + 1];
@@ -409,6 +415,12 @@ export default function DailyJourney() {
                       </button>
                     </div>
                     <p className="text-caption text-amber-700/80 dark:text-amber-300/80 mt-1">{todayScripture.theme}</p>
+                    {todayScripture.place && (
+                      <p className="text-caption text-amber-700/60 dark:text-amber-300/60 mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {todayScripture.place}
+                      </p>
+                    )}
                   </div>
                   <div className="p-4 space-y-3">
                     <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg p-3 space-y-2">
@@ -422,6 +434,24 @@ export default function DailyJourney() {
                         {todayScripture.reflection}
                       </p>
                     </div>
+                    {todayScripture.action && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 flex items-start gap-2">
+                        <HandHeart className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-caption font-medium text-blue-700 dark:text-blue-300">行動操練</p>
+                          <p className="text-body text-foreground mt-1">{todayScripture.action}</p>
+                        </div>
+                      </div>
+                    )}
+                    {todayScripture.prayer && (
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 flex items-start gap-2">
+                        <MessageCircleHeart className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-caption font-medium text-purple-700 dark:text-purple-300">禱告引導</p>
+                          <p className="text-body text-foreground mt-1">{todayScripture.prayer}</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div>
@@ -453,6 +483,12 @@ export default function DailyJourney() {
                       </button>
                     </div>
                     <p className="text-caption text-amber-700/80 dark:text-amber-300/80 mt-1">{todayScripture.theme}</p>
+                    {todayScripture.place && (
+                      <p className="text-caption text-amber-700/60 dark:text-amber-300/60 mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {todayScripture.place}
+                      </p>
+                    )}
                   </div>
                   <div className="p-5 space-y-4">
                     {todayScripture.verses.map((verse) => (
@@ -463,9 +499,27 @@ export default function DailyJourney() {
                     ))}
                     <div className="border-t border-border" />
                     <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
-                      <h4 className="text-caption font-semibold text-amber-700 dark:text-amber-300 mb-2">默想引導</h4>
+                      <h4 className="text-caption font-semibold text-amber-700 dark:text-amber-300 mb-2">現場默想</h4>
                       <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.reflection}</p>
                     </div>
+                    {todayScripture.action && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                        <h4 className="text-caption font-semibold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1">
+                          <HandHeart className="w-3.5 h-3.5" />
+                          行動操練
+                        </h4>
+                        <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.action}</p>
+                      </div>
+                    )}
+                    {todayScripture.prayer && (
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                        <h4 className="text-caption font-semibold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+                          <MessageCircleHeart className="w-3.5 h-3.5" />
+                          禱告引導
+                        </h4>
+                        <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.prayer}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -37,11 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, BookOpen, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, BookOpen, AlertCircle, Upload, FileText, MapPin, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface DevotionalFormData {
   dayNo: number | null;
   title: string;
+  place: string;
   scripture: string;
   reflection: string;
   action: string;
@@ -51,6 +54,7 @@ interface DevotionalFormData {
 const emptyForm: DevotionalFormData = {
   dayNo: null,
   title: "",
+  place: "",
   scripture: "",
   reflection: "",
   action: "",
@@ -67,10 +71,16 @@ export default function AdminDevotionals() {
   const { createDevotionalCourse, updateDevotionalCourse, deleteDevotionalCourse } =
     useDevotionalCourseMutations(selectedTripId);
 
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<DevotionalCourse | null>(null);
   const [formData, setFormData] = useState<DevotionalFormData>(emptyForm);
   const [debouncedScripture, setDebouncedScripture] = useState("");
+
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<DevotionalFormData[]>([]);
+  const [importMode, setImportMode] = useState<"replace" | "append">("replace");
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -98,6 +108,7 @@ export default function AdminDevotionals() {
     setFormData({
       dayNo: course.dayNo,
       title: course.title,
+      place: course.place || "",
       scripture: course.scripture || "",
       reflection: course.reflection || "",
       action: course.action || "",
@@ -128,6 +139,72 @@ export default function AdminDevotionals() {
     navigate(`/admin/devotionals/${tripId}`);
   };
 
+  const parseCSV = (text: string): DevotionalFormData[] => {
+    const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const results: DevotionalFormData[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const fields: string[] = [];
+      let current = "";
+      let inQuotes = false;
+      for (const ch of lines[i]) {
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          fields.push(current.trim());
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+      fields.push(current.trim());
+      const [day, , place, theme, scripture, meditation, action, prayer] = fields;
+      const dayNo = parseInt(day);
+      if (!dayNo || !theme) continue;
+      results.push({
+        dayNo,
+        title: theme,
+        place: place || "",
+        scripture: scripture || "",
+        reflection: meditation || "",
+        action: action || "",
+        prayer: prayer || "",
+      });
+    }
+    return results;
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const parsed = parseCSV(text);
+      setCsvPreview(parsed);
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
+  const handleImport = async () => {
+    if (!selectedTripId || csvPreview.length === 0) return;
+    setIsImporting(true);
+    try {
+      await apiRequest("POST", `/api/admin/trips/${selectedTripId}/devotional-courses/import`, {
+        courses: csvPreview,
+        mode: importMode,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-devotional-courses", selectedTripId] });
+      toast({ title: `成功匯入 ${csvPreview.length} 筆靈修課程` });
+      setIsImportOpen(false);
+      setCsvPreview([]);
+    } catch (error) {
+      toast({ title: "匯入失敗", description: "請確認 CSV 格式是否正確", variant: "destructive" });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const selectedTrip = trips?.find((t) => t.id === selectedTripId);
 
   return (
@@ -142,10 +219,16 @@ export default function AdminDevotionals() {
           </div>
 
           {selectedTripId && (
-            <Button onClick={openCreate} data-testid="button-create-devotional">
-              <Plus className="w-4 h-4 mr-2" />
-              新增靈修課程
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setCsvPreview([]); setIsImportOpen(true); }} data-testid="button-import-devotional">
+                <Upload className="w-4 h-4 mr-2" />
+                匯入 CSV
+              </Button>
+              <Button onClick={openCreate} data-testid="button-create-devotional">
+                <Plus className="w-4 h-4 mr-2" />
+                新增靈修課程
+              </Button>
+            </div>
           )}
         </div>
 
@@ -195,6 +278,13 @@ export default function AdminDevotionals() {
                       )}
                       <h3 className="text-title font-semibold">{course.title}</h3>
                     </div>
+
+                    {course.place && (
+                      <p className="text-body text-muted-foreground mb-2 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {course.place}
+                      </p>
+                    )}
 
                     {course.scripture && (
                       <p className="text-body text-primary mb-2">
@@ -320,6 +410,19 @@ export default function AdminDevotionals() {
               </div>
 
               <div>
+                <Label htmlFor="place">地點（選填）</Label>
+                <Input
+                  id="place"
+                  placeholder="例如：伊斯坦堡、以弗所"
+                  value={formData.place}
+                  onChange={(e) =>
+                    setFormData({ ...formData, place: e.target.value })
+                  }
+                  data-testid="input-place"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="scripture">經文（書卷+章節或範圍）</Label>
                 <Input
                   id="scripture"
@@ -433,6 +536,94 @@ export default function AdminDevotionals() {
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
                 {editingCourse ? "更新" : "建立"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                匯入靈修課程（CSV）
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="bg-muted/50 rounded-lg p-4 text-caption text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">CSV 欄位格式：</p>
+                <p>Day, Date, Place, OneLineTheme, Scripture, OnSiteMeditation, Action, Prayer</p>
+                <p>第一行為標題列，系統會自動跳過</p>
+              </div>
+
+              <div>
+                <Label>選擇 CSV 檔案</Label>
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="mt-1"
+                  data-testid="input-csv-file"
+                />
+              </div>
+
+              <div>
+                <Label>匯入模式</Label>
+                <Select value={importMode} onValueChange={(v) => setImportMode(v as "replace" | "append")}>
+                  <SelectTrigger className="w-full mt-1" data-testid="select-import-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="replace">取代現有課程（先清除再匯入）</SelectItem>
+                    <SelectItem value="append">附加到現有課程</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {csvPreview.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <p className="text-body font-medium">預覽：共 {csvPreview.length} 筆課程</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                    <table className="w-full text-caption">
+                      <thead className="bg-muted sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left w-12">天</th>
+                          <th className="p-2 text-left">地點</th>
+                          <th className="p-2 text-left">主題</th>
+                          <th className="p-2 text-left">經文</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvPreview.map((row, i) => (
+                          <tr key={i} className="border-t">
+                            <td className="p-2 font-semibold text-primary">{row.dayNo}</td>
+                            <td className="p-2 text-muted-foreground">{row.place || "—"}</td>
+                            <td className="p-2">{row.title}</td>
+                            <td className="p-2 text-primary">{row.scripture || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsImportOpen(false)}>
+                取消
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={csvPreview.length === 0 || isImporting}
+                data-testid="button-confirm-import"
+              >
+                {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                確認匯入 {csvPreview.length > 0 ? `(${csvPreview.length} 筆)` : ""}
               </Button>
             </DialogFooter>
           </DialogContent>

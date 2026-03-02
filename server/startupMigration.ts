@@ -409,6 +409,18 @@ export async function runStartupMigration() {
       await seedTripNotes(allTrips[0].id);
     }
 
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS place TEXT`);
+        console.log("[startup-migration] ensured place column on devotional_courses");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] place column migration error:", e);
+    }
+
     await importBibleVerses();
 
     console.log("[startup-migration] complete");
