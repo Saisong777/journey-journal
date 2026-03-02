@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 const ADMIN_EMAIL = "saisong@gmail.com";
 
@@ -154,6 +154,21 @@ export async function runStartupMigration() {
     }
 
     await syncDataToCurrentDb();
+
+    const nullTripRoles = await db.select().from(userRoles)
+      .where(and(eq(userRoles.userId, userId), isNull(userRoles.tripId)));
+    if (nullTripRoles.length) {
+      const validRoles = await db.select().from(userRoles)
+        .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "admin")))
+        .limit(10);
+      const hasValidAdmin = validRoles.some(r => r.tripId !== null);
+      if (hasValidAdmin) {
+        for (const r of nullTripRoles) {
+          await db.delete(userRoles).where(eq(userRoles.id, r.id));
+        }
+        console.log("[startup-migration] cleaned up", nullTripRoles.length, "null-tripId roles");
+      }
+    }
 
     console.log("[startup-migration] complete");
   } catch (error) {
