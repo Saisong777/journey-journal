@@ -67,6 +67,7 @@ export default function Journal() {
     time: entry.createdAt ? format(parseISO(entry.createdAt), "HH:mm") : "",
     content: entry.content || "",
     photos: entry.photos?.map((p) => transformPhotoUrl(p.photoUrl)) || [],
+    originalPhotoPaths: entry.photos?.map((p) => p.photoUrl) || [],
     mood: undefined,
   }));
 
@@ -89,15 +90,23 @@ export default function Journal() {
     setViewingEntry(null);
   };
 
-  const handleUpdateEntry = async (id: string, data: { content: string; location: string }) => {
+  const handleUpdateEntry = async (id: string, data: { content: string; location: string; photos?: string[] }) => {
     await updateEntry.mutateAsync({
       id,
       content: data.content,
       location: data.location,
       title: data.location || "日誌",
+      photos: data.photos,
     });
-    // Update the viewing entry with new data
-    setViewingEntry(prev => prev ? { ...prev, content: data.content, location: data.location } : null);
+    setViewingEntry(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, content: data.content, location: data.location };
+      if (data.photos) {
+        updated.originalPhotoPaths = data.photos;
+        updated.photos = data.photos.map(p => transformPhotoUrl(p));
+      }
+      return updated;
+    });
   };
 
   const handleEntryClick = (entry: JournalEntryData) => {

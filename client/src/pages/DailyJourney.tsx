@@ -173,6 +173,7 @@ export default function DailyJourney() {
     time: entry.createdAt ? format(parseISO(entry.createdAt), "HH:mm") : "",
     content: entry.content || "",
     photos: entry.photos?.map((p) => transformPhotoUrl(p.photoUrl)) || [],
+    originalPhotoPaths: entry.photos?.map((p) => p.photoUrl) || [],
     mood: undefined,
   }));
 
@@ -244,14 +245,23 @@ export default function DailyJourney() {
     setViewingEntry(null);
   };
 
-  const handleUpdateEntry = async (id: string, data: { content: string; location: string }) => {
+  const handleUpdateEntry = async (id: string, data: { content: string; location: string; photos?: string[] }) => {
     await updateEntry.mutateAsync({
       id,
       content: data.content,
       location: data.location,
       title: data.location || "日誌",
+      photos: data.photos,
     });
-    setViewingEntry(prev => prev ? { ...prev, content: data.content, location: data.location } : null);
+    setViewingEntry(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, content: data.content, location: data.location };
+      if (data.photos) {
+        updated.originalPhotoPaths = data.photos;
+        updated.photos = data.photos.map(p => transformPhotoUrl(p));
+      }
+      return updated;
+    });
   };
 
   const tabs: { key: TabType; label: string; icon: typeof Sun; completed: boolean }[] = [
@@ -373,10 +383,21 @@ export default function DailyJourney() {
                     <p className="text-caption text-amber-700/80 dark:text-amber-300/80 mt-1">{todayScripture.theme}</p>
                   </div>
                   <div className="p-4 space-y-3">
+                    <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg p-3 space-y-2">
+                      {todayScripture.verses.map((verse) => (
+                        <p key={verse.number} className="text-body text-foreground leading-relaxed">
+                          <span className="text-caption font-semibold text-amber-700 dark:text-amber-400 mr-1">{verse.number}</span>
+                          {verse.text}
+                        </p>
+                      ))}
+                      <p className="text-body text-muted-foreground italic leading-relaxed pt-1 border-t border-amber-200/50 dark:border-amber-700/30">
+                        {todayScripture.reflection}
+                      </p>
+                    </div>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-caption font-medium text-green-700 dark:text-green-300">已完成靈修</p>
+                        <p className="text-caption font-medium text-green-700 dark:text-green-300">我的靈修心得</p>
                         <p className="text-body text-foreground mt-1">{myDevotional.reflection}</p>
                       </div>
                     </div>

@@ -7,6 +7,7 @@ export interface JournalEntryData {
   time: string;
   content: string;
   photos: string[];
+  originalPhotoPaths?: string[];
   mood?: "happy" | "peaceful" | "grateful" | "amazed";
 }
 

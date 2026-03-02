@@ -87,6 +87,8 @@ export interface IStorage {
   deleteJournalEntry(id: string): Promise<void>;
 
   createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto>;
+  deleteJournalPhoto(id: string): Promise<void>;
+  getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]>;
 
   getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]>;
   createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry>;
@@ -347,6 +349,14 @@ export class DatabaseStorage implements IStorage {
   async createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto> {
     const [created] = await db.insert(journalPhotos).values(photo).returning();
     return created;
+  }
+
+  async deleteJournalPhoto(id: string): Promise<void> {
+    await db.delete(journalPhotos).where(eq(journalPhotos.id, id));
+  }
+
+  async getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]> {
+    return db.select().from(journalPhotos).where(eq(journalPhotos.journalEntryId, journalEntryId));
   }
 
   async getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]> {

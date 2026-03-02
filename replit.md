@@ -7,6 +7,12 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
 ## Recent Changes (March 2, 2026)
+- **Devotional completed view shows scripture**: After saving a devotional, the completed view now displays the full scripture verses and reflection text alongside the user's own reflection and prayer
+- **Journal photo editing**: ViewJournalSheet now supports adding/removing photos in edit mode
+  - Max 7 photos per journal entry enforced in both AddJournalSheet and ViewJournalSheet
+  - Backend PATCH `/api/journal-entries/:id` now accepts `photos` array to sync photo changes
+  - Added `deleteJournalPhoto` and `getJournalPhotos` storage methods
+  - `JournalEntryData` now includes `originalPhotoPaths` for tracking raw object paths
 - **Unified Daily Journey page**: Combined journal + devotional + new evening reflection into single page
   - Three tabs: 晨光靈修 (Morning Devotion), 旅途探險 (Journal Adventures), 夜間感恩 (Evening Gratitude)
   - New `evening_reflections` database table for gratitude, highlight, and prayer-for-tomorrow entries

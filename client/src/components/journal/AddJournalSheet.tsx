@@ -74,14 +74,19 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
     }
   };
 
+  const MAX_PHOTOS = 7;
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) return;
+
     setIsUploading(true);
     
     try {
-      for (const file of Array.from(files)) {
+      for (const file of Array.from(files).slice(0, remaining)) {
         const token = getAuthToken();
         const headers: HeadersInit = {
           "Content-Type": "application/json",
@@ -214,7 +219,7 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
               <Camera className="w-5 h-5 text-primary" />
-              照片記錄 <span className="text-muted-foreground text-caption">(選填)</span>
+              照片記錄 <span className="text-muted-foreground text-caption">({photos.length}/{MAX_PHOTOS})</span>
             </label>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {photos.map((photo, index) => (
@@ -234,25 +239,27 @@ export function AddJournalSheet({ open, onOpenChange, onSave }: AddJournalSheetP
                   </button>
                 </div>
               ))}
-              <label className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
-                {isUploading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <Upload className="w-6 h-6" />
-                    <span className="text-caption">添加照片</span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  className="hidden"
-                  data-testid="input-photo-upload"
-                />
-              </label>
+              {photos.length < MAX_PHOTOS && (
+                <label className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
+                  {isUploading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6" />
+                      <span className="text-caption">添加照片</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="hidden"
+                    data-testid="input-photo-upload"
+                  />
+                </label>
+              )}
             </div>
           </div>
 

@@ -298,12 +298,33 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/journal-entries/:id", requireAuth, async (req, res) => {
     try {
-      const { title, content, location } = req.body;
+      const { title, content, location, photos } = req.body;
       const entry = await storage.updateJournalEntry(req.params.id, {
         title,
         content,
         location,
       });
+
+      if (photos && Array.isArray(photos)) {
+        const existingPhotos = await storage.getJournalPhotos(req.params.id);
+        const existingPaths = existingPhotos.map(p => p.photoUrl);
+        const newPaths = photos as string[];
+
+        const toDelete = existingPhotos.filter(p => !newPaths.includes(p.photoUrl));
+        for (const photo of toDelete) {
+          await storage.deleteJournalPhoto(photo.id);
+        }
+
+        const toAdd = newPaths.filter(p => !existingPaths.includes(p));
+        for (const photoUrl of toAdd) {
+          await storage.createJournalPhoto({
+            journalEntryId: req.params.id,
+            photoUrl,
+            caption: null,
+          });
+        }
+      }
+
       res.json(entry);
     } catch (error) {
       res.status(500).json({ error: "Failed to update journal entry" });

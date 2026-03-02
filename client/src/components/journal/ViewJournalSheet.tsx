@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Clock, Trash2, Loader2, Pencil, Save, X } from "lucide-react";
+import { MapPin, Clock, Trash2, Loader2, Pencil, Save, X, Upload, Camera } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,13 +21,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { JournalEntryData } from "./JournalEntry";
+import { getAuthToken } from "@/lib/queryClient";
+
+const MAX_PHOTOS = 7;
 
 interface ViewJournalSheetProps {
   entry: JournalEntryData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete?: (id: string) => Promise<void>;
-  onUpdate?: (id: string, data: { content: string; location: string }) => Promise<void>;
+  onUpdate?: (id: string, data: { content: string; location: string; photos?: string[] }) => Promise<void>;
 }
 
 const moodLabels: Record<string, { emoji: string; label: string }> = {
@@ -37,18 +40,45 @@ const moodLabels: Record<string, { emoji: string; label: string }> = {
   amazed: { emoji: "✨", label: "驚嘆" },
 };
 
+function transformPhotoUrl(photoUrl: string): string {
+  if (photoUrl.includes("storage.googleapis.com") && photoUrl.includes("/uploads/")) {
+    const match = photoUrl.match(/\/uploads\/([a-f0-9-]+)/);
+    if (match) {
+      return `/api/uploads/file/${match[1]}`;
+    }
+  }
+  if (photoUrl.startsWith("/objects/uploads/")) {
+    const objectId = photoUrl.replace("/objects/uploads/", "");
+    return `/api/uploads/file/${objectId}`;
+  }
+  return photoUrl;
+}
+
+interface EditPhoto {
+  displayUrl: string;
+  objectPath: string;
+  isNew: boolean;
+}
+
 export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate }: ViewJournalSheetProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editPhotos, setEditPhotos] = useState<EditPhoto[]>([]);
 
   useEffect(() => {
     if (entry) {
       setEditContent(entry.content);
       setEditLocation(entry.location || "");
+      setEditPhotos((entry.originalPhotoPaths || entry.photos).map(p => ({
+        displayUrl: transformPhotoUrl(p),
+        objectPath: p,
+        isNew: false,
+      })));
     }
   }, [entry]);
 
@@ -76,7 +106,8 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
     if (!onUpdate) return;
     setIsSaving(true);
     try {
-      await onUpdate(entry.id, { content: editContent, location: editLocation });
+      const photoPaths = editPhotos.map(p => p.objectPath);
+      await onUpdate(entry.id, { content: editContent, location: editLocation, photos: photoPaths });
       setIsEditing(false);
     } finally {
       setIsSaving(false);
@@ -86,7 +117,72 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
   const handleCancelEdit = () => {
     setEditContent(entry.content);
     setEditLocation(entry.location || "");
+    setEditPhotos((entry.originalPhotoPaths || entry.photos).map(p => ({
+      displayUrl: transformPhotoUrl(p),
+      objectPath: p,
+      isNew: false,
+    })));
     setIsEditing(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remaining = MAX_PHOTOS - editPhotos.length;
+    if (remaining <= 0) return;
+
+    const filesToUpload = Array.from(files).slice(0, remaining);
+    setIsUploading(true);
+
+    try {
+      for (const file of filesToUpload) {
+        const token = getAuthToken();
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const urlResponse = await fetch("/api/uploads/request-url", {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            name: file.name,
+            size: file.size,
+            contentType: file.type,
+          }),
+        });
+
+        if (!urlResponse.ok) throw new Error("Failed to get upload URL");
+
+        const { uploadURL, objectPath } = await urlResponse.json();
+
+        const uploadResponse = await fetch(uploadURL, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+
+        if (!uploadResponse.ok) throw new Error("Failed to upload file");
+
+        const previewUrl = URL.createObjectURL(file);
+        setEditPhotos(prev => [...prev, { displayUrl: previewUrl, objectPath, isNew: true }]);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setEditPhotos(prev => {
+      const photo = prev[index];
+      if (photo.isNew && photo.displayUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(photo.displayUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   return (
@@ -113,25 +209,72 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
           </SheetHeader>
 
           <div className="space-y-6 overflow-y-auto max-h-[calc(85vh-180px)] pb-4">
-            {/* Photos */}
-            {entry.photos.length > 0 && (
+            {isEditing ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {entry.photos.map((photo, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                <label className="text-body font-medium flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-primary" />
+                  照片記錄 <span className="text-muted-foreground text-caption">({editPhotos.length}/{MAX_PHOTOS})</span>
+                </label>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {editPhotos.map((photo, index) => (
+                    <div key={index} className="relative flex-shrink-0">
                       <img
-                        src={photo}
+                        src={photo.displayUrl}
                         alt={`照片 ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        data-testid={`img-view-photo-${index}`}
+                        className="w-24 h-24 object-cover rounded-lg"
+                        data-testid={`img-edit-photo-${index}`}
                       />
+                      <button
+                        onClick={() => handleRemovePhoto(index)}
+                        data-testid={`button-remove-edit-photo-${index}`}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
+                  {editPhotos.length < MAX_PHOTOS && (
+                    <label className="w-24 h-24 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
+                      {isUploading ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="w-6 h-6" />
+                          <span className="text-caption">添加照片</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                        className="hidden"
+                        data-testid="input-edit-photo-upload"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
+            ) : (
+              entry.photos.length > 0 && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {entry.photos.map((photo, index) => (
+                      <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={photo}
+                          alt={`照片 ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          data-testid={`img-view-photo-${index}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
             )}
 
-            {/* Location & Time */}
             {isEditing ? (
               <div className="space-y-3">
                 <label className="text-body font-medium flex items-center gap-2">
@@ -160,7 +303,6 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
               </div>
             )}
 
-            {/* Content */}
             <div className="space-y-2">
               <h3 className="text-body font-medium">感言內容</h3>
               {isEditing ? (
@@ -178,7 +320,6 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
               )}
             </div>
 
-            {/* Mood */}
             {!isEditing && entry.mood && moodLabels[entry.mood] && (
               <div className="flex items-center gap-2 bg-primary/10 rounded-lg p-3">
                 <span className="text-2xl">{moodLabels[entry.mood].emoji}</span>
@@ -187,7 +328,6 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
             {isEditing ? (
               <div className="flex gap-3">

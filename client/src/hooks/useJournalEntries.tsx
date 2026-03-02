@@ -110,17 +110,19 @@ export function useUpdateJournalEntry() {
       title,
       content,
       location,
+      photos,
     }: {
       id: string;
       title?: string;
       content?: string;
       location?: string;
+      photos?: string[];
     }) => {
       const response = await fetch(`/api/journal-entries/${id}`, {
         method: "PATCH",
         credentials: "include",
         headers: getHeaders(),
-        body: JSON.stringify({ title, content, location }),
+        body: JSON.stringify({ title, content, location, photos }),
       });
 
       if (!response.ok) {
