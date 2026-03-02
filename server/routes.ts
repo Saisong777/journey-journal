@@ -1267,8 +1267,10 @@ export function registerRoutes(app: Express) {
           email: u.email,
           tempPassword: u.tempPassword || "",
           role: role?.role || "member",
+          roleId: role?.id || null,
           phone: profile?.phone || "",
           groupId: profile?.groupId || null,
+          profileId: profile?.id || null,
         };
       });
 
@@ -1276,6 +1278,41 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("[get-trip-members] error:", error);
       res.status(500).json({ error: "Failed to get trip members" });
+    }
+  });
+
+  app.patch("/api/admin/trips/:tripId/members/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { tripId, userId } = req.params;
+      const { role, groupId } = req.body;
+
+      if (role) {
+        const roles = await storage.getAllUserRolesForUser(userId);
+        const tripRole = roles.find(r => r.tripId === tripId);
+        if (tripRole) {
+          await storage.updateUserRole(tripRole.id, role);
+        }
+      }
+
+      if (groupId !== undefined) {
+        await storage.updateProfile(userId, { groupId: groupId || null });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[update-trip-member] error:", error);
+      res.status(500).json({ error: "Failed to update member" });
+    }
+  });
+
+  app.delete("/api/admin/trips/:tripId/members/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { tripId, userId } = req.params;
+      await storage.deleteUserRole(userId, tripId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[delete-trip-member] error:", error);
+      res.status(500).json({ error: "Failed to remove member" });
     }
   });
 

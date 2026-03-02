@@ -51,7 +51,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -71,8 +71,10 @@ interface TripMember {
   email: string;
   tempPassword: string;
   role: string;
+  roleId: string | null;
   phone: string;
   groupId: string | null;
+  profileId: string | null;
 }
 
 interface ImportResult {
@@ -115,7 +117,7 @@ function parseCSV(text: string): { name: string; email: string }[] {
   return results;
 }
 
-function TripMemberSection({ tripId }: { tripId: string }) {
+function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups: { id: string; name: string }[] }) {
   const { toast } = useToast();
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [csvPreview, setCsvPreview] = useState<{ name: string; email: string }[] | null>(null);
@@ -126,6 +128,10 @@ function TripMemberSection({ tripId }: { tripId: string }) {
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [invitationCode, setInvitationCode] = useState("");
+  const [editingMember, setEditingMember] = useState<TripMember | null>(null);
+  const [editRole, setEditRole] = useState("");
+  const [editGroupId, setEditGroupId] = useState<string>("");
+  const [removingMember, setRemovingMember] = useState<TripMember | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: tripMembers, isLoading: membersLoading } = useQuery<TripMember[]>({
@@ -210,6 +216,56 @@ function TripMemberSection({ tripId }: { tripId: string }) {
       toast({ title: "新增失敗", description: "請稍後再試", variant: "destructive" });
     },
   });
+
+  const updateMemberMutation = useMutation({
+    mutationFn: async ({ userId, role, groupId }: { userId: string; role?: string; groupId?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/trips/${tripId}/members/${userId}`, { role, groupId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "members"] });
+      toast({ title: "修改成功", description: "團員資料已更新" });
+      setEditingMember(null);
+    },
+    onError: () => {
+      toast({ title: "修改失敗", description: "請稍後再試", variant: "destructive" });
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/trips/${tripId}/members/${userId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "members"] });
+      toast({ title: "已移除", description: "團員已從此行程移除" });
+      setRemovingMember(null);
+      setSelectedMembers(prev => {
+        const next = new Set(prev);
+        if (removingMember) next.delete(removingMember.userId);
+        return next;
+      });
+    },
+    onError: () => {
+      toast({ title: "移除失敗", description: "請稍後再試", variant: "destructive" });
+    },
+  });
+
+  const openEditDialog = (member: TripMember) => {
+    setEditingMember(member);
+    setEditRole(member.role);
+    setEditGroupId(member.groupId || "none");
+  };
+
+  const handleUpdateMember = () => {
+    if (!editingMember) return;
+    updateMemberMutation.mutate({
+      userId: editingMember.userId,
+      role: editRole,
+      groupId: editGroupId === "none" ? "" : editGroupId,
+    });
+  };
 
   const handleAddMember = () => {
     const name = addName.trim();
@@ -323,6 +379,7 @@ function TripMemberSection({ tripId }: { tripId: string }) {
                 <TableHead>Email</TableHead>
                 <TableHead>臨時密碼</TableHead>
                 <TableHead>角色</TableHead>
+                <TableHead className="w-20">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -343,6 +400,28 @@ function TripMemberSection({ tripId }: { tripId: string }) {
                     <Badge className={roleColors[member.role] || roleColors.member}>
                       {roleLabels[member.role] || member.role}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => openEditDialog(member)}
+                        data-testid={`button-edit-member-${member.userId}`}
+                      >
+                        <UserCog className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => setRemovingMember(member)}
+                        data-testid={`button-remove-member-${member.userId}`}
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -528,6 +607,90 @@ function TripMemberSection({ tripId }: { tripId: string }) {
             >
               {addMemberMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               確認新增
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <UserCog className="w-5 h-5 inline mr-2" />
+              編輯團員
+            </DialogTitle>
+          </DialogHeader>
+          {editingMember && (
+            <div className="space-y-4 py-4">
+              <p className="text-sm">
+                <span className="font-medium">{editingMember.name || editingMember.email}</span>
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">角色</label>
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger data-testid="select-edit-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">管理員</SelectItem>
+                    <SelectItem value="leader">領隊</SelectItem>
+                    <SelectItem value="guide">導遊</SelectItem>
+                    <SelectItem value="member">團員</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">小組</label>
+                <Select value={editGroupId} onValueChange={setEditGroupId}>
+                  <SelectTrigger data-testid="select-edit-group">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">未分組</SelectItem>
+                    {tripGroups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingMember(null)}>取消</Button>
+            <Button
+              onClick={handleUpdateMember}
+              disabled={updateMemberMutation.isPending}
+              data-testid="button-confirm-edit-member"
+            >
+              {updateMemberMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!removingMember} onOpenChange={(open) => !open && setRemovingMember(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <UserMinus className="w-5 h-5 inline mr-2 text-destructive" />
+              移除團員
+            </DialogTitle>
+          </DialogHeader>
+          {removingMember && (
+            <p className="text-sm py-4">
+              確定要將 <span className="font-medium">{removingMember.name || removingMember.email}</span> 從此行程中移除嗎？此操作無法復原。
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemovingMember(null)}>取消</Button>
+            <Button
+              variant="destructive"
+              onClick={() => removingMember && removeMemberMutation.mutate(removingMember.userId)}
+              disabled={removeMemberMutation.isPending}
+              data-testid="button-confirm-remove-member"
+            >
+              {removeMemberMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              確認移除
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -855,7 +1018,7 @@ export default function AdminTrips() {
                           <Users className="w-4 h-4 text-muted-foreground" />
                           <h4 className="text-body font-medium">團員管理</h4>
                         </div>
-                        <TripMemberSection tripId={trip.id} />
+                        <TripMemberSection tripId={trip.id} tripGroups={getGroupsForTrip(trip.id)} />
                       </div>
                     </div>
                   </AccordionContent>
