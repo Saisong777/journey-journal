@@ -51,7 +51,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, Globe, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -119,6 +120,8 @@ function parseCSV(text: string): { name: string; email: string }[] {
 
 function TripNotesAssignment({ tripId }: { tripId: string }) {
   const { toast } = useToast();
+  const [remarks, setRemarks] = useState("");
+  const [remarksLoaded, setRemarksLoaded] = useState(false);
 
   const { data: allNotes = [] } = useQuery<{ id: string; title: string; content: string }[]>({
     queryKey: ["/api/admin/trip-notes"],
@@ -134,6 +137,21 @@ function TripNotesAssignment({ tripId }: { tripId: string }) {
     },
   });
 
+  const { data: tripData } = useQuery<{ id: string; specialRemarks: string | null }>({
+    queryKey: ["/api/admin/trips", tripId, "remarks"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/trips/${tripId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      });
+      return res.json();
+    },
+  });
+
+  if (tripData && !remarksLoaded) {
+    setRemarks(tripData.specialRemarks || "");
+    setRemarksLoaded(true);
+  }
+
   const assignedNoteIds = new Set(assignments.map(a => a.noteId));
 
   const assignMutation = useMutation({
@@ -143,7 +161,7 @@ function TripNotesAssignment({ tripId }: { tripId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "notes"] });
-      toast({ title: "已加入說明" });
+      toast({ title: "已加入區域注意事項" });
     },
   });
 
@@ -153,7 +171,17 @@ function TripNotesAssignment({ tripId }: { tripId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "notes"] });
-      toast({ title: "已移除說明" });
+      toast({ title: "已移除區域注意事項" });
+    },
+  });
+
+  const remarksMutation = useMutation({
+    mutationFn: async (specialRemarks: string) => {
+      await apiRequest("PATCH", `/api/admin/trips/${tripId}/remarks`, { specialRemarks });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "remarks"] });
+      toast({ title: "已儲存特別備注" });
     },
   });
 
@@ -165,39 +193,65 @@ function TripNotesAssignment({ tripId }: { tripId: string }) {
     }
   };
 
-  if (allNotes.length === 0) return null;
-
   return (
-    <div className="border-t pt-4">
-      <div className="flex items-center gap-2 mb-3">
-        <FileText className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-body font-medium">說明與注意事項</h4>
-        <Badge variant="secondary" className="text-xs">{assignments.length}/{allNotes.length}</Badge>
-      </div>
-      <div className="space-y-2">
-        {allNotes.map((note) => {
-          const isAssigned = assignedNoteIds.has(note.id);
-          return (
-            <div
-              key={note.id}
-              className="flex items-center gap-3 p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
-              onClick={() => toggleNote(note.id)}
-              data-testid={`note-assignment-${note.id}`}
-            >
-              <Checkbox
-                checked={isAssigned}
-                onCheckedChange={() => toggleNote(note.id)}
-                data-testid={`checkbox-note-${note.id}`}
-              />
-              <span className="text-body flex-1">{note.title}</span>
-              {isAssigned && (
-                <Badge variant="outline" className="text-xs">
-                  已加入
-                </Badge>
-              )}
-            </div>
-          );
-        })}
+    <div className="border-t pt-4 space-y-4">
+      {allNotes.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Globe className="w-4 h-4 text-muted-foreground" />
+            <h4 className="text-body font-medium">區域注意事項</h4>
+            <Badge variant="secondary" className="text-xs">{assignments.length}/{allNotes.length}</Badge>
+          </div>
+          <div className="space-y-2">
+            {allNotes.map((note) => {
+              const isAssigned = assignedNoteIds.has(note.id);
+              return (
+                <div
+                  key={note.id}
+                  className="flex items-center gap-3 p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
+                  onClick={() => toggleNote(note.id)}
+                  data-testid={`note-assignment-${note.id}`}
+                >
+                  <Checkbox
+                    checked={isAssigned}
+                    onCheckedChange={() => toggleNote(note.id)}
+                    data-testid={`checkbox-note-${note.id}`}
+                  />
+                  <Globe className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-body flex-1">{note.title}</span>
+                  {isAssigned && (
+                    <Badge variant="outline" className="text-xs">
+                      已加入
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="w-4 h-4 text-muted-foreground" />
+          <h4 className="text-body font-medium">特別備注</h4>
+        </div>
+        <Textarea
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          placeholder="輸入此旅程的特別備注（如臨時通知、特殊安排等），團員可在注意事項頁面看到..."
+          rows={4}
+          data-testid="input-special-remarks"
+        />
+        <Button
+          size="sm"
+          className="mt-2"
+          onClick={() => remarksMutation.mutate(remarks)}
+          disabled={remarksMutation.isPending}
+          data-testid="button-save-remarks"
+        >
+          {remarksMutation.isPending ? "儲存中..." : "儲存備注"}
+        </Button>
       </div>
     </div>
   );

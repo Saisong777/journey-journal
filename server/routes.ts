@@ -519,6 +519,16 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/trips/:id", requireAdmin, async (req, res) => {
+    try {
+      const trip = await storage.getTrip(req.params.id);
+      if (!trip) return res.status(404).json({ error: "Trip not found" });
+      res.json(trip);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip" });
+    }
+  });
+
   app.post("/api/admin/trips", requireAdmin, async (req, res) => {
     try {
       const trip = await storage.createTrip(req.body);
@@ -1117,6 +1127,31 @@ export function registerRoutes(app: Express) {
       res.json(notes);
     } catch (error) {
       res.status(500).json({ error: "Failed to get trip notes" });
+    }
+  });
+
+  // User-facing: get special remarks for current trip
+  app.get("/api/trips/current/remarks", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json({ specialRemarks: null });
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      res.json({ specialRemarks: trip?.specialRemarks || null });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip remarks" });
+    }
+  });
+
+  // Admin: update special remarks for a trip
+  app.patch("/api/admin/trips/:tripId/remarks", requireAdmin, async (req, res) => {
+    try {
+      const { specialRemarks } = req.body;
+      const updated = await storage.updateTrip(req.params.tripId, { specialRemarks: specialRemarks || null });
+      res.json({ specialRemarks: updated?.specialRemarks || null });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update trip remarks" });
     }
   });
 

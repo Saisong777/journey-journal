@@ -120,55 +120,48 @@ async function syncDataToCurrentDb() {
   }
 }
 
-const TRIP_NOTES_SEED = [
-  {
-    title: "關於餐食",
-    content: `◆候機、轉機時，若逢用餐時段，該餐煩請自理。
+const TURKEY_NOTE_CONTENT = `【關於餐食】
+◆候機、轉機時，若逢用餐時段，該餐煩請自理。
 ◆餐廳用餐之單點飲料需自費。
 ◆早餐與晚餐多是在住宿酒店內使用，領隊會宣佈用餐時間與規定。
 ◆享用自助餐時，請先少量取用，確定口味OK後再度取用，避免浪費。
 ◆中午的用餐時間，有時候為了配合景點參觀，會遲緩進餐。
 ◆由於土耳其是伊斯蘭文化國家，沒有豬肉，若攜帶零食入境時請避免外包裝上出現豬的圖案。
 ◆避免生飲，每日提供3瓶瓶裝水。若不足請自行購買。
-◆旅遊國家沒有飲用熱水的習慣，若每日需飲用熱水，可自行準備熱水壺。`,
-  },
-  {
-    title: "關於天氣及服裝",
-    content: `本行程涵蓋海島+希臘本土+山區修道院+土耳其小亞細亞。3–4月屬春季但變化大，重點不是極冷，而是「早晚溫差、海風、山風、偶雨」與長時間遺址步行。
+◆旅遊國家沒有飲用熱水的習慣，若每日需飲用熱水，可自行準備熱水壺。
+
+【關於天氣及服裝】
+本行程涵蓋海島+希臘本土+山區修道院+土耳其小亞細亞。3–4月屬春季但變化大，重點不是極冷，而是「早晚溫差、海風、山風、偶雨」與長時間遺址步行。
 
 地形與體感：海島風大，船上與觀景台體感偏涼；雅典與各遺址多為曝曬平地或丘陵，走路時間長；梅黛奧拉屬山區高岩柱，風強、石階多、比平地冷；土耳其遺址多在開闊地，白色石灰岩（希拉波立）反光強，日晒明顯。
 
 穿搭核心：洋蔥式＋防風＋耐走。建議帶：吸汗長袖/薄發熱衣（內層）、薄針織或刷毛（中層）、防風外套或輕羽絨（外層）；下身以長褲為主，女生另備長裙或大披肩（進修道院/清真寺可遮腿遮肩）。鞋子以止滑包腳運動鞋/健行鞋為主，避免跟鞋與薄底平底鞋。配件必帶：大披肩/圍巾（保暖＋遮肩）、折傘或輕雨衣、太陽眼鏡、防曬、襪子（進清真寺需脫鞋）。
 
-宗教服裝：梅黛奧拉修道院需遮肩、過膝、避免緊身；清真寺女生需頭巾＋長袖＋長裙/長褲，男生避免短褲背心。`,
-  },
-  {
-    title: "關於住宿",
-    content: `（1）酒店浴室有大浴巾、毛巾、洗髮沐浴乳；但不一定提供牙刷、牙膏、拖鞋、浴帽等。支持環保請自行攜帶。
+宗教服裝：梅黛奧拉修道院需遮肩、過膝、避免緊身；清真寺女生需頭巾＋長袖＋長裙/長褲，男生避免短褲背心。
+
+【關於住宿】
+（1）酒店浴室有大浴巾、毛巾、洗髮沐浴乳；但不一定提供牙刷、牙膏、拖鞋、浴帽等。支持環保請自行攜帶。
 （2）基於國際禮儀，請勿穿拖鞋進餐廳用餐。
 （3）浴室地板大部份沒有排水孔，洗澡時，請將浴簾拉上並置於浴缸內。
 （4）如廁後請將衛生紙直接丟入馬桶沖掉。
 （5）請珍惜與室友相處的機會，彼此包容、關懷、照顧。
-（6）入住各酒店時；務必先檢查房間內的冷暖氣的遙控器、冷熱水及電等；一旦發現有問題，請務必當場告知領隊即時處理。有的HOTEL在窗戶開啟時，空調會自動關閉，開空調前請確認門窗已關好。`,
-  },
-  {
-    title: "關於出行",
-    content: `（1）飛機上：如想要更換座位時，請等飛機起飛穩定（系好安全帶燈號熄滅）後才處理。
+（6）入住各酒店時；務必先檢查房間內的冷暖氣的遙控器、冷熱水及電等；一旦發現有問題，請務必當場告知領隊即時處理。有的HOTEL在窗戶開啟時，空調會自動關閉，開空調前請確認門窗已關好。
+
+【關於出行】
+（1）飛機上：如想要更換座位時，請等飛機起飛穩定（系好安全帶燈號熄滅）後才處理。
 （2）遊覽車（巴士）：前二排坐位是給當地導遊、領隊使用；其餘坐位基於公平原則請每日輪流協調。每當車輛駛動時，不要再走動，以免發生意外。
 （3）集合：注意領隊宣佈的時間與地點，一定要（守時）。
 （4）參觀行進時，請保持秩序（不要脫隊）並注意安全（切忌邊走路邊掏東西）。
 （5）時差：北京(臺北)時間+5小時/美東時間-8小時
 （6）照相、攝影：底片、電池
 （7）電壓、插頭：220v、雙圓孔
-（8）貨幣：土耳其主要貨幣是里拉 (TL) 可使用美金。希臘的貨幣是歐元（EUR）。自動提款機在城市和旅遊區隨處可見，旅客可以使用金融卡或信用卡提取現金。大多數飯店、餐廳和商店都接受信用卡，但建議攜帶一些現金，以便在當地市場或小酒館進行小額採購和交易。`,
-  },
-  {
-    title: "保險",
-    content: `除了旅行社依規定投保的責任險之外，建議再去投保旅遊平安險（尤其是加強疾病醫療險）。`,
-  },
-  {
-    title: "出入境注意事項",
-    content: `A. 出境登機流程：
+（8）貨幣：土耳其主要貨幣是里拉 (TL) 可使用美金。希臘的貨幣是歐元（EUR）。自動提款機在城市和旅遊區隨處可見，旅客可以使用金融卡或信用卡提取現金。大多數飯店、餐廳和商店都接受信用卡，但建議攜帶一些現金，以便在當地市場或小酒館進行小額採購和交易。
+
+【保險】
+除了旅行社依規定投保的責任險之外，建議再去投保旅遊平安險（尤其是加強疾病醫療險）。
+
+【出入境注意事項】
+A. 出境登機流程：
 （1）辦理行李托運，換取登機
 （2）前往通關櫃檯排隊通關
 （3）接受邊防（移民局）檢查（出示護照、簽證、登機牌）
@@ -181,21 +174,68 @@ B. 行李托運：
 （3）行動電源、鋰電池等不能托運。
 （4）液體、膏狀物品、膠狀物品等儘量托運，若不托運則請放置於容量不超過100毫升的容器裡，用可重新封口的透明密膠袋裝好，以備機場安檢，每名旅客每次僅充許攜帶一個透明膠袋，超出部份應托運。
 （5）保留好行李票，如果托運行李受損或遺失，必須當場於機場行李櫃檯報案，並出示登機卡和行李票辦理必要的手續。
-（6）藥物（如糖尿病藥物包等旅客必需的液態藥品及針劑，憑醫生處方或醫院證明）、嬰兒食品（有嬰兒隨行，只限旅程所需數量如牛奶、母乳等）隨身攜帶。`,
-  },
-  {
-    title: "其他事項",
-    content: `*如遇不可抗拒之情況，本公司保有變更酒店及班機行程之權利。
+（6）藥物（如糖尿病藥物包等旅客必需的液態藥品及針劑，憑醫生處方或醫院證明）、嬰兒食品（有嬰兒隨行，只限旅程所需數量如牛奶、母乳等）隨身攜帶。
+
+【其他事項】
+*如遇不可抗拒之情況，本公司保有變更酒店及班機行程之權利。
 *土耳其及希臘緊急電話：112
 
 團隊連絡人
 領隊：
-持證導遊：`,
+持證導遊：`;
+
+const TRIP_NOTES_SEED = [
+  {
+    title: "土耳其",
+    content: TURKEY_NOTE_CONTENT,
   },
 ];
 
+async function migrateOldNotesToRegional(tripId: string) {
+  try {
+    const existingNotes = await db.select().from(tripNotes);
+    const oldStyleTitles = ["關於餐食", "關於天氣及服裝", "關於住宿", "關於出行", "保險", "出入境注意事項", "其他事項"];
+    const oldNotes = existingNotes.filter(n => oldStyleTitles.includes(n.title));
+
+    if (oldNotes.length < 3) return;
+
+    console.log("[data-sync] migrating", oldNotes.length, "old-style notes to regional format...");
+
+    const affectedTripIds = new Set<string>();
+    for (const note of oldNotes) {
+      const assignments = await db.select().from(tripNoteAssignments)
+        .where(eq(tripNoteAssignments.noteId, note.id));
+      assignments.forEach(a => affectedTripIds.add(a.tripId));
+    }
+
+    for (const note of oldNotes) {
+      await db.delete(tripNoteAssignments).where(eq(tripNoteAssignments.noteId, note.id));
+      await db.delete(tripNotes).where(eq(tripNotes.id, note.id));
+    }
+
+    const [regionalNote] = await db.insert(tripNotes).values({
+      title: "土耳其",
+      content: TURKEY_NOTE_CONTENT,
+    }).returning();
+
+    for (const tid of affectedTripIds) {
+      await db.insert(tripNoteAssignments).values({
+        tripId: tid,
+        noteId: regionalNote.id,
+        sortOrder: 1,
+      });
+    }
+
+    console.log("[data-sync] migrated to regional note '土耳其', assigned to", affectedTripIds.size, "trip(s)");
+  } catch (error) {
+    console.error("[data-sync] migration error:", error);
+  }
+}
+
 async function seedTripNotes(tripId: string) {
   try {
+    await migrateOldNotesToRegional(tripId);
+
     const existingNotes = await db.select().from(tripNotes).limit(1);
     if (existingNotes.length) {
       console.log("[data-sync] trip notes already exist, skipping seed");
@@ -216,7 +256,7 @@ async function seedTripNotes(tripId: string) {
         sortOrder: i + 1,
       });
     }
-    console.log("[data-sync] seeded", TRIP_NOTES_SEED.length, "trip notes");
+    console.log("[data-sync] seeded", TRIP_NOTES_SEED.length, "regional trip note(s)");
   } catch (error) {
     console.error("[data-sync] trip notes seed error:", error);
   }
