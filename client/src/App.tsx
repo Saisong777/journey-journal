@@ -27,6 +27,7 @@ import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminMembers from "./pages/admin/AdminMembers";
 import VerifyTrip from "./pages/VerifyTrip";
 import AuthCallbackSuccess from "./pages/AuthCallbackSuccess";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -37,6 +38,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/welcome" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback-success" element={<AuthCallbackSuccess />} />

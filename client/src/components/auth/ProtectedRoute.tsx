@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, skipTripCheck = false }: ProtectedRou
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/welcome" state={{ from: location }} replace />;
   }
 
   if (!skipTripCheck && tripStatusLoading) {
