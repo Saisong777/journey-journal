@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
   Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil, MapPin, HandHeart, MessageCircleHeart,
+  ChevronDown, Copy, ClipboardCheck,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntry";
@@ -106,10 +108,15 @@ export default function DailyJourney() {
 
   const [isEditingDevotional, setIsEditingDevotional] = useState(false);
   const [isEditingEvening, setIsEditingEvening] = useState(false);
+  const [versesExpanded, setVersesExpanded] = useState(false);
+  const [copiedVerseId, setCopiedVerseId] = useState<number | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsEditingDevotional(false);
     setIsEditingEvening(false);
+    setVersesExpanded(false);
+    setCopiedVerseId(null);
     setReflection("");
     setSelectedTopics([]);
     setPrayerContent("");
@@ -150,7 +157,9 @@ export default function DailyJourney() {
   const scriptureRef = todayCourse?.scripture || null;
   const { data: bibleLookup, isLoading: bibleLoading } = useBibleLookup(scriptureRef);
 
-  const todayScripture: ScriptureData = useMemo(() => {
+  const hasCourses = devotionalCourses && devotionalCourses.length > 0;
+
+  const todayScripture: ScriptureData | null = useMemo(() => {
     if (todayCourse && bibleLookup && bibleLookup.verses.length > 0) {
       return {
         reference: todayCourse.scripture || "",
@@ -173,8 +182,27 @@ export default function DailyJourney() {
         prayer: todayCourse.prayer || undefined,
       };
     }
-    return fallbackScriptures[currentDay] || fallbackScriptures[((currentDay - 1) % 5) + 1];
-  }, [todayCourse, bibleLookup, currentDay]);
+    if (!hasCourses) {
+      return fallbackScriptures[currentDay] || fallbackScriptures[((currentDay - 1) % 5) + 1];
+    }
+    return null;
+  }, [todayCourse, bibleLookup, currentDay, hasCourses]);
+
+  const copyVerses = (verses: { number: number; text: string }[], reference: string) => {
+    const realVerses = verses.filter(v => v.number > 0);
+    const text = `${reference}\n${realVerses.map(v => `${v.number} ${v.text}`).join("\n")}`;
+    navigator.clipboard.writeText(text).then(() => {
+      toast({ title: "已複製經文" });
+    });
+  };
+
+  const copySingleVerse = (verse: { number: number; text: string }, reference: string) => {
+    const text = `${reference} ${verse.number}\n${verse.text}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedVerseId(verse.number);
+      setTimeout(() => setCopiedVerseId(null), 1500);
+    });
+  };
 
   const days = useMemo(() => {
     const selected = startOfDay(selectedDate);
@@ -397,6 +425,12 @@ export default function DailyJourney() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
+            ) : !todayScripture ? (
+              <div className="bg-card rounded-lg shadow-card p-12 text-center space-y-3">
+                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto" />
+                <p className="text-title font-semibold text-muted-foreground">今日沒有安排靈修</p>
+                <p className="text-body text-muted-foreground/70">享受旅途中的自由時光吧！</p>
+              </div>
             ) : myDevotional?.reflection && !isEditingDevotional ? (
               <div className="space-y-4">
                 <div className="bg-card rounded-lg shadow-card overflow-hidden">
@@ -423,17 +457,62 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-4 space-y-3">
-                    <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg p-3 space-y-2">
-                      {todayScripture.verses.map((verse) => (
-                        <p key={verse.number} className="text-body text-foreground leading-relaxed">
-                          <span className="text-caption font-semibold text-amber-700 dark:text-amber-400 mr-1">{verse.number}</span>
-                          {verse.text}
-                        </p>
-                      ))}
-                      <p className="text-body text-muted-foreground italic leading-relaxed pt-1 border-t border-amber-200/50 dark:border-amber-700/30">
+                    {todayScripture.verses.length > 0 && (
+                      <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setVersesExpanded(!versesExpanded)}
+                          className="w-full flex items-center justify-between p-3 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
+                          data-testid="button-toggle-verses-completed"
+                        >
+                          <span className="text-caption font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            經文 ({todayScripture.verses.filter(v => v.number > 0).length} 節)
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); copyVerses(todayScripture.verses, todayScripture.reference); }}
+                              className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors"
+                              data-testid="button-copy-all-verses-completed"
+                            >
+                              <Copy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            </button>
+                            <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
+                          </div>
+                        </button>
+                        {versesExpanded && (
+                          <div className="px-3 pb-3 space-y-2">
+                            {todayScripture.verses.map((verse, idx) => (
+                              verse.number === 0 ? (
+                                <p key={`label-${idx}`} className="text-caption text-amber-600 dark:text-amber-400 font-medium pt-2">{verse.text}</p>
+                              ) : (
+                                <div key={`v-${idx}-${verse.number}`} className="flex items-start gap-1">
+                                  <p className="text-body text-foreground leading-relaxed flex-1">
+                                    <span className="text-caption font-semibold text-amber-700 dark:text-amber-400 mr-1">{verse.number}</span>
+                                    {verse.text}
+                                  </p>
+                                  <button
+                                    onClick={() => copySingleVerse(verse, todayScripture.reference)}
+                                    className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors flex-shrink-0 mt-0.5 opacity-40 hover:opacity-100"
+                                    data-testid={`button-copy-verse-${verse.number}`}
+                                  >
+                                    {copiedVerseId === verse.number ? (
+                                      <ClipboardCheck className="w-3.5 h-3.5 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5 text-amber-500" />
+                                    )}
+                                  </button>
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {todayScripture.reflection && (
+                      <p className="text-body text-muted-foreground italic leading-relaxed px-1">
                         {todayScripture.reflection}
                       </p>
-                    </div>
+                    )}
                     {todayScripture.action && (
                       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 flex items-start gap-2">
                         <HandHeart className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -468,7 +547,7 @@ export default function DailyJourney() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : todayScripture ? (
               <div className="space-y-4">
                 {/* Scripture Card */}
                 <div className="bg-card rounded-lg shadow-card overflow-hidden">
@@ -478,9 +557,6 @@ export default function DailyJourney() {
                         <BookOpen className="w-5 h-5" />
                         <span className="text-body font-semibold">{todayScripture.reference}</span>
                       </div>
-                      <button className="p-2 rounded-full bg-white/40 hover:bg-white/60 transition-colors">
-                        <Volume2 className="w-4 h-4 text-amber-800 dark:text-amber-200" />
-                      </button>
                     </div>
                     <p className="text-caption text-amber-700/80 dark:text-amber-300/80 mt-1">{todayScripture.theme}</p>
                     {todayScripture.place && (
@@ -491,13 +567,57 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-5 space-y-4">
-                    {todayScripture.verses.map((verse) => (
-                      <p key={verse.number} className="text-body leading-relaxed">
-                        <span className="text-primary font-semibold text-caption align-super mr-1">{verse.number}</span>
-                        {verse.text}
-                      </p>
-                    ))}
-                    <div className="border-t border-border" />
+                    {todayScripture.verses.length > 0 && (
+                      <div className="bg-amber-50/40 dark:bg-amber-900/10 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setVersesExpanded(!versesExpanded)}
+                          className="w-full flex items-center justify-between p-3 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
+                          data-testid="button-toggle-verses"
+                        >
+                          <span className="text-caption font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            經文 ({todayScripture.verses.filter(v => v.number > 0).length} 節)
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); copyVerses(todayScripture.verses, todayScripture.reference); }}
+                              className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors"
+                              data-testid="button-copy-all-verses"
+                            >
+                              <Copy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            </button>
+                            <ChevronDown className={cn("w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform", versesExpanded && "rotate-180")} />
+                          </div>
+                        </button>
+                        {versesExpanded && (
+                          <div className="px-3 pb-3 space-y-2">
+                            {todayScripture.verses.map((verse, idx) => (
+                              verse.number === 0 ? (
+                                <p key={`label-${idx}`} className="text-caption text-amber-600 dark:text-amber-400 font-medium pt-2">{verse.text}</p>
+                              ) : (
+                                <div key={`v-${idx}-${verse.number}`} className="flex items-start gap-1">
+                                  <p className="text-body leading-relaxed flex-1">
+                                    <span className="text-primary font-semibold text-caption align-super mr-1">{verse.number}</span>
+                                    {verse.text}
+                                  </p>
+                                  <button
+                                    onClick={() => copySingleVerse(verse, todayScripture.reference)}
+                                    className="p-1 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50 transition-colors flex-shrink-0 mt-0.5 opacity-40 hover:opacity-100"
+                                    data-testid={`button-copy-verse-${verse.number}`}
+                                  >
+                                    {copiedVerseId === verse.number ? (
+                                      <ClipboardCheck className="w-3.5 h-3.5 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5 text-amber-500" />
+                                    )}
+                                  </button>
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
                       <h4 className="text-caption font-semibold text-amber-700 dark:text-amber-300 mb-2">現場默想</h4>
                       <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.reflection}</p>
@@ -604,7 +724,7 @@ export default function DailyJourney() {
                   </Button>
                 </div>
               </div>
-            )}
+            ) : null}
           </section>
         )}
 
