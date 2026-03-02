@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { Calculator, Info, Clock, Thermometer, MapPin, ClipboardCheck } from "lucide-react";
+import { Calculator, Info, Clock, Thermometer, MapPin, ClipboardCheck, FileText } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { CurrencyConverter } from "@/components/tools/CurrencyConverter";
 import { LocalTips } from "@/components/tools/LocalTips";
 import { TripChecklist } from "@/components/tools/TripChecklist";
+import { TripBriefing } from "@/components/tools/TripBriefing";
 import { cn } from "@/lib/utils";
 
-type ViewMode = "currency" | "tips" | "checklist";
+type ViewMode = "currency" | "tips" | "checklist" | "briefing";
 
 export default function Tools() {
-  const [viewMode, setViewMode] = useState<ViewMode>("currency");
+  const [viewMode, setViewMode] = useState<ViewMode>("briefing");
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -41,8 +42,9 @@ export default function Tools() {
 
         <section className="flex gap-2">
           {[
-            { key: "currency", label: "匯率轉換", icon: Calculator },
+            { key: "briefing", label: "出團說明", icon: FileText },
             { key: "checklist", label: "行前檢查表", icon: ClipboardCheck },
+            { key: "currency", label: "匯率轉換", icon: Calculator },
             { key: "tips", label: "注意事項", icon: Info },
           ].map((tab) => (
             <button
@@ -62,6 +64,7 @@ export default function Tools() {
           ))}
         </section>
 
+        {viewMode === "briefing" && <TripBriefing />}
         {viewMode === "currency" && <CurrencyConverter />}
         {viewMode === "checklist" && <TripChecklist />}
         {viewMode === "tips" && <LocalTips />}

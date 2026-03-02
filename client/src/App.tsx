@@ -25,6 +25,7 @@ import AdminTripDays from "./pages/admin/AdminTripDays";
 import AdminDevotionals from "./pages/admin/AdminDevotionals";
 import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminMembers from "./pages/admin/AdminMembers";
+import AdminTripNotes from "./pages/admin/AdminTripNotes";
 import VerifyTrip from "./pages/VerifyTrip";
 import AuthCallbackSuccess from "./pages/AuthCallbackSuccess";
 import Landing from "./pages/Landing";
@@ -176,6 +177,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminDevotionals />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/trip-notes"
+              element={
+                <AdminRoute>
+                  <AdminTripNotes />
                 </AdminRoute>
               }
             />

@@ -1033,6 +1033,93 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Trip Notes Admin CRUD
+  app.get("/api/admin/trip-notes", requireAdmin, async (req, res) => {
+    try {
+      const notes = await storage.getAllTripNotes();
+      res.json(notes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip notes" });
+    }
+  });
+
+  app.post("/api/admin/trip-notes", requireAdmin, async (req, res) => {
+    try {
+      const { title, content } = req.body;
+      if (!title || !content) {
+        return res.status(400).json({ error: "標題和內容不可為空" });
+      }
+      const note = await storage.createTripNote({ title, content });
+      res.json(note);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create trip note" });
+    }
+  });
+
+  app.patch("/api/admin/trip-notes/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateTripNote(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update trip note" });
+    }
+  });
+
+  app.delete("/api/admin/trip-notes/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteTripNote(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete trip note" });
+    }
+  });
+
+  // Trip Note Assignments (per trip)
+  app.get("/api/admin/trips/:tripId/notes", requireAdmin, async (req, res) => {
+    try {
+      const assignments = await storage.getTripNoteAssignments(req.params.tripId);
+      res.json(assignments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip note assignments" });
+    }
+  });
+
+  app.post("/api/admin/trips/:tripId/notes", requireAdmin, async (req, res) => {
+    try {
+      const { noteId, sortOrder } = req.body;
+      if (!noteId) {
+        return res.status(400).json({ error: "noteId is required" });
+      }
+      const assignment = await storage.assignNoteToTrip(req.params.tripId, noteId, sortOrder || 0);
+      res.json(assignment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to assign note to trip" });
+    }
+  });
+
+  app.delete("/api/admin/trips/:tripId/notes/:noteId", requireAdmin, async (req, res) => {
+    try {
+      await storage.removeNoteFromTrip(req.params.tripId, req.params.noteId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove note from trip" });
+    }
+  });
+
+  // User-facing: get notes for current trip
+  app.get("/api/trips/current/notes", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole?.tripId) {
+        return res.json([]);
+      }
+      const notes = await storage.getNotesForTrip(userRole.tripId);
+      res.json(notes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get trip notes" });
+    }
+  });
+
   // Devotional Courses Admin endpoints
   app.get("/api/admin/trips/:tripId/devotional-courses", requireAdmin, async (req, res) => {
     try {

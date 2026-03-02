@@ -208,9 +208,27 @@ export const platformRoles = pgTable("platform_roles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const tripNotes = pgTable("trip_notes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const tripNoteAssignments = pgTable("trip_note_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  noteId: uuid("note_id").references(() => tripNotes.id, { onDelete: "cascade" }).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTripNoteSchema = createInsertSchema(tripNotes).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTripNoteAssignmentSchema = createInsertSchema(tripNoteAssignments).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -242,3 +260,7 @@ export type DevotionalCourse = typeof devotionalCourses.$inferSelect;
 export type TripInvitation = typeof tripInvitations.$inferSelect;
 export type EveningReflection = typeof eveningReflections.$inferSelect;
 export type PlatformRole = typeof platformRoles.$inferSelect;
+export type TripNote = typeof tripNotes.$inferSelect;
+export type TripNoteAssignment = typeof tripNoteAssignments.$inferSelect;
+export type InsertTripNote = z.infer<typeof insertTripNoteSchema>;
+export type InsertTripNoteAssignment = z.infer<typeof insertTripNoteAssignmentSchema>;

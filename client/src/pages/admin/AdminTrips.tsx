@@ -117,6 +117,92 @@ function parseCSV(text: string): { name: string; email: string }[] {
   return results;
 }
 
+function TripNotesAssignment({ tripId }: { tripId: string }) {
+  const { toast } = useToast();
+
+  const { data: allNotes = [] } = useQuery<{ id: string; title: string; content: string }[]>({
+    queryKey: ["/api/admin/trip-notes"],
+  });
+
+  const { data: assignments = [] } = useQuery<{ id: string; tripId: string; noteId: string; sortOrder: number }[]>({
+    queryKey: ["/api/admin/trips", tripId, "notes"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/trips/${tripId}/notes`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      });
+      return res.json();
+    },
+  });
+
+  const assignedNoteIds = new Set(assignments.map(a => a.noteId));
+
+  const assignMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      const maxOrder = assignments.length > 0 ? Math.max(...assignments.map(a => a.sortOrder)) + 1 : 1;
+      await apiRequest("POST", `/api/admin/trips/${tripId}/notes`, { noteId, sortOrder: maxOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "notes"] });
+      toast({ title: "已加入說明" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      await apiRequest("DELETE", `/api/admin/trips/${tripId}/notes/${noteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "notes"] });
+      toast({ title: "已移除說明" });
+    },
+  });
+
+  const toggleNote = (noteId: string) => {
+    if (assignedNoteIds.has(noteId)) {
+      removeMutation.mutate(noteId);
+    } else {
+      assignMutation.mutate(noteId);
+    }
+  };
+
+  if (allNotes.length === 0) return null;
+
+  return (
+    <div className="border-t pt-4">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="w-4 h-4 text-muted-foreground" />
+        <h4 className="text-body font-medium">說明與注意事項</h4>
+        <Badge variant="secondary" className="text-xs">{assignments.length}/{allNotes.length}</Badge>
+      </div>
+      <div className="space-y-2">
+        {allNotes.map((note) => {
+          const isAssigned = assignedNoteIds.has(note.id);
+          return (
+            <div
+              key={note.id}
+              className="flex items-center gap-3 p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
+              onClick={() => toggleNote(note.id)}
+              data-testid={`note-assignment-${note.id}`}
+            >
+              <Checkbox
+                checked={isAssigned}
+                onCheckedChange={() => toggleNote(note.id)}
+                data-testid={`checkbox-note-${note.id}`}
+              />
+              <span className="text-body flex-1">{note.title}</span>
+              {isAssigned && (
+                <Badge variant="outline" className="text-xs">
+                  已加入
+                </Badge>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups: { id: string; name: string }[] }) {
   const { toast } = useToast();
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
@@ -1011,6 +1097,9 @@ export default function AdminTrips() {
                           </Button>
                         </div>
                       </div>
+
+                      {/* Trip Notes Assignment */}
+                      <TripNotesAssignment tripId={trip.id} />
 
                       {/* Member Management */}
                       <div className="border-t pt-4">

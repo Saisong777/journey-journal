@@ -16,6 +16,8 @@ import {
   tripInvitations,
   eveningReflections,
   platformRoles,
+  tripNotes,
+  tripNoteAssignments,
   type User,
   type Profile,
   type Trip,
@@ -45,6 +47,10 @@ import {
   type InsertEveningReflection,
   type PlatformRole,
   type InsertPlatformRole,
+  type TripNote,
+  type InsertTripNote,
+  type TripNoteAssignment,
+  type InsertTripNoteAssignment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -124,6 +130,16 @@ export interface IStorage {
   getAllPlatformRoles(): Promise<PlatformRole[]>;
   isSuperAdmin(userId: string): Promise<boolean>;
   hasAdminAccess(userId: string): Promise<boolean>;
+
+  getAllTripNotes(): Promise<TripNote[]>;
+  getTripNote(id: string): Promise<TripNote | undefined>;
+  createTripNote(note: InsertTripNote): Promise<TripNote>;
+  updateTripNote(id: string, note: Partial<InsertTripNote>): Promise<TripNote | undefined>;
+  deleteTripNote(id: string): Promise<void>;
+  getNotesForTrip(tripId: string): Promise<(TripNote & { sortOrder: number })[]>;
+  getTripNoteAssignments(tripId: string): Promise<TripNoteAssignment[]>;
+  assignNoteToTrip(tripId: string, noteId: string, sortOrder: number): Promise<TripNoteAssignment>;
+  removeNoteFromTrip(tripId: string, noteId: string): Promise<void>;
 
   getTripInvitations(tripId: string): Promise<TripInvitation[]>;
   getAllTripInvitations(): Promise<TripInvitation[]>;
@@ -640,6 +656,76 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(eveningReflections).values(data).returning();
     return created;
+  }
+  async getAllTripNotes(): Promise<TripNote[]> {
+    return db.select().from(tripNotes).orderBy(desc(tripNotes.createdAt));
+  }
+
+  async getTripNote(id: string): Promise<TripNote | undefined> {
+    const [note] = await db.select().from(tripNotes).where(eq(tripNotes.id, id));
+    return note;
+  }
+
+  async createTripNote(note: InsertTripNote): Promise<TripNote> {
+    const [created] = await db.insert(tripNotes).values(note).returning();
+    return created;
+  }
+
+  async updateTripNote(id: string, note: Partial<InsertTripNote>): Promise<TripNote | undefined> {
+    const [updated] = await db
+      .update(tripNotes)
+      .set({ ...note, updatedAt: new Date() })
+      .where(eq(tripNotes.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTripNote(id: string): Promise<void> {
+    await db.delete(tripNotes).where(eq(tripNotes.id, id));
+  }
+
+  async getNotesForTrip(tripId: string): Promise<(TripNote & { sortOrder: number })[]> {
+    const assignments = await db
+      .select()
+      .from(tripNoteAssignments)
+      .where(eq(tripNoteAssignments.tripId, tripId))
+      .orderBy(asc(tripNoteAssignments.sortOrder));
+
+    if (assignments.length === 0) return [];
+
+    const noteIds = assignments.map(a => a.noteId);
+    const notes = await db.select().from(tripNotes).where(inArray(tripNotes.id, noteIds));
+    const noteMap = new Map(notes.map(n => [n.id, n]));
+
+    return assignments
+      .map(a => {
+        const note = noteMap.get(a.noteId);
+        if (!note) return null;
+        return { ...note, sortOrder: a.sortOrder };
+      })
+      .filter(Boolean) as (TripNote & { sortOrder: number })[];
+  }
+
+  async getTripNoteAssignments(tripId: string): Promise<TripNoteAssignment[]> {
+    return db
+      .select()
+      .from(tripNoteAssignments)
+      .where(eq(tripNoteAssignments.tripId, tripId))
+      .orderBy(asc(tripNoteAssignments.sortOrder));
+  }
+
+  async assignNoteToTrip(tripId: string, noteId: string, sortOrder: number): Promise<TripNoteAssignment> {
+    const [created] = await db
+      .insert(tripNoteAssignments)
+      .values({ tripId, noteId, sortOrder })
+      .returning();
+    return created;
+  }
+
+  async removeNoteFromTrip(tripId: string, noteId: string): Promise<void> {
+    await db
+      .delete(tripNoteAssignments)
+      .where(and(eq(tripNoteAssignments.tripId, tripId), eq(tripNoteAssignments.noteId, noteId)));
   }
 }
 
