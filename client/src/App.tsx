@@ -26,6 +26,9 @@ import AdminDevotionals from "./pages/admin/AdminDevotionals";
 import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminTripNotes from "./pages/admin/AdminTripNotes";
+import AdminBibleLibrary from "./pages/admin/AdminBibleLibrary";
+import BibleLibrary from "./pages/BibleLibrary";
+import PaulJourneys from "./pages/PaulJourneys";
 import VerifyTrip from "./pages/VerifyTrip";
 import AuthCallbackSuccess from "./pages/AuthCallbackSuccess";
 import Landing from "./pages/Landing";
@@ -202,6 +205,30 @@ const App = () => (
                 <AdminRoute>
                   <AdminMembers />
                 </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/bible-library"
+              element={
+                <AdminRoute>
+                  <AdminBibleLibrary />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/bible-library"
+              element={
+                <ProtectedRoute>
+                  <BibleLibrary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bible-library/paul-journeys"
+              element={
+                <ProtectedRoute>
+                  <PaulJourneys />
+                </ProtectedRoute>
               }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

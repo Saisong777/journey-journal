@@ -8,7 +8,8 @@ import {
   BookOpen,
   Ticket,
   FileText,
-  ArrowLeft
+  ArrowLeft,
+  Library
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const navItems = [
   { path: "/admin/trip-notes", label: "注意事項管理", icon: FileText },
   { path: "/admin/invitations", label: "邀請碼管理", icon: Ticket },
   { path: "/admin/members", label: "會員管理", icon: Users },
+  { path: "/admin/bible-library", label: "聖經資料館", icon: Library },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

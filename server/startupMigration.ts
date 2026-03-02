@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { pool } from "./db";
-import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations, platformRoles, tripNotes, tripNoteAssignments, bibleVerses } from "@shared/schema";
+import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations, platformRoles, tripNotes, tripNoteAssignments, bibleVerses, appSettings, paulJourneys } from "@shared/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -354,6 +354,82 @@ async function importBibleVerses() {
   }
 }
 
+async function importPaulJourneys() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS paul_journeys (
+          id SERIAL PRIMARY KEY,
+          journey TEXT NOT NULL,
+          sequence INTEGER NOT NULL,
+          year TEXT,
+          location TEXT NOT NULL,
+          scripture TEXT,
+          companions TEXT,
+          events TEXT,
+          epistles TEXT
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_paul_journeys_journey ON paul_journeys (journey)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_paul_journeys_sequence ON paul_journeys (journey, sequence)`);
+
+      const countResult = await client.query("SELECT COUNT(*) as cnt FROM paul_journeys");
+      const count = parseInt(countResult.rows[0].cnt, 10);
+      if (count > 0) {
+        console.log(`[paul-import] paul_journeys already has ${count} rows, skipping import`);
+        return;
+      }
+
+      const csvPath = path.resolve(process.cwd(), "attached_assets/保羅四次的旅遊_1772473482625.csv");
+      if (!fs.existsSync(csvPath)) {
+        console.log("[paul-import] CSV file not found at", csvPath);
+        return;
+      }
+
+      console.log("[paul-import] importing Paul's journeys from CSV...");
+      let raw = fs.readFileSync(csvPath, "utf-8");
+      if (raw.charCodeAt(0) === 0xFEFF) {
+        raw = raw.slice(1);
+      }
+
+      const lines = raw.split("\n");
+      let inserted = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const parts = line.split(",");
+        if (parts.length < 8) continue;
+
+        const journey = parts[0].trim();
+        const sequence = parseInt(parts[1].trim(), 10);
+        const year = parts[2].trim() || null;
+        const location = parts[3].trim();
+        const scripture = parts[4].trim() || null;
+        const companions = parts[5].trim() || null;
+        const events = parts[6].trim() || null;
+        const epistles = parts[7].trim() || null;
+
+        if (!journey || isNaN(sequence) || !location) continue;
+
+        await client.query(
+          `INSERT INTO paul_journeys (journey, sequence, year, location, scripture, companions, events, epistles) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [journey, sequence, year, location, scripture, companions, events, epistles === "無" ? null : epistles]
+        );
+        inserted++;
+      }
+
+      console.log(`[paul-import] imported ${inserted} rows into paul_journeys`);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("[paul-import] error:", error);
+  }
+}
+
 export async function runStartupMigration() {
   try {
     console.log("[startup-migration] checking admin role...");
@@ -422,6 +498,33 @@ export async function runStartupMigration() {
     }
 
     await importBibleVerses();
+
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE trips ADD COLUMN IF NOT EXISTS bible_library_enabled BOOLEAN DEFAULT FALSE`);
+        console.log("[startup-migration] ensured bible_library_enabled column on trips");
+
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS app_settings (
+            id SERIAL PRIMARY KEY,
+            key TEXT UNIQUE NOT NULL,
+            value TEXT NOT NULL
+          )
+        `);
+        const existing = await client.query(`SELECT 1 FROM app_settings WHERE key = 'bible_library_enabled'`);
+        if (existing.rows.length === 0) {
+          await client.query(`INSERT INTO app_settings (key, value) VALUES ('bible_library_enabled', 'false')`);
+        }
+        console.log("[startup-migration] ensured app_settings table");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] app_settings/bible_library migration error:", e);
+    }
+
+    await importPaulJourneys();
 
     console.log("[startup-migration] complete");
   } catch (error) {

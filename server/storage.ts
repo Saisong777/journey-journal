@@ -53,6 +53,9 @@ import {
   type TripNoteAssignment,
   type InsertTripNoteAssignment,
   type BibleVerse,
+  appSettings,
+  paulJourneys,
+  type PaulJourney,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -155,6 +158,11 @@ export interface IStorage {
   updateTripInvitation(id: string, invitation: Partial<InsertTripInvitation>): Promise<TripInvitation | undefined>;
   incrementInvitationUsedCount(id: string): Promise<void>;
   deleteTripInvitation(id: string): Promise<void>;
+
+  getAppSetting(key: string): Promise<string | null>;
+  setAppSetting(key: string, value: string): Promise<void>;
+  updateTripBibleLibrary(tripId: string, enabled: boolean): Promise<void>;
+  getPaulJourneys(): Promise<PaulJourney[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -758,6 +766,34 @@ export class DatabaseStorage implements IStorage {
       .from(bibleVerses)
       .orderBy(asc(bibleVerses.bookNumber));
     return results;
+  }
+
+  async getAppSetting(key: string): Promise<string | null> {
+    const [setting] = await db.select().from(appSettings).where(eq(appSettings.key, key));
+    return setting?.value ?? null;
+  }
+
+  async setAppSetting(key: string, value: string): Promise<void> {
+    const [existing] = await db.select().from(appSettings).where(eq(appSettings.key, key));
+    if (existing) {
+      await db.update(appSettings).set({ value }).where(eq(appSettings.key, key));
+    } else {
+      await db.insert(appSettings).values({ key, value });
+    }
+  }
+
+  async updateTripBibleLibrary(tripId: string, enabled: boolean): Promise<void> {
+    const { pool } = await import("./db");
+    const client = await pool.connect();
+    try {
+      await client.query("UPDATE trips SET bible_library_enabled = $1 WHERE id = $2", [enabled, tripId]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async getPaulJourneys(): Promise<PaulJourney[]> {
+    return await db.select().from(paulJourneys).orderBy(asc(paulJourneys.journey), asc(paulJourneys.sequence));
   }
 }
 

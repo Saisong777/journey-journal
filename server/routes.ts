@@ -1824,4 +1824,82 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to check trip status" });
     }
   });
+
+  app.get("/api/admin/app-settings/bible-library", requireAdmin, async (_req, res) => {
+    try {
+      const setting = await storage.getAppSetting("bible_library_enabled");
+      res.json({ enabled: setting === "true" });
+    } catch (error) {
+      console.error("Error fetching bible library setting:", error);
+      res.status(500).json({ error: "Failed to fetch setting" });
+    }
+  });
+
+  app.patch("/api/admin/app-settings/bible-library", requireSuperAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      await storage.setAppSetting("bible_library_enabled", enabled ? "true" : "false");
+      res.json({ enabled });
+    } catch (error) {
+      console.error("Error updating bible library setting:", error);
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+
+  app.patch("/api/admin/trips/:tripId/bible-library", requireAdmin, async (req, res) => {
+    try {
+      const { tripId } = req.params;
+      const { enabled } = req.body;
+      await storage.updateTripBibleLibrary(tripId, enabled);
+      res.json({ enabled });
+    } catch (error) {
+      console.error("Error updating trip bible library:", error);
+      res.status(500).json({ error: "Failed to update trip bible library" });
+    }
+  });
+
+  app.get("/api/trips/current/bible-library-enabled", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userRole = await storage.getUserRole(userId);
+      if (!userRole?.tripId) {
+        return res.json({ enabled: false });
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      if (!trip) {
+        return res.json({ enabled: false });
+      }
+      const globalSetting = await storage.getAppSetting("bible_library_enabled");
+      const globalEnabled = globalSetting === "true";
+      res.json({ enabled: globalEnabled && (trip as any).bibleLibraryEnabled === true });
+    } catch (error) {
+      console.error("Error checking bible library enabled:", error);
+      res.status(500).json({ error: "Failed to check bible library status" });
+    }
+  });
+
+  app.get("/api/paul-journeys", requireAuth, async (_req, res) => {
+    try {
+      const journeys = await storage.getPaulJourneys();
+      res.json(journeys);
+    } catch (error) {
+      console.error("Error fetching Paul's journeys:", error);
+      res.status(500).json({ error: "Failed to fetch Paul's journeys" });
+    }
+  });
+
+  app.get("/api/admin/trips-bible-library", requireAdmin, async (_req, res) => {
+    try {
+      const allTrips = await storage.getTrips();
+      const result = allTrips.map(t => ({
+        id: t.id,
+        title: t.title,
+        bibleLibraryEnabled: (t as any).bibleLibraryEnabled ?? false,
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching trips bible library:", error);
+      res.status(500).json({ error: "Failed to fetch trips" });
+    }
+  });
 }

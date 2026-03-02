@@ -25,6 +25,7 @@ export const trips = pgTable("trips", {
   endDate: date("end_date").notNull(),
   coverImageUrl: text("cover_image_url"),
   specialRemarks: text("special_remarks"),
+  bibleLibraryEnabled: boolean("bible_library_enabled").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -238,6 +239,27 @@ export const bibleVerses = pgTable("bible_verses", {
   index("idx_bible_book_number").on(table.bookNumber),
 ]);
 
+export const appSettings = pgTable("app_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").unique().notNull(),
+  value: text("value").notNull(),
+});
+
+export const paulJourneys = pgTable("paul_journeys", {
+  id: serial("id").primaryKey(),
+  journey: text("journey").notNull(),
+  sequence: integer("sequence").notNull(),
+  year: text("year"),
+  location: text("location").notNull(),
+  scripture: text("scripture"),
+  companions: text("companions"),
+  events: text("events"),
+  epistles: text("epistles"),
+}, (table) => [
+  index("idx_paul_journeys_journey").on(table.journey),
+  index("idx_paul_journeys_sequence").on(table.journey, table.sequence),
+]);
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
@@ -279,3 +301,5 @@ export type TripNoteAssignment = typeof tripNoteAssignments.$inferSelect;
 export type BibleVerse = typeof bibleVerses.$inferSelect;
 export type InsertTripNote = z.infer<typeof insertTripNoteSchema>;
 export type InsertTripNoteAssignment = z.infer<typeof insertTripNoteAssignmentSchema>;
+export type AppSetting = typeof appSettings.$inferSelect;
+export type PaulJourney = typeof paulJourneys.$inferSelect;

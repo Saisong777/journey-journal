@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Calculator, Info, ClipboardCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Calculator, Info, ClipboardCheck, Library, ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { CurrencyConverter } from "@/components/tools/CurrencyConverter";
@@ -12,6 +14,10 @@ type ViewMode = "currency" | "checklist" | "briefing";
 
 export default function Tools() {
   const [viewMode, setViewMode] = useState<ViewMode>("briefing");
+  const navigate = useNavigate();
+  const { data: bibleLibraryStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/trips/current/bible-library-enabled"],
+  });
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -66,6 +72,25 @@ export default function Tools() {
         {viewMode === "briefing" && <TripBriefing />}
         {viewMode === "currency" && <CurrencyConverter />}
         {viewMode === "checklist" && <TripChecklist />}
+
+        {bibleLibraryStatus?.enabled && (
+          <section>
+            <button
+              onClick={() => navigate("/bible-library")}
+              className="w-full bg-card rounded-xl border border-border p-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+              data-testid="button-bible-library"
+            >
+              <div className="w-10 h-10 rounded-lg gradient-warm flex items-center justify-center flex-shrink-0">
+                <Library className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-body font-semibold text-foreground">聖經資料館</h3>
+                <p className="text-caption text-muted-foreground">探索聖經中的歷史足跡</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            </button>
+          </section>
+        )}
       </main>
 
       <BottomNav />
