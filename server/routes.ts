@@ -1202,11 +1202,10 @@ export function registerRoutes(app: Express) {
       const profilesData = await Promise.all(userIds.map(id => storage.getProfile(id)));
       const profileMap = new Map(profilesData.filter(Boolean).map(p => [p!.userId, p!]));
 
-      const appUrl = process.env.REPLIT_DEV_DOMAIN
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : process.env.REPL_SLUG
-          ? `https://${process.env.REPL_SLUG}.replit.app`
-          : "https://your-app.replit.app";
+      const appUrl = process.env.APP_URL
+        || (process.env.REPLIT_DOMAINS
+          ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+          : "https://your-app.replit.app");
 
       const verifyUrl = `${appUrl}/verify-trip?code=${invitationCode}`;
 
