@@ -1,22 +1,7 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import {
-  useAllProfiles,
-  useAllTrips,
-  useAllGroups,
-  useAllUserRoles,
-  useUserRoleMutations,
-  useProfileMutations,
-} from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -43,267 +28,102 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Loader2, UserCog, UserMinus, Upload, Send, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAuthToken, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
 
-const roleLabels: Record<string, string> = {
-  admin: "管理員",
-  leader: "組長",
-  guide: "領隊",
-  member: "團員",
-};
-
-const roleColors: Record<string, string> = {
-  admin: "bg-primary text-primary-foreground",
-  leader: "bg-secondary text-secondary-foreground",
-  guide: "bg-terracotta text-white",
-  member: "bg-muted text-muted-foreground",
-};
-
-interface TripMember {
-  userId: string;
-  name: string;
+interface PlatformUser {
+  id: string;
   email: string;
-  tempPassword: string;
-  role: string;
+  name: string;
   phone: string;
-  groupId: string | null;
-}
-
-interface ImportResult {
-  name: string;
-  email: string;
   tempPassword: string;
-  userId: string;
-  status: string;
-}
-
-function parseCSV(text: string): { name: string; email: string }[] {
-  const lines = text.trim().split("\n");
-  if (lines.length === 0) return [];
-
-  const firstLine = lines[0].toLowerCase();
-  const hasHeader = firstLine.includes("name") || firstLine.includes("email") || firstLine.includes("姓名");
-  const startIdx = hasHeader ? 1 : 0;
-
-  const results: { name: string; email: string }[] = [];
-  for (let i = startIdx; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const parts = line.split(",").map(s => s.trim().replace(/^["']|["']$/g, ""));
-    if (parts.length >= 2) {
-      results.push({ name: parts[0], email: parts[1] });
-    }
-  }
-  return results;
+  tripCount: number;
+  hasOwnPassword: boolean;
+  createdAt: string;
 }
 
 export default function AdminMembers() {
-  const { data: profiles, isLoading: profilesLoading } = useAllProfiles();
-  const { data: trips } = useAllTrips();
-  const { data: groups } = useAllGroups();
-  const { data: userRoles } = useAllUserRoles();
-  const { assignRole, removeFromTrip } = useUserRoleMutations();
-  const { updateProfileGroup } = useProfileMutations();
   const { toast } = useToast();
-
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTrip, setSelectedTrip] = useState<string>("all");
-  const [editingMember, setEditingMember] = useState<{
-    profile: (typeof profiles)[0];
-    tripId: string;
-    currentRole: string;
-    currentGroupId: string | null;
-  } | null>(null);
-  const [removingMember, setRemovingMember] = useState<{
-    userId: string;
-    tripId: string;
-    name: string;
-  } | null>(null);
+  const [editingUser, setEditingUser] = useState<PlatformUser | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [deletingUser, setDeletingUser] = useState<PlatformUser | null>(null);
 
-  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
-  const [csvPreview, setCsvPreview] = useState<{ name: string; email: string }[] | null>(null);
-  const [importResults, setImportResults] = useState<ImportResult[] | null>(null);
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showNotifyDialog, setShowNotifyDialog] = useState(false);
-  const [invitationCode, setInvitationCode] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const activeTripId = selectedTrip !== "all" ? selectedTrip : trips?.[0]?.id;
-
-  const { data: tripMembers, isLoading: membersLoading } = useQuery<TripMember[]>({
-    queryKey: ["/api/admin/trips", activeTripId, "members"],
+  const { data: users, isLoading } = useQuery<PlatformUser[]>({
+    queryKey: ["/api/admin/users"],
     queryFn: async () => {
-      if (!activeTripId) return [];
       const token = getAuthToken();
-      const response = await fetch(`/api/admin/trips/${activeTripId}/members`, {
+      const response = await fetch("/api/admin/users", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: !!activeTripId,
   });
 
-  const { data: tripInvitations } = useQuery({
-    queryKey: ["/api/admin/trips", activeTripId, "invitations"],
-    queryFn: async () => {
-      if (!activeTripId) return [];
-      const token = getAuthToken();
-      const response = await fetch(`/api/admin/trips/${activeTripId}/invitations`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!activeTripId,
-  });
-
-  const importMutation = useMutation({
-    mutationFn: async (members: { name: string; email: string }[]) => {
-      const res = await apiRequest("POST", `/api/admin/trips/${activeTripId}/import-members`, { members });
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, name, phone }: { userId: string; name: string; phone: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}`, { name, phone });
       return res.json();
     },
-    onSuccess: (data) => {
-      setImportResults(data.results);
-      setCsvPreview(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", activeTripId, "members"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/user-roles"] });
-      toast({ title: "匯入完成", description: `成功匯入 ${data.total} 位團員` });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "修改成功", description: "會員資料已更新" });
+      setEditingUser(null);
     },
     onError: () => {
-      toast({ title: "匯入失敗", description: "請稍後再試", variant: "destructive" });
+      toast({ title: "修改失敗", description: "請稍後再試", variant: "destructive" });
     },
   });
 
-  const notifyMutation = useMutation({
-    mutationFn: async ({ userIds, code }: { userIds: string[]; code: string }) => {
-      const res = await apiRequest("POST", `/api/admin/trips/${activeTripId}/send-notifications`, {
-        userIds,
-        invitationCode: code,
-      });
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
       return res.json();
     },
-    onSuccess: (data) => {
-      const sentCount = data.results.filter((r: any) => r.status === "sent").length;
-      toast({ title: "通知已發送", description: `成功寄送 ${sentCount} 封行前通知` });
-      setShowNotifyDialog(false);
-      setSelectedMembers(new Set());
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "已刪除", description: "會員帳號已永久刪除" });
+      setDeletingUser(null);
     },
     onError: () => {
-      toast({ title: "發送失敗", description: "請稍後再試", variant: "destructive" });
+      toast({ title: "刪除失敗", description: "請稍後再試", variant: "destructive" });
     },
   });
 
-  const getUserRole = (userId: string, tripId: string) => {
-    return userRoles?.find((r) => r.userId === userId && r.tripId === tripId)?.role;
+  const openEditDialog = (user: PlatformUser) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditPhone(user.phone);
   };
 
-  const getGroupsForTrip = (tripId: string) => {
-    return groups?.filter((g) => g.tripId === tripId) || [];
-  };
-
-  const filteredProfiles = useMemo(() => {
-    let result = profiles || [];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.email?.toLowerCase().includes(query) ||
-          p.phone?.includes(query)
-      );
-    }
-
-    if (selectedTrip !== "all") {
-      const tripGroupIds = groups
-        ?.filter((g) => g.tripId === selectedTrip)
-        .map((g) => g.id);
-      result = result.filter(
-        (p) =>
-          (p.groupId && tripGroupIds?.includes(p.groupId)) ||
-          userRoles?.some(
-            (r) => r.userId === p.userId && r.tripId === selectedTrip
-          )
-      );
-    }
-
-    return result;
-  }, [profiles, searchQuery, selectedTrip, groups, userRoles]);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const parsed = parseCSV(text);
-      if (parsed.length === 0) {
-        toast({ title: "無法解析", description: "CSV 檔案中沒有有效的團員資料", variant: "destructive" });
-        return;
-      }
-      setCsvPreview(parsed);
-      setImportResults(null);
-      setShowImportDialog(true);
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleImportConfirm = () => {
-    if (!csvPreview || !activeTripId) return;
-    importMutation.mutate(csvPreview);
-  };
-
-  const toggleMember = (userId: string) => {
-    setSelectedMembers(prev => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
+  const handleUpdateUser = () => {
+    if (!editingUser) return;
+    updateUserMutation.mutate({
+      userId: editingUser.id,
+      name: editName.trim(),
+      phone: editPhone.trim(),
     });
   };
 
-  const toggleAllMembers = () => {
-    if (!tripMembers) return;
-    if (selectedMembers.size === tripMembers.length) {
-      setSelectedMembers(new Set());
-    } else {
-      setSelectedMembers(new Set(tripMembers.map(m => m.userId)));
-    }
-  };
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!searchQuery) return users;
+    const query = searchQuery.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(query) ||
+        u.email.toLowerCase().includes(query) ||
+        u.phone?.includes(query)
+    );
+  }, [users, searchQuery]);
 
-  const handleSaveRole = async () => {
-    if (!editingMember) return;
-    await assignRole.mutateAsync({
-      userId: editingMember.profile.userId,
-      tripId: editingMember.tripId,
-      role: editingMember.currentRole as "admin" | "leader" | "guide" | "member",
-    });
-    await updateProfileGroup.mutateAsync({
-      profileId: editingMember.profile.id,
-      groupId: editingMember.currentGroupId,
-    });
-    setEditingMember(null);
-  };
-
-  const handleRemoveMember = async () => {
-    if (!removingMember) return;
-    await removeFromTrip.mutateAsync({
-      userId: removingMember.userId,
-      tripId: removingMember.tripId,
-    });
-    setRemovingMember(null);
-  };
-
-  const activeInvitations = (tripInvitations as any[])?.filter((inv: any) => inv.isActive) || [];
-
-  if (profilesLoading) {
+  if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center py-12">
@@ -317,425 +137,164 @@ export default function AdminMembers() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-display mb-2" data-testid="text-admin-members-title">團員管理</h2>
+          <h2 className="text-display mb-2" data-testid="text-admin-members-title">會員管理</h2>
           <p className="text-body text-muted-foreground">
-            匯入團員、管理角色、分組和發送行前通知
+            管理平台上所有已註冊的會員帳號
           </p>
         </div>
 
-        {/* Trip Selection */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="搜尋團員姓名、電子郵件..."
+              placeholder="搜尋會員姓名、電子郵件..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
               data-testid="input-search-members"
             />
           </div>
-          <Select value={selectedTrip} onValueChange={(v) => { setSelectedTrip(v); setSelectedMembers(new Set()); }}>
-            <SelectTrigger className="w-full sm:w-48" data-testid="select-trip-filter">
-              <SelectValue placeholder="篩選旅程" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">所有旅程</SelectItem>
-              {trips?.map((trip) => (
-                <SelectItem key={trip.id} value={trip.id}>
-                  {trip.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="text-sm text-muted-foreground flex items-center">
+            共 {filteredUsers.length} 位會員
+          </div>
         </div>
 
-        {/* Import & Actions Bar */}
-        {activeTripId && (
-          <div className="flex flex-wrap gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.txt"
-              className="hidden"
-              onChange={handleFileUpload}
-              data-testid="input-csv-upload"
-            />
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="button-import-csv"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              匯入團員 (CSV)
-            </Button>
-            <Button
-              variant="default"
-              disabled={selectedMembers.size === 0}
-              onClick={() => setShowNotifyDialog(true)}
-              data-testid="button-send-notifications"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              寄送行前通知 ({selectedMembers.size})
-            </Button>
-          </div>
-        )}
-
-        {/* Trip Members Table */}
-        {activeTripId && (
-          <div className="bg-card rounded-lg shadow-card overflow-hidden">
-            <div className="px-4 py-3 border-b bg-muted/30">
-              <h3 className="font-medium text-sm">
-                行程團員列表
-                {tripMembers && <span className="text-muted-foreground ml-2">共 {tripMembers.length} 人</span>}
-              </h3>
-            </div>
-            <Table>
-              <TableHeader>
+        <div className="bg-card rounded-lg shadow-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>電話</TableHead>
+                <TableHead>參加行程</TableHead>
+                <TableHead>帳號狀態</TableHead>
+                <TableHead>註冊日期</TableHead>
+                <TableHead className="w-20">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                    <TableCell className="font-medium">{user.name || "-"}</TableCell>
+                    <TableCell className="text-caption">{user.email}</TableCell>
+                    <TableCell>{user.phone || "-"}</TableCell>
+                    <TableCell>
+                      {user.tripCount > 0 ? (
+                        <Badge variant="secondary">{user.tripCount} 個行程</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">無</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.hasOwnPassword ? (
+                        <Badge className="bg-green-100 text-green-700">已設定密碼</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700">臨時密碼</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-caption">
+                      {user.createdAt
+                        ? format(new Date(user.createdAt), "yyyy/MM/dd", { locale: zhTW })
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => openEditDialog(user)}
+                          data-testid={`button-edit-user-${user.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingUser(user)}
+                          data-testid={`button-delete-user-${user.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={tripMembers && tripMembers.length > 0 && selectedMembers.size === tripMembers.length}
-                      onCheckedChange={toggleAllMembers}
-                      data-testid="checkbox-select-all"
-                    />
-                  </TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>臨時密碼</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      {searchQuery ? "找不到符合條件的會員" : "尚無註冊會員"}
+                    </p>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {membersLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                    </TableCell>
-                  </TableRow>
-                ) : tripMembers && tripMembers.length > 0 ? (
-                  tripMembers.map((member) => (
-                    <TableRow key={member.userId} data-testid={`row-member-${member.userId}`}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedMembers.has(member.userId)}
-                          onCheckedChange={() => toggleMember(member.userId)}
-                          data-testid={`checkbox-member-${member.userId}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{member.name || "-"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-caption">{member.email}</span>
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-sm bg-muted px-2 py-1 rounded">
-                          {member.tempPassword || "-"}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={roleColors[member.role] || roleColors.member}>
-                          {roleLabels[member.role] || member.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const profile = profiles?.find(p => p.userId === member.userId);
-                            if (profile) {
-                              setEditingMember({
-                                profile,
-                                tripId: activeTripId,
-                                currentRole: member.role,
-                                currentGroupId: member.groupId,
-                              });
-                            }
-                          }}
-                        >
-                          <UserCog className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setRemovingMember({
-                              userId: member.userId,
-                              tripId: activeTripId,
-                              name: member.name,
-                            })
-                          }
-                        >
-                          <UserMinus className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <p className="text-muted-foreground">尚無團員，請使用「匯入團員」功能新增</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-        {/* CSV Import Dialog */}
-        <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                <FileText className="w-5 h-5 inline mr-2" />
-                匯入團員預覽
-              </DialogTitle>
-            </DialogHeader>
-
-            {csvPreview && !importResults && (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  即將匯入 {csvPreview.length} 位團員到此行程：
-                </p>
-                <div className="max-h-60 overflow-y-auto border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>姓名</TableHead>
-                        <TableHead>Email</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {csvPreview.map((m, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{m.name}</TableCell>
-                          <TableCell className="text-caption">{m.email}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => { setShowImportDialog(false); setCsvPreview(null); }}>
-                    取消
-                  </Button>
-                  <Button onClick={handleImportConfirm} disabled={importMutation.isPending}>
-                    {importMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    確認匯入
-                  </Button>
-                </DialogFooter>
-              </div>
-            )}
-
-            {importResults && (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">匯入結果：</p>
-                <div className="max-h-60 overflow-y-auto border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>姓名</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>臨時密碼</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importResults.map((r, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{r.name}</TableCell>
-                          <TableCell className="text-caption">{r.email}</TableCell>
-                          <TableCell>
-                            <code className="text-sm bg-muted px-2 py-1 rounded">{r.tempPassword}</code>
-                          </TableCell>
-                          <TableCell>
-                            {r.status === "created" ? (
-                              <span className="text-green-600 flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4" /> 已建立
-                              </span>
-                            ) : r.status === "already_exists" ? (
-                              <span className="text-amber-600 flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4" /> 已存在
-                              </span>
-                            ) : (
-                              <span className="text-red-600 flex items-center gap-1">
-                                <XCircle className="w-4 h-4" /> 失敗
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <DialogFooter>
-                  <Button onClick={() => { setShowImportDialog(false); setImportResults(null); }}>
-                    完成
-                  </Button>
-                </DialogFooter>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Send Notification Dialog */}
-        <Dialog open={showNotifyDialog} onOpenChange={setShowNotifyDialog}>
+        <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                <Send className="w-5 h-5 inline mr-2" />
-                寄送行前通知
-              </DialogTitle>
+              <DialogTitle>編輯會員資料</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
-                即將發送行前通知給 {selectedMembers.size} 位團員。
-                信件將包含行程登入碼、臨時密碼和 QR Code。
-              </p>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">選擇行程登入碼</label>
-                {activeInvitations.length > 0 ? (
-                  <Select value={invitationCode} onValueChange={setInvitationCode}>
-                    <SelectTrigger data-testid="select-invitation-code">
-                      <SelectValue placeholder="選擇登入碼" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeInvitations.map((inv: any) => (
-                        <SelectItem key={inv.id} value={inv.code}>
-                          {inv.code} {inv.description ? `- ${inv.description}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm text-destructive">
-                    尚未建立行程登入碼，請先至「邀請碼管理」建立。
-                  </p>
-                )}
+            {editingUser && (
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">{editingUser.email}</p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">姓名</label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="請輸入姓名"
+                    data-testid="input-edit-user-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">電話</label>
+                  <Input
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="請輸入電話"
+                    data-testid="input-edit-user-phone"
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNotifyDialog(false)}>
-                取消
-              </Button>
+              <Button variant="outline" onClick={() => setEditingUser(null)}>取消</Button>
               <Button
-                onClick={() => {
-                  if (!invitationCode) {
-                    toast({ title: "請選擇登入碼", variant: "destructive" });
-                    return;
-                  }
-                  notifyMutation.mutate({
-                    userIds: Array.from(selectedMembers),
-                    code: invitationCode,
-                  });
-                }}
-                disabled={notifyMutation.isPending || !invitationCode}
-                data-testid="button-confirm-send"
+                onClick={handleUpdateUser}
+                disabled={updateUserMutation.isPending}
+                data-testid="button-confirm-edit-user"
               >
-                {notifyMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                確認發送
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Member Dialog */}
-        <Dialog
-          open={!!editingMember}
-          onOpenChange={(open) => !open && setEditingMember(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>編輯會員 - {editingMember?.profile.name}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-caption font-medium">角色</label>
-                <Select
-                  value={editingMember?.currentRole}
-                  onValueChange={(value) =>
-                    editingMember &&
-                    setEditingMember({ ...editingMember, currentRole: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">管理員</SelectItem>
-                    <SelectItem value="guide">領隊</SelectItem>
-                    <SelectItem value="leader">組長</SelectItem>
-                    <SelectItem value="member">團員</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-caption font-medium">小組</label>
-                <Select
-                  value={editingMember?.currentGroupId || "none"}
-                  onValueChange={(value) =>
-                    editingMember &&
-                    setEditingMember({
-                      ...editingMember,
-                      currentGroupId: value === "none" ? null : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">未分組</SelectItem>
-                    {editingMember &&
-                      getGroupsForTrip(editingMember.tripId).map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingMember(null)}>
-                取消
-              </Button>
-              <Button
-                onClick={handleSaveRole}
-                disabled={assignRole.isPending || updateProfileGroup.isPending}
-              >
-                {(assignRole.isPending || updateProfileGroup.isPending) && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
+                {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 儲存
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Remove Member Confirmation */}
-        <AlertDialog
-          open={!!removingMember}
-          onOpenChange={(open) => !open && setRemovingMember(null)}
-        >
+        <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>確定要移除此會員？</AlertDialogTitle>
+              <AlertDialogTitle>確定要刪除此會員？</AlertDialogTitle>
               <AlertDialogDescription>
-                {removingMember?.name} 將從此旅程中移除，但會員帳號不會被刪除。
+                將永久刪除 <strong>{deletingUser?.name || deletingUser?.email}</strong> 的帳號，
+                包含所有相關資料（個人檔案、日誌、靈修記錄等）。此操作無法復原。
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>取消</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleRemoveMember}
+                onClick={() => deletingUser && deleteUserMutation.mutate(deletingUser.id)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-delete-user"
               >
-                移除
+                {deleteUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                永久刪除
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

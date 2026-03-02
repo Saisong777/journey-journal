@@ -687,6 +687,75 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const allProfiles = await storage.getAllProfiles();
+      const allRoles = await storage.getAllUserRoles();
+
+      const profileMap = new Map(allProfiles.map(p => [p.userId, p]));
+      const roleCounts = new Map<string, number>();
+      for (const r of allRoles) {
+        if (r.tripId) {
+          roleCounts.set(r.userId, (roleCounts.get(r.userId) || 0) + 1);
+        }
+      }
+
+      const result = allUsers.map(u => {
+        const profile = profileMap.get(u.id);
+        return {
+          id: u.id,
+          email: u.email,
+          name: profile?.name || u.firstName || "",
+          phone: profile?.phone || "",
+          tempPassword: u.tempPassword || "",
+          tripCount: roleCounts.get(u.id) || 0,
+          hasOwnPassword: !u.tempPassword,
+          createdAt: u.createdAt,
+        };
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("[get-all-users] error:", error);
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { name, phone } = req.body;
+
+      const profile = await storage.getProfile(userId);
+      if (profile) {
+        await storage.updateProfile(userId, { name, phone });
+      } else {
+        await storage.createProfile({ userId, name: name || "", email: "", phone });
+      }
+
+      if (name) {
+        await storage.updateUser(userId, { firstName: name });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[update-user] error:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      await storage.deleteUser(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[delete-user] error:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   app.get("/api/admin/profiles", requireAdmin, async (req, res) => {
     try {
       const profileList = await storage.getAllProfiles();
