@@ -1871,7 +1871,9 @@ export function registerRoutes(app: Express) {
       }
       const globalSetting = await storage.getAppSetting("bible_library_enabled");
       const globalEnabled = globalSetting === "true";
-      res.json({ enabled: globalEnabled && (trip as any).bibleLibraryEnabled === true });
+      const tripEnabled = !!trip.bibleLibraryEnabled;
+      console.log("[bible-library] check enabled:", { globalEnabled, tripEnabled, tripBibleLibraryEnabled: trip.bibleLibraryEnabled });
+      res.json({ enabled: globalEnabled && tripEnabled });
     } catch (error) {
       console.error("Error checking bible library enabled:", error);
       res.status(500).json({ error: "Failed to check bible library status" });
@@ -1894,7 +1896,7 @@ export function registerRoutes(app: Express) {
       const result = allTrips.map(t => ({
         id: t.id,
         title: t.title,
-        bibleLibraryEnabled: (t as any).bibleLibraryEnabled ?? false,
+        bibleLibraryEnabled: !!t.bibleLibraryEnabled,
       }));
       res.json(result);
     } catch (error) {

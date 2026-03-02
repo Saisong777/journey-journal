@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
   MapPin,
@@ -6,10 +7,11 @@ import {
   Wrench,
   Users,
   FileText,
+  Library,
 } from "lucide-react";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 
-const features = [
+const baseFeatures = [
   {
     icon: BookOpen,
     title: "每日旅程",
@@ -56,6 +58,20 @@ const features = [
 
 export function QuickActions() {
   const navigate = useNavigate();
+  const { data: bibleLibraryStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/trips/current/bible-library-enabled"],
+  });
+
+  const features = [...baseFeatures];
+  if (bibleLibraryStatus?.enabled) {
+    features.splice(4, 0, {
+      icon: Library,
+      title: "聖經資料館",
+      description: "保羅行蹤與聖經探索",
+      variant: "primary" as const,
+      path: "/bible-library",
+    });
+  }
 
   return (
     <section className="space-y-4">
