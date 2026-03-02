@@ -1057,15 +1057,20 @@ export function registerRoutes(app: Express) {
 
         try {
           let user = await storage.getUserByEmail(email);
-          const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+          let actualTempPwd = "";
 
           if (user) {
-            await storage.updateUser(user.id, { tempPassword: tempPwd });
+            if (user.tempPassword) {
+              const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+              await storage.updateUser(user.id, { tempPassword: tempPwd });
+              actualTempPwd = tempPwd;
+            }
             const existingProfile = await storage.getProfile(user.id);
             if (!existingProfile) {
               await storage.createProfile({ userId: user.id, name, email });
             }
           } else {
+            const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
             const hashedPassword = await bcrypt.hash(tempPwd, 10);
             user = await storage.createUser({
               email,
@@ -1074,6 +1079,7 @@ export function registerRoutes(app: Express) {
               firstName: name,
             });
             await storage.createProfile({ userId: user.id, name, email });
+            actualTempPwd = tempPwd;
           }
 
           const existingRoles = await storage.getAllUserRolesForUser(user.id);
@@ -1085,7 +1091,7 @@ export function registerRoutes(app: Express) {
           results.push({
             name,
             email,
-            tempPassword: tempPwd,
+            tempPassword: actualTempPwd,
             userId: user.id,
             status: alreadyInTrip ? "already_exists" : "created",
           });
@@ -1142,7 +1148,7 @@ export function registerRoutes(app: Express) {
       for (const user of usersData) {
         const profile = profileMap.get(user.id);
         const memberName = profile?.name || user.firstName || user.email;
-        const tempPwd = user.tempPassword || "（請使用 Google 登入）";
+        const hasTempPassword = !!user.tempPassword;
 
         const htmlContent = `
 <!DOCTYPE html>
@@ -1195,10 +1201,10 @@ export function registerRoutes(app: Express) {
         <div class="code-value">${invitationCode}</div>
       </div>
 
-      <div class="pwd-box">
+      ${hasTempPassword ? `<div class="pwd-box">
         <div class="pwd-label">您的臨時密碼</div>
-        <div class="pwd-value">${tempPwd}</div>
-      </div>
+        <div class="pwd-value">${user.tempPassword}</div>
+      </div>` : ''}
 
       <div class="qr-section">
         <div class="qr-label">掃描 QR Code 快速加入行程</div>
@@ -1212,9 +1218,12 @@ export function registerRoutes(app: Express) {
       <p style="color: #6b7280; font-size: 13px; margin-top: 20px; line-height: 1.5;">
         登入步驟：<br>
         1. 點擊上方按鈕或掃描 QR Code<br>
-        2. 使用您的 Email（${user.email}）與臨時密碼登入<br>
+        ${hasTempPassword
+          ? `2. 使用您的 Email（${user.email}）與臨時密碼登入<br>
         3. 輸入行程登入碼加入旅程<br>
-        4. 建議登入後至設定頁面更改密碼
+        4. 建議登入後至設定頁面更改密碼`
+          : `2. 使用您的 Email（${user.email}）與原有密碼登入<br>
+        3. 輸入行程登入碼加入旅程`}
       </p>
     </div>
     <div class="footer">
