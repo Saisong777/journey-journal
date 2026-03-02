@@ -6,11 +6,17 @@ Trip Companion is a web application designed for Christian pilgrimage/mission tr
 ## Project Status
 **Completed** - Successfully migrated from Lovable/Supabase to Replit's fullstack environment with PostgreSQL.
 
-## Recent Changes (March 1, 2026)
-- **Google login fix (new-tab flow)**: Fixed OIDC login failure caused by iframe cookie blocking
+## Recent Changes (March 2, 2026)
+- **Auth header fix for all hooks**: Fixed 401 errors on `/api/trips/current` and other endpoints
+  - Root cause: Custom `queryFn` in hooks sent `credentials: "include"` but not the Bearer token header
+  - Fixed `useTrip.tsx`, `useMembers.tsx`, `useDevotional.tsx` to include `Authorization: Bearer` header
+  - All hooks now consistently use token-based auth, not session cookies
+
+## Previous Changes (March 1, 2026)
+- **Google login fix (manual OIDC flow)**: Fixed OIDC login failure caused by iframe cookie blocking
   - Session cookies are blocked in Replit webview iframe during OIDC redirect flow
-  - Google login now opens in a new browser tab where cookies work normally
-  - New `/auth/callback-success` page stores token in localStorage and auto-closes
+  - Replaced passport-based OIDC with manual flow using `openid-client` directly
+  - OIDC state stored in server-side Map (not session), bypassing cookie dependency
   - `useAuth.tsx` listens for `storage` events to detect login from another tab
   - Session cookie changed from `sameSite: "none"` to `"lax"`
   - Added session pruning (every 15 min) and expire index for performance

@@ -2,6 +2,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
+import { getAuthToken } from "@/lib/queryClient";
+
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export interface DevotionalEntryDB {
   id: string;
@@ -24,6 +34,7 @@ export function useDevotionalEntries(date?: string) {
       const url = date ? `/api/devotional-entries?date=${date}` : "/api/devotional-entries";
       const response = await fetch(url, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch devotional entries");
@@ -72,7 +83,10 @@ export function useSaveDevotional() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         credentials: "include",
         body: JSON.stringify({
           scriptureReference: entry.scriptureReference || "",

@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTrip } from "./useTrip";
+import { getAuthToken } from "@/lib/queryClient";
+
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export interface MemberDB {
   id: string;
@@ -28,6 +38,7 @@ export function useMembers() {
     queryFn: async () => {
       const response = await fetch("/api/members", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch members");
@@ -46,6 +57,7 @@ export function useGroups() {
     queryFn: async () => {
       const response = await fetch("/api/groups", {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to fetch groups");
