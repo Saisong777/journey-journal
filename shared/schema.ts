@@ -15,6 +15,8 @@ export const sessions = pgTable(
 
 export const appRoleEnum = pgEnum("app_role", ["admin", "leader", "guide", "member"]);
 
+export const platformRoleEnum = pgEnum("platform_role", ["super_admin", "management", "guide", "vip", "member"]);
+
 export const trips = pgTable("trips", {
   id: uuid("id").defaultRandom().primaryKey(),
   title: text("title").notNull(),
@@ -196,8 +198,19 @@ export const authTokens = pgTable("auth_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const platformRoles = pgTable("platform_roles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  role: platformRoleEnum("role").default("member").notNull(),
+  permissions: jsonb("permissions").$type<Record<string, boolean>>(),
+  assignedBy: uuid("assigned_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -212,6 +225,7 @@ export type InsertAttractionFavorite = z.infer<typeof insertAttractionFavoriteSc
 export type InsertDevotionalCourse = z.infer<typeof insertDevotionalCourseSchema>;
 export type InsertTripInvitation = z.infer<typeof insertTripInvitationSchema>;
 export type InsertEveningReflection = z.infer<typeof insertEveningReflectionSchema>;
+export type InsertPlatformRole = z.infer<typeof insertPlatformRoleSchema>;
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -227,3 +241,4 @@ export type UserLocation = typeof userLocations.$inferSelect;
 export type DevotionalCourse = typeof devotionalCourses.$inferSelect;
 export type TripInvitation = typeof tripInvitations.$inferSelect;
 export type EveningReflection = typeof eveningReflections.$inferSelect;
+export type PlatformRole = typeof platformRoles.$inferSelect;

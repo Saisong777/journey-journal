@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations } from "@shared/schema";
+import { users, trips, tripDays, groups, userRoles, devotionalCourses, tripInvitations, platformRoles } from "@shared/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
 const ADMIN_EMAIL = "saisong@gmail.com";
@@ -148,6 +148,24 @@ export async function runStartupMigration() {
       console.log("[startup-migration] created admin role (global) for user:", userId);
     } else {
       console.log("[startup-migration] admin role already exists");
+    }
+
+    const existingPlatformRole = await db
+      .select()
+      .from(platformRoles)
+      .where(eq(platformRoles.userId, userId))
+      .limit(1);
+
+    if (!existingPlatformRole.length) {
+      await db.insert(platformRoles).values({
+        userId,
+        role: "super_admin",
+        permissions: null,
+        assignedBy: null,
+      });
+      console.log("[startup-migration] created super_admin platform role for user:", userId);
+    } else {
+      console.log("[startup-migration] platform role already exists:", existingPlatformRole[0].role);
     }
 
     await syncDataToCurrentDb();

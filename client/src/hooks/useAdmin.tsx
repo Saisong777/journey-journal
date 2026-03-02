@@ -19,21 +19,27 @@ function getAuthHeadersWithJson(): HeadersInit {
   };
 }
 
+interface AdminStatus {
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  platformRole: string;
+  permissions: Record<string, boolean> | null;
+}
+
 export function useIsAdmin() {
   const { user } = useAuth();
 
-  return useQuery({
+  return useQuery<AdminStatus>({
     queryKey: ["isAdmin", user?.id],
     queryFn: async () => {
-      if (!user?.id) return false;
+      if (!user?.id) return { isAdmin: false, isSuperAdmin: false, platformRole: "member", permissions: null };
 
       const response = await fetch("/api/is-admin", {
         credentials: "include",
         headers: getAuthHeaders(),
       });
-      if (!response.ok) return false;
-      const data = await response.json();
-      return data.isAdmin === true;
+      if (!response.ok) return { isAdmin: false, isSuperAdmin: false, platformRole: "member", permissions: null };
+      return response.json();
     },
     enabled: !!user?.id,
   });

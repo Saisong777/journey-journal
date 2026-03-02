@@ -15,6 +15,7 @@ import {
   devotionalCourses,
   tripInvitations,
   eveningReflections,
+  platformRoles,
   type User,
   type Profile,
   type Trip,
@@ -42,6 +43,8 @@ import {
   type InsertTripInvitation,
   type EveningReflection,
   type InsertEveningReflection,
+  type PlatformRole,
+  type InsertPlatformRole,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -114,6 +117,13 @@ export interface IStorage {
 
   getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined>;
   saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection>;
+
+  getPlatformRole(userId: string): Promise<PlatformRole | undefined>;
+  setPlatformRole(userId: string, role: string, permissions: Record<string, boolean> | null, assignedBy: string): Promise<PlatformRole>;
+  deletePlatformRole(userId: string): Promise<void>;
+  getAllPlatformRoles(): Promise<PlatformRole[]>;
+  isSuperAdmin(userId: string): Promise<boolean>;
+  hasAdminAccess(userId: string): Promise<boolean>;
 
   getTripInvitations(tripId: string): Promise<TripInvitation[]>;
   getAllTripInvitations(): Promise<TripInvitation[]>;
@@ -512,6 +522,50 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDevotionalCourse(id: string): Promise<void> {
     await db.delete(devotionalCourses).where(eq(devotionalCourses.id, id));
+  }
+
+  async getPlatformRole(userId: string): Promise<PlatformRole | undefined> {
+    const [role] = await db.select().from(platformRoles).where(eq(platformRoles.userId, userId));
+    return role;
+  }
+
+  async setPlatformRole(userId: string, role: string, permissions: Record<string, boolean> | null, assignedBy: string): Promise<PlatformRole> {
+    const existing = await this.getPlatformRole(userId);
+    if (existing) {
+      const [updated] = await db
+        .update(platformRoles)
+        .set({ role: role as any, permissions, assignedBy, updatedAt: new Date() })
+        .where(eq(platformRoles.userId, userId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(platformRoles)
+      .values({ userId, role: role as any, permissions, assignedBy })
+      .returning();
+    return created;
+  }
+
+  async deletePlatformRole(userId: string): Promise<void> {
+    await db.delete(platformRoles).where(eq(platformRoles.userId, userId));
+  }
+
+  async getAllPlatformRoles(): Promise<PlatformRole[]> {
+    return db.select().from(platformRoles);
+  }
+
+  async isSuperAdmin(userId: string): Promise<boolean> {
+    const role = await this.getPlatformRole(userId);
+    if (role && role.role === "super_admin") return true;
+    const hasOldAdmin = await this.hasRole(userId, "admin");
+    return hasOldAdmin;
+  }
+
+  async hasAdminAccess(userId: string): Promise<boolean> {
+    const role = await this.getPlatformRole(userId);
+    if (role && (role.role === "super_admin" || role.role === "management")) return true;
+    const hasOldAdmin = await this.hasRole(userId, "admin");
+    return hasOldAdmin;
   }
 
   async getTripInvitations(tripId: string): Promise<TripInvitation[]> {

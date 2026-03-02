@@ -68,9 +68,20 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  const isAdmin = await storage.hasRole(req.userId, "admin");
-  if (!isAdmin) {
+  const hasAccess = await storage.hasAdminAccess(req.userId);
+  if (!hasAccess) {
     return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+}
+
+async function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const isSA = await storage.isSuperAdmin(req.userId);
+  if (!isSA) {
+    return res.status(403).json({ error: "Forbidden: Super Admin only" });
   }
   next();
 }
@@ -485,8 +496,15 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/is-admin", requireAuth, async (req, res) => {
     try {
-      const isAdmin = await storage.hasRole(req.userId!, "admin");
-      res.json({ isAdmin });
+      const hasAccess = await storage.hasAdminAccess(req.userId!);
+      const isSuperAdmin = await storage.isSuperAdmin(req.userId!);
+      const platformRole = await storage.getPlatformRole(req.userId!);
+      res.json({
+        isAdmin: hasAccess,
+        isSuperAdmin,
+        platformRole: platformRole?.role || "member",
+        permissions: platformRole?.permissions || null,
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to check admin status" });
     }
@@ -692,26 +710,42 @@ export function registerRoutes(app: Express) {
       const allUsers = await storage.getAllUsers();
       const allProfiles = await storage.getAllProfiles();
       const allRoles = await storage.getAllUserRoles();
+      const allPlatformRoles = await storage.getAllPlatformRoles();
+      const allTrips = await storage.getTrips();
 
       const profileMap = new Map(allProfiles.map(p => [p.userId, p]));
-      const roleCounts = new Map<string, number>();
+      const platformRoleMap = new Map(allPlatformRoles.map(r => [r.userId, r]));
+      const tripMap = new Map(allTrips.map(t => [t.id, t]));
+
+      const userTripsMap = new Map<string, Array<{ tripId: string; title: string; role: string; roleId: string }>>();
       for (const r of allRoles) {
         if (r.tripId) {
-          roleCounts.set(r.userId, (roleCounts.get(r.userId) || 0) + 1);
+          const trip = tripMap.get(r.tripId);
+          if (!userTripsMap.has(r.userId)) userTripsMap.set(r.userId, []);
+          userTripsMap.get(r.userId)!.push({
+            tripId: r.tripId,
+            title: trip?.title || "未知行程",
+            role: r.role,
+            roleId: r.id,
+          });
         }
       }
 
       const result = allUsers.map(u => {
         const profile = profileMap.get(u.id);
+        const pRole = platformRoleMap.get(u.id);
         return {
           id: u.id,
           email: u.email,
           name: profile?.name || u.firstName || "",
           phone: profile?.phone || "",
           tempPassword: u.tempPassword || "",
-          tripCount: roleCounts.get(u.id) || 0,
+          tripCount: userTripsMap.get(u.id)?.length || 0,
+          trips: userTripsMap.get(u.id) || [],
           hasOwnPassword: !u.tempPassword,
           createdAt: u.createdAt,
+          platformRole: pRole?.role || "member",
+          platformPermissions: pRole?.permissions || null,
         };
       });
 
@@ -725,13 +759,25 @@ export function registerRoutes(app: Express) {
   app.patch("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
-      const { name, phone } = req.body;
+      const { name, phone, email } = req.body;
+
+      if (email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+        await storage.updateUser(userId, { email });
+      }
 
       const profile = await storage.getProfile(userId);
       if (profile) {
-        await storage.updateProfile(userId, { name, phone });
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (phone !== undefined) updateData.phone = phone;
+        if (email !== undefined) updateData.email = email;
+        await storage.updateProfile(userId, updateData);
       } else {
-        await storage.createProfile({ userId, name: name || "", email: "", phone });
+        await storage.createProfile({ userId, name: name || "", email: email || "", phone });
       }
 
       if (name) {
@@ -753,6 +799,59 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("[delete-user] error:", error);
       res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:userId/platform-role", requireSuperAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { role, permissions } = req.body;
+      const validRoles = ["super_admin", "management", "guide", "vip", "member"];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+
+      if (role === "member") {
+        await storage.deletePlatformRole(userId);
+      } else {
+        await storage.setPlatformRole(userId, role, permissions || null, req.userId!);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[set-platform-role] error:", error);
+      res.status(500).json({ error: "Failed to set platform role" });
+    }
+  });
+
+  app.post("/api/admin/users/:userId/trips", requireSuperAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { tripId, role } = req.body;
+      if (!tripId) return res.status(400).json({ error: "tripId is required" });
+
+      const existingRoles = await storage.getAllUserRolesForUser(userId);
+      const alreadyInTrip = existingRoles.find(r => r.tripId === tripId);
+      if (alreadyInTrip) {
+        return res.status(400).json({ error: "User already in this trip" });
+      }
+
+      await storage.createUserRole({ userId, tripId, role: role || "member" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[assign-trip] error:", error);
+      res.status(500).json({ error: "Failed to assign trip" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId/trips/:tripId", requireSuperAdmin, async (req, res) => {
+    try {
+      const { userId, tripId } = req.params;
+      await storage.deleteUserRole(userId, tripId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[remove-from-trip] error:", error);
+      res.status(500).json({ error: "Failed to remove from trip" });
     }
   });
 
@@ -1407,7 +1506,7 @@ export function registerRoutes(app: Express) {
         return res.json({ needsVerification: false, trip });
       }
 
-      const isAdmin = await storage.hasRole(userId, "admin");
+      const isAdmin = await storage.hasAdminAccess(userId);
       console.log("[check-trip-status] isAdmin:", isAdmin);
       if (isAdmin) {
         const allRoles = await storage.getAllUserRolesForUser(userId);
