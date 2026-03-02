@@ -127,6 +127,13 @@ export default function Journal() {
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
+              <button
+                onClick={() => setSelectedDate(new Date())}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                data-testid="button-today"
+              >
+                今天
+              </button>
               <button 
                 onClick={() => setSelectedDate(prev => addDays(prev, 7))}
                 className="p-2 rounded-lg hover:bg-muted transition-colors touch-target"
