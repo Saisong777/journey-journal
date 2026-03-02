@@ -140,35 +140,17 @@ export async function runStartupMigration() {
       .limit(1);
 
     if (!existingAdminRole.length) {
-      const existingTrips = await db.select().from(trips).limit(1);
-      const tripId = existingTrips.length ? existingTrips[0].id : null;
-
       await db.insert(userRoles).values({
         userId,
         role: "admin",
-        tripId,
+        tripId: null,
       });
-      console.log("[startup-migration] created admin role for user:", userId);
+      console.log("[startup-migration] created admin role (global) for user:", userId);
     } else {
       console.log("[startup-migration] admin role already exists");
     }
 
     await syncDataToCurrentDb();
-
-    const nullTripRoles = await db.select().from(userRoles)
-      .where(and(eq(userRoles.userId, userId), isNull(userRoles.tripId)));
-    if (nullTripRoles.length) {
-      const validRoles = await db.select().from(userRoles)
-        .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "admin")))
-        .limit(10);
-      const hasValidAdmin = validRoles.some(r => r.tripId !== null);
-      if (hasValidAdmin) {
-        for (const r of nullTripRoles) {
-          await db.delete(userRoles).where(eq(userRoles.id, r.id));
-        }
-        console.log("[startup-migration] cleaned up", nullTripRoles.length, "null-tripId roles");
-      }
-    }
 
     console.log("[startup-migration] complete");
   } catch (error) {

@@ -68,8 +68,13 @@ export function ProtectedRoute({ children, skipTripCheck = false, skipSetupCheck
     );
   }
 
-  if (!skipTripCheck && tripStatus?.needsVerification && location.pathname !== "/verify-trip") {
-    return <Navigate to="/verify-trip" replace />;
+  if (!skipTripCheck && tripStatus?.needsVerification) {
+    if (tripStatus?.isAdmin && !location.pathname.startsWith("/admin")) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (!tripStatus?.isAdmin && location.pathname !== "/verify-trip") {
+      return <Navigate to="/verify-trip" replace />;
+    }
   }
 
   if (!skipTripCheck && !skipSetupCheck && !setupStatusLoading && setupStatus?.needsSetup && location.pathname !== "/settings") {
