@@ -51,7 +51,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -122,6 +122,9 @@ function TripMemberSection({ tripId }: { tripId: string }) {
   const [importResults, setImportResults] = useState<ImportResult[] | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showNotifyDialog, setShowNotifyDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
   const [invitationCode, setInvitationCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -184,6 +187,44 @@ function TripMemberSection({ tripId }: { tripId: string }) {
     },
   });
 
+  const addMemberMutation = useMutation({
+    mutationFn: async (member: { name: string; email: string }) => {
+      const res = await apiRequest("POST", `/api/admin/trips/${tripId}/import-members`, { members: [member] });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/trips", tripId, "members"] });
+      const result = data.results?.[0];
+      if (result?.status === "created") {
+        toast({ title: "新增成功", description: `已新增團員：${result.name}（臨時密碼：${result.tempPassword}）` });
+      } else if (result?.status === "already_exists") {
+        toast({ title: "團員已存在", description: `${result.name} 已在此行程中` });
+      } else {
+        toast({ title: "新增完成", description: `已處理團員：${result?.name}` });
+      }
+      setShowAddDialog(false);
+      setAddName("");
+      setAddEmail("");
+    },
+    onError: () => {
+      toast({ title: "新增失敗", description: "請稍後再試", variant: "destructive" });
+    },
+  });
+
+  const handleAddMember = () => {
+    const name = addName.trim();
+    const email = addEmail.trim().toLowerCase();
+    if (!name || !email) {
+      toast({ title: "請填寫完整資料", description: "姓名與 Email 皆為必填", variant: "destructive" });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: "Email 格式錯誤", description: "請輸入有效的電子郵件地址", variant: "destructive" });
+      return;
+    }
+    addMemberMutation.mutate({ name, email });
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -234,6 +275,15 @@ function TripMemberSection({ tripId }: { tripId: string }) {
           onChange={handleFileUpload}
           data-testid={`input-csv-upload-${tripId}`}
         />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAddDialog(true)}
+          data-testid={`button-add-member-${tripId}`}
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          新增團員
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -432,6 +482,52 @@ function TripMemberSection({ tripId }: { tripId: string }) {
             >
               {notifyMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               確認發送
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <UserPlus className="w-5 h-5 inline mr-2" />
+              新增團員
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">姓名</label>
+              <Input
+                data-testid={`input-add-member-name-${tripId}`}
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder="請輸入團員姓名"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                data-testid={`input-add-member-email-${tripId}`}
+                type="email"
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                placeholder="請輸入團員 Email"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              系統將自動產生 4 碼臨時密碼。新增後可選取該團員並寄送行前通知 Email。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
+            <Button
+              onClick={handleAddMember}
+              disabled={addMemberMutation.isPending}
+              data-testid={`button-confirm-add-member-${tripId}`}
+            >
+              {addMemberMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              確認新增
             </Button>
           </DialogFooter>
         </DialogContent>
