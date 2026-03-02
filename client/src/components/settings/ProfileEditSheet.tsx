@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, Save, Loader2 } from "lucide-react";
+import { Camera, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export interface ProfileData {
   name: string;
@@ -26,6 +28,7 @@ interface ProfileEditSheetProps {
   profile: ProfileData;
   onSave?: (profile: ProfileData) => void;
   isSaving?: boolean;
+  showPasswordSection?: boolean;
 }
 
 export function ProfileEditSheet({
@@ -34,17 +37,52 @@ export function ProfileEditSheet({
   profile,
   onSave,
   isSaving,
+  showPasswordSection = true,
 }: ProfileEditSheetProps) {
   const [formData, setFormData] = useState<ProfileData>(profile);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setFormData(profile);
+      setNewPassword("");
+      setConfirmPassword("");
     }
   }, [open, profile]);
 
   const handleChange = (field: keyof ProfileData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({ title: "請填寫密碼欄位", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "密碼至少需要 6 個字元", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "兩次輸入的密碼不一致", variant: "destructive" });
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await apiRequest("PATCH", "/api/auth/change-password", { newPassword });
+      toast({ title: "密碼修改成功", description: "下次登入請使用新密碼" });
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({ title: "密碼修改失敗", description: error.message, variant: "destructive" });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleSave = () => {
@@ -161,6 +199,75 @@ export function ProfileEditSheet({
               />
             </div>
           </div>
+
+          {showPasswordSection && (
+            <div className="space-y-4">
+              <h3 className="text-body font-semibold flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                修改密碼
+              </h3>
+              
+              <div className="space-y-2">
+                <label className="text-caption text-muted-foreground">新密碼</label>
+                <div className="relative">
+                  <Input
+                    data-testid="input-new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="h-12 text-body pr-12"
+                    placeholder="至少 6 個字元"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    data-testid="button-toggle-new-password"
+                  >
+                    {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-caption text-muted-foreground">確認新密碼</label>
+                <div className="relative">
+                  <Input
+                    data-testid="input-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-12 text-body pr-12"
+                    placeholder="再次輸入新密碼"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    data-testid="button-toggle-confirm-password"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                data-testid="button-change-password"
+                type="button"
+                onClick={handleChangePassword}
+                disabled={isChangingPassword || !newPassword || !confirmPassword}
+                variant="outline"
+                className="w-full h-12 text-body"
+              >
+                {isChangingPassword ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <Lock className="w-5 h-5 mr-2" />
+                )}
+                {isChangingPassword ? "修改中..." : "確認修改密碼"}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">

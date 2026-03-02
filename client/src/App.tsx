@@ -109,7 +109,7 @@ const App = () => (
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute skipSetupCheck>
                   <Settings />
                 </ProtectedRoute>
               }

@@ -322,7 +322,7 @@ export default function Auth() {
                       <Input
                         id="login-password"
                         type="password"
-                        placeholder="輸入密碼"
+                        placeholder="輸入密碼或臨時密碼"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         className="pl-10 h-12"
@@ -330,6 +330,9 @@ export default function Auth() {
                         data-testid="input-login-password"
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground" data-testid="text-temp-password-hint">
+                      管理者匯入的團員請使用收到的 4 碼臨時密碼登入
+                    </p>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">

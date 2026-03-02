@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   User,
@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Info,
   Settings2,
+  Sparkles,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -62,6 +63,8 @@ function profileDataToDb(profile: ProfileData) {
 
 export default function Settings() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSetupMode = searchParams.get("setup") === "1";
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useIsAdmin();
   const { toast } = useToast();
@@ -77,6 +80,12 @@ export default function Settings() {
   const [locationSharing, setLocationSharing] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
+  useEffect(() => {
+    if (isSetupMode && !profileLoading) {
+      setIsProfileOpen(true);
+    }
+  }, [isSetupMode, profileLoading]);
+
   const saveProfileMutation = useMutation({
     mutationFn: async (newProfile: ProfileData) => {
       const res = await apiRequest("PATCH", "/api/profile", profileDataToDb(newProfile));
@@ -84,8 +93,12 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-setup"] });
       setIsProfileOpen(false);
       toast({ title: "儲存成功", description: "個人資料已更新" });
+      if (isSetupMode) {
+        navigate("/", { replace: true });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
@@ -207,6 +220,21 @@ export default function Settings() {
       <Header title="設定" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+        {isSetupMode && (
+          <section
+            className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3"
+            data-testid="banner-profile-setup"
+          >
+            <Sparkles className="w-6 h-6 text-primary mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-body font-semibold text-primary">歡迎加入旅程！</h3>
+              <p className="text-caption text-muted-foreground mt-1">
+                請先完善您的個人資料並修改密碼，以確保帳號安全
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Profile Card */}
         <section
           onClick={() => setIsProfileOpen(true)}

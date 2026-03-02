@@ -170,6 +170,34 @@ export function registerRoutes(app: Express) {
     });
   });
 
+  app.patch("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(req.userId!, { password: hashedPassword, tempPassword: null });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "密碼修改失敗" });
+    }
+  });
+
+  app.get("/api/auth/needs-profile-setup", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ needsSetup: !!user.tempPassword });
+    } catch (error) {
+      console.error("Needs profile setup error:", error);
+      res.status(500).json({ error: "Failed to check profile setup status" });
+    }
+  });
+
   app.get("/api/auth/session", async (req, res) => {
     if (!req.userId) {
       return res.json({ user: null });
