@@ -11,16 +11,17 @@ import { cn } from "@/lib/utils";
 import { format, addDays, startOfDay, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
-// Helper function to transform photo URLs to use the backend proxy
 function transformPhotoUrl(photoUrl: string): string {
-  // If it's a GCS URL, extract the object ID and use our proxy endpoint
   if (photoUrl.includes("storage.googleapis.com") && photoUrl.includes("/uploads/")) {
     const match = photoUrl.match(/\/uploads\/([a-f0-9-]+)/);
     if (match) {
       return `/api/uploads/file/${match[1]}`;
     }
   }
-  // Return as-is if it's already a proper URL or local path
+  if (photoUrl.startsWith("/objects/uploads/")) {
+    const objectId = photoUrl.replace("/objects/uploads/", "");
+    return `/api/uploads/file/${objectId}`;
+  }
   return photoUrl;
 }
 

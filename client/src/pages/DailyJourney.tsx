@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
-  Loader2, Check, BookOpen, Volume2, Heart, Bookmark,
+  Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -26,6 +26,10 @@ function transformPhotoUrl(photoUrl: string): string {
     if (match) {
       return `/api/uploads/file/${match[1]}`;
     }
+  }
+  if (photoUrl.startsWith("/objects/uploads/")) {
+    const objectId = photoUrl.replace("/objects/uploads/", "");
+    return `/api/uploads/file/${objectId}`;
   }
   return photoUrl;
 }
@@ -100,6 +104,20 @@ export default function DailyJourney() {
   const [highlight, setHighlight] = useState("");
   const [prayerForTomorrow, setPrayerForTomorrow] = useState("");
 
+  const [isEditingDevotional, setIsEditingDevotional] = useState(false);
+  const [isEditingEvening, setIsEditingEvening] = useState(false);
+
+  useEffect(() => {
+    setIsEditingDevotional(false);
+    setIsEditingEvening(false);
+    setReflection("");
+    setSelectedTopics([]);
+    setPrayerContent("");
+    setGratitude("");
+    setHighlight("");
+    setPrayerForTomorrow("");
+  }, [selectedDate]);
+
   const { user } = useAuth();
   const { data: trip } = useTrip();
   const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -169,6 +187,20 @@ export default function DailyJourney() {
     setReflection("");
     setSelectedTopics([]);
     setPrayerContent("");
+    setIsEditingDevotional(false);
+  };
+
+  const handleEditDevotional = () => {
+    if (myDevotional) {
+      setReflection(myDevotional.reflection || "");
+      const existingPrayer = myDevotional.prayer || "";
+      const parts = existingPrayer.split("; ").filter(Boolean);
+      const topics = parts.filter(p => prayerTopics.includes(p));
+      const freeText = parts.filter(p => !prayerTopics.includes(p)).join("; ");
+      setSelectedTopics(topics);
+      setPrayerContent(freeText);
+      setIsEditingDevotional(true);
+    }
   };
 
   const handleSaveEvening = async () => {
@@ -181,6 +213,16 @@ export default function DailyJourney() {
     setGratitude("");
     setHighlight("");
     setPrayerForTomorrow("");
+    setIsEditingEvening(false);
+  };
+
+  const handleEditEvening = () => {
+    if (eveningData) {
+      setGratitude(eveningData.gratitude || "");
+      setHighlight(eveningData.highlight || "");
+      setPrayerForTomorrow(eveningData.prayerForTomorrow || "");
+      setIsEditingEvening(true);
+    }
   };
 
   const handleSaveJournal = async (newEntry: {
@@ -311,13 +353,22 @@ export default function DailyJourney() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : myDevotional?.reflection ? (
+            ) : myDevotional?.reflection && !isEditingDevotional ? (
               <div className="space-y-4">
                 <div className="bg-card rounded-lg shadow-card overflow-hidden">
                   <div className="bg-amber-100 dark:bg-amber-900/30 p-4">
-                    <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-                      <BookOpen className="w-5 h-5" />
-                      <span className="text-body font-semibold">{todayScripture.reference}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                        <BookOpen className="w-5 h-5" />
+                        <span className="text-body font-semibold">{todayScripture.reference}</span>
+                      </div>
+                      <button
+                        onClick={handleEditDevotional}
+                        className="p-2 rounded-lg bg-white/40 hover:bg-white/60 transition-colors"
+                        data-testid="button-edit-devotional"
+                      >
+                        <Pencil className="w-4 h-4 text-amber-800 dark:text-amber-200" />
+                      </button>
                     </div>
                     <p className="text-caption text-amber-700/80 dark:text-amber-300/80 mt-1">{todayScripture.theme}</p>
                   </div>
@@ -419,6 +470,21 @@ export default function DailyJourney() {
                     />
                   </div>
 
+                  {isEditingDevotional && (
+                    <Button
+                      onClick={() => {
+                        setIsEditingDevotional(false);
+                        setReflection("");
+                        setSelectedTopics([]);
+                        setPrayerContent("");
+                      }}
+                      variant="outline"
+                      className="w-full h-12 rounded-xl"
+                      data-testid="button-cancel-devotional"
+                    >
+                      取消編輯
+                    </Button>
+                  )}
                   <Button
                     onClick={handleSaveDevotional}
                     disabled={!reflection.trim() || saveDevotional.isPending}
@@ -427,6 +493,8 @@ export default function DailyJourney() {
                   >
                     {saveDevotional.isPending ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : isEditingDevotional ? (
+                      "儲存修改"
                     ) : (
                       "完成靈修"
                     )}
@@ -515,12 +583,21 @@ export default function DailyJourney() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : eveningData?.gratitude ? (
+            ) : eveningData?.gratitude && !isEditingEvening ? (
               <div className="bg-card rounded-lg shadow-card overflow-hidden">
                 <div className="bg-indigo-100 dark:bg-indigo-900/30 p-4">
-                  <div className="flex items-center gap-2 text-indigo-800 dark:text-indigo-200">
-                    <Moon className="w-5 h-5" />
-                    <span className="text-body font-semibold">今日回顧</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-indigo-800 dark:text-indigo-200">
+                      <Moon className="w-5 h-5" />
+                      <span className="text-body font-semibold">今日回顧</span>
+                    </div>
+                    <button
+                      onClick={handleEditEvening}
+                      className="p-2 rounded-lg bg-white/40 hover:bg-white/60 transition-colors"
+                      data-testid="button-edit-evening"
+                    >
+                      <Pencil className="w-4 h-4 text-indigo-800 dark:text-indigo-200" />
+                    </button>
                   </div>
                 </div>
                 <div className="p-4 space-y-4">
@@ -589,6 +666,21 @@ export default function DailyJourney() {
                   />
                 </div>
 
+                {isEditingEvening && (
+                  <Button
+                    onClick={() => {
+                      setIsEditingEvening(false);
+                      setGratitude("");
+                      setHighlight("");
+                      setPrayerForTomorrow("");
+                    }}
+                    variant="outline"
+                    className="w-full h-12 rounded-xl"
+                    data-testid="button-cancel-evening"
+                  >
+                    取消編輯
+                  </Button>
+                )}
                 <Button
                   onClick={handleSaveEvening}
                   disabled={!gratitude.trim() || saveEvening.isPending}
@@ -597,6 +689,8 @@ export default function DailyJourney() {
                 >
                   {saveEvening.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : isEditingEvening ? (
+                    "儲存修改"
                   ) : (
                     "完成今日回顧"
                   )}
