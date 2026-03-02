@@ -18,9 +18,7 @@ declare global {
   }
 }
 
-// Middleware to extract user from token, session, or Replit Auth
 async function extractUser(req: Request, res: Response, next: NextFunction) {
-  // Check Authorization header first (token-based auth)
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
@@ -30,14 +28,24 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
     }
   }
   
-  // Check Replit Auth session (passport)
   if (!req.userId && req.isAuthenticated && req.isAuthenticated() && (req.user as any)?.dbUserId) {
     req.userId = (req.user as any).dbUserId;
   }
   
-  // Fall back to express-session
   if (!req.userId && req.session?.userId) {
     req.userId = req.session.userId;
+  }
+
+  if (req.userId) {
+    const user = await storage.getUser(req.userId);
+    if (!user) {
+      console.log("[extractUser] stale userId detected:", req.userId, "- clearing auth state");
+      req.userId = undefined;
+      if (req.session?.userId) {
+        req.session.userId = undefined;
+        req.session.save(() => {});
+      }
+    }
   }
   
   next();
