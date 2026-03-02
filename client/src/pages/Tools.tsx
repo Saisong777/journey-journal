@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Calculator, Info, Clock, Thermometer, MapPin } from "lucide-react";
+import { Calculator, Info, Clock, Thermometer, MapPin, ClipboardCheck } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { CurrencyConverter } from "@/components/tools/CurrencyConverter";
 import { LocalTips } from "@/components/tools/LocalTips";
+import { TripChecklist } from "@/components/tools/TripChecklist";
 import { cn } from "@/lib/utils";
 
-type ViewMode = "currency" | "tips" | "weather";
+type ViewMode = "currency" | "tips" | "checklist";
 
 export default function Tools() {
   const [viewMode, setViewMode] = useState<ViewMode>("currency");
@@ -16,7 +17,6 @@ export default function Tools() {
       <Header title="旅遊工具" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
-        {/* Quick Info Bar */}
         <section className="bg-card rounded-lg shadow-card p-4">
           <div className="flex items-center justify-around text-center">
             <div className="flex flex-col items-center gap-1">
@@ -39,10 +39,10 @@ export default function Tools() {
           </div>
         </section>
 
-        {/* View Toggle */}
         <section className="flex gap-2">
           {[
             { key: "currency", label: "匯率轉換", icon: Calculator },
+            { key: "checklist", label: "行前檢查表", icon: ClipboardCheck },
             { key: "tips", label: "注意事項", icon: Info },
           ].map((tab) => (
             <button
@@ -54,6 +54,7 @@ export default function Tools() {
                   ? "gradient-warm text-primary-foreground shadow-card"
                   : "bg-card text-foreground hover:bg-muted"
               )}
+              data-testid={`tab-${tab.key}`}
             >
               <tab.icon className="w-4 h-4" />
               <span className="text-body font-medium">{tab.label}</span>
@@ -61,10 +62,8 @@ export default function Tools() {
           ))}
         </section>
 
-        {/* Currency Converter */}
         {viewMode === "currency" && <CurrencyConverter />}
-
-        {/* Local Tips */}
+        {viewMode === "checklist" && <TripChecklist />}
         {viewMode === "tips" && <LocalTips />}
       </main>
 

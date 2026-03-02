@@ -41,7 +41,7 @@ const features = [
   {
     icon: Wrench,
     title: "旅遊工具",
-    description: "匯率轉換與注意事項",
+    description: "檢查表、匯率、注意事項",
     variant: "secondary" as const,
     path: "/tools",
   },
