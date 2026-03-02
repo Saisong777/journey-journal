@@ -37,13 +37,15 @@ export default function Journal() {
   const deleteEntry = useDeleteJournalEntry();
   const updateEntry = useUpdateJournalEntry();
 
-  // Generate days based on trip dates or current week
+  // Generate days for the week containing the selected date
   const days = useMemo(() => {
-    const tripStart = trip?.startDate ? parseISO(trip.startDate) : addDays(new Date(), -2);
+    const selected = startOfDay(selectedDate);
+    const dayOfWeek = selected.getDay();
+    const weekStart = addDays(selected, -dayOfWeek);
     const today = startOfDay(new Date());
     
     return Array.from({ length: 7 }, (_, i) => {
-      const date = addDays(tripStart, i);
+      const date = addDays(weekStart, i);
       return {
         date: format(date, "M/d"),
         day: format(date, "EEEEE", { locale: zhTW }),
@@ -51,7 +53,7 @@ export default function Journal() {
         isToday: startOfDay(date).getTime() === today.getTime(),
       };
     });
-  }, [trip?.startDate]);
+  }, [selectedDate]);
 
   const selectedDayIndex = days.findIndex(
     (d) => format(d.fullDate, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
