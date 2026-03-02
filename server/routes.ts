@@ -37,14 +37,19 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
   }
 
   if (req.userId) {
-    const user = await storage.getUser(req.userId);
-    if (!user) {
-      console.log("[extractUser] stale userId detected:", req.userId, "- clearing auth state");
-      req.userId = undefined;
-      if (req.session?.userId) {
-        req.session.userId = undefined;
-        req.session.save(() => {});
+    try {
+      const user = await storage.getUser(req.userId);
+      if (!user) {
+        console.log("[extractUser] stale userId detected:", req.userId, "- clearing auth state");
+        req.userId = undefined;
+        if (req.session?.userId) {
+          req.session.userId = undefined;
+          req.session.save(() => {});
+        }
       }
+    } catch (err) {
+      console.error("[extractUser] error validating user:", err);
+      req.userId = undefined;
     }
   }
   
