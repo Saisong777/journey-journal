@@ -968,6 +968,10 @@ export function registerRoutes(app: Express) {
     try {
       const userRole = await storage.getUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
+        const isAdmin = await storage.hasRole(req.userId!, "admin");
+        if (isAdmin) {
+          return res.json({ needsVerification: false, isAdmin: true });
+        }
         return res.json({ needsVerification: true });
       }
       const trip = await storage.getTrip(userRole.tripId);
