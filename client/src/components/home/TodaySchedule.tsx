@@ -1,4 +1,4 @@
-import { Clock, MapPin, ChevronRight, Utensils, Home } from "lucide-react";
+import { Clock, MapPin, Utensils, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -100,15 +100,6 @@ function parseHighlightsToSchedule(tripDay: TripDay): ScheduleItem[] {
   return items;
 }
 
-function calculateCountdown(tripDate: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tripStart = new Date(tripDate);
-  tripStart.setHours(0, 0, 0, 0);
-  const diffTime = tripStart.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
-
 export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) {
   if (isLoading) {
     return (
@@ -134,35 +125,11 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   }
 
   if (!todaySchedule) {
-    return (
-      <section className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-title">今日行程</h2>
-        </div>
-        <div className="bg-card rounded-lg shadow-card p-6 text-center text-muted-foreground">
-          <p>尚無今日行程資料</p>
-        </div>
-      </section>
-    );
+    return null;
   }
 
-  // Show countdown if trip hasn't started
-  if (todaySchedule.isPreTrip && todaySchedule.date) {
-    const daysLeft = calculateCountdown(todaySchedule.date);
-    return (
-      <section className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-title">行程倒數</h2>
-        </div>
-        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg shadow-card p-6 text-center">
-          <p className="text-body text-muted-foreground mb-2">平安旅者，距離旅遊時間還有倒數</p>
-          <p className="text-display text-primary font-bold">{daysLeft} 天</p>
-          {todaySchedule.title && (
-            <p className="text-body text-foreground mt-4">{todaySchedule.title}</p>
-          )}
-        </div>
-      </section>
-    );
+  if (todaySchedule.isPreTrip) {
+    return null;
   }
 
   const scheduleItems = parseHighlightsToSchedule(todaySchedule);
@@ -173,22 +140,9 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
         <h2 className="text-title">今日行程</h2>
         <div className="text-primary text-body font-medium flex items-center gap-1">
           第 {todaySchedule.dayNumber} 天
-          {todaySchedule.isPreTrip && <span className="text-muted-foreground text-caption ml-1">(即將開始)</span>}
           {todaySchedule.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
         </div>
       </div>
-
-      {todaySchedule.title && (
-        <div className="bg-primary/10 rounded-lg p-4">
-          <h3 className="text-body font-semibold text-primary" data-testid="text-day-title">{todaySchedule.title}</h3>
-          {todaySchedule.cityArea && (
-            <p className="text-caption text-muted-foreground flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3" />
-              {todaySchedule.cityArea}
-            </p>
-          )}
-        </div>
-      )}
 
       <div className="bg-card rounded-lg shadow-card overflow-hidden">
         {scheduleItems.length === 0 ? (

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAuthToken } from "@/lib/queryClient";
+import { MapPin, Plane } from "lucide-react";
 
 interface Trip {
   id: string;
@@ -34,12 +35,10 @@ interface TripDay {
   isPostTrip?: boolean;
 }
 
-function formatDateRange(startDate: string, endDate: string): string {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const startStr = `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`;
-  const endStr = `${end.getMonth() + 1}月${end.getDate()}日`;
-  return `${startStr} - ${endStr}`;
+interface Profile {
+  id: string;
+  name: string;
+  email: string;
 }
 
 function calculateDayNumber(startDate: string): number {
@@ -64,13 +63,18 @@ function calculateCountdown(startDate: string): number {
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "早安，旅者";
-  if (hour < 18) return "午安，旅者";
-  return "晚安，旅者";
+  if (hour < 12) return "早安";
+  if (hour < 18) return "午安";
+  return "晚安";
 }
 
 const Index = () => {
   const { user } = useAuth();
+
+  const { data: profile } = useQuery<Profile>({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
 
   const { data: trip, isLoading: tripLoading } = useQuery<Trip>({
     queryKey: ["/api/trip"],
@@ -98,51 +102,63 @@ const Index = () => {
     enabled: !!user,
   });
 
-  const { data: memberCount } = useQuery<number>({
-    queryKey: ["/api/members", "count"],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const response = await fetch("/api/members", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) return 0;
-      const members = await response.json();
-      return members.length;
-    },
-    enabled: !!user,
-  });
-
   const dayNumber = trip?.startDate ? calculateDayNumber(trip.startDate) : 1;
   const countdown = trip?.startDate ? calculateCountdown(trip.startDate) : 0;
   const isTripStarted = dayNumber >= 1;
-  const currentCity = todaySchedule?.cityArea || "準備中";
+  const userName = profile?.name || "旅者";
+  const hasBibleRefs = !!todaySchedule?.bibleRefs && todaySchedule.bibleRefs.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-8 animate-fade-in">
+      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {tripLoading ? (
-          <section className="text-center space-y-2">
-            <Skeleton className="h-5 w-24 mx-auto" />
-            <Skeleton className="h-8 w-48 mx-auto" />
+          <section className="text-center space-y-3">
             <Skeleton className="h-5 w-32 mx-auto" />
+            <Skeleton className="h-8 w-56 mx-auto" />
+            <Skeleton className="h-12 w-40 mx-auto" />
           </section>
         ) : trip ? (
-          <section className="text-center space-y-2">
-            <p className="text-muted-foreground text-body">{getGreeting()}</p>
+          <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-6 text-center space-y-3 shadow-card" data-testid="section-hero">
             <h1 className="text-display text-foreground" data-testid="text-trip-title">{trip.title}</h1>
+
             {isTripStarted ? (
-              <p className="text-body-lg text-muted-foreground" data-testid="text-day-info">
-                第 {dayNumber} 天 · {currentCity}
-              </p>
+              <>
+                <p className="text-body text-muted-foreground">
+                  {getGreeting()}，{userName}，願神與您同在，今天是
+                </p>
+                <p className="text-5xl font-bold text-primary" data-testid="text-day-number">
+                  第 {dayNumber} 天
+                </p>
+                {todaySchedule?.title && (
+                  <div className="flex items-center justify-center gap-2 text-body text-foreground mt-1">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="font-medium">{todaySchedule.title}</span>
+                  </div>
+                )}
+                {todaySchedule?.cityArea && (
+                  <p className="text-caption text-muted-foreground">{todaySchedule.cityArea}</p>
+                )}
+              </>
             ) : (
-              <p className="text-body-lg text-primary font-medium" data-testid="text-countdown">
-                平安旅者，距離旅遊時間還有倒數 {countdown} 天
-              </p>
+              <>
+                <p className="text-body text-muted-foreground">
+                  平安，{userName}，距離旅遊時間還有倒數
+                </p>
+                <p className="text-5xl font-bold text-primary" data-testid="text-countdown">
+                  {countdown} 天
+                </p>
+                {todaySchedule?.title && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-foreground/80 mt-1">
+                    <Plane className="w-4 h-4 text-primary" />
+                    <span>{todaySchedule.title}</span>
+                  </div>
+                )}
+              </>
             )}
           </section>
         ) : (
           <section className="text-center space-y-2">
-            <p className="text-muted-foreground text-body">{getGreeting()}</p>
+            <p className="text-muted-foreground text-body">{getGreeting()}，{userName}</p>
             <h1 className="text-display text-foreground">朝聖之旅</h1>
             <p className="text-body-lg text-muted-foreground">
               尚未加入任何旅程
@@ -150,7 +166,9 @@ const Index = () => {
           </section>
         )}
 
-        <DailyDevotional bibleRefs={todaySchedule?.bibleRefs} />
+        {hasBibleRefs && (
+          <DailyDevotional bibleRefs={todaySchedule?.bibleRefs} />
+        )}
 
         <TodaySchedule todaySchedule={todaySchedule} isLoading={scheduleLoading} />
 
