@@ -136,7 +136,7 @@ export default function PaulJourneys() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="保羅行蹤" />
 
       <main className="px-4 py-4 max-w-lg mx-auto space-y-4 animate-fade-in">
@@ -150,7 +150,7 @@ export default function PaulJourneys() {
                 setExpandedScriptures(new Set());
               }}
               className={cn(
-                "px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
+                "px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] min-w-[44px]",
                 activeJourney === tab.key
                   ? "gradient-warm text-primary-foreground shadow-card"
                   : "bg-card text-foreground border border-border hover:bg-muted"
@@ -203,7 +203,7 @@ export default function PaulJourneys() {
             <div className="flex justify-end">
               <button
                 onClick={expandAll}
-                className="text-xs text-primary flex items-center gap-1"
+                className="text-xs text-primary flex items-center gap-1 min-h-[44px] px-2"
                 data-testid="button-expand-all"
               >
                 {expandedStops.size === stops.length ? "全部收合" : "全部展開"}
@@ -239,7 +239,7 @@ export default function PaulJourneys() {
                     <div className="w-full text-left bg-card rounded-xl border border-border p-4 hover:shadow-card transition-all">
                       <button
                         onClick={() => toggleStop(stop.id)}
-                        className="w-full text-left"
+                        className="w-full text-left min-h-[44px]"
                         data-testid={`button-stop-${stop.id}`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -306,7 +306,7 @@ export default function PaulJourneys() {
                             <div className="space-y-2">
                               <button
                                 onClick={() => toggleScripture(stop.id, stop.scripture!)}
-                                className="flex items-center gap-2 w-full text-left"
+                                className="flex items-center gap-2 w-full text-left min-h-[44px]"
                                 data-testid={`button-scripture-${stop.id}`}
                               >
                                 <BookOpen className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -338,7 +338,7 @@ export default function PaulJourneys() {
                                       ))}
                                       <button
                                         onClick={() => copyVerses(stop.scripture!, cachedVerses.verses)}
-                                        className="flex items-center gap-1 text-xs text-amber-700 mt-2 hover:underline"
+                                        className="flex items-center gap-1 text-xs text-amber-700 mt-2 hover:underline min-h-[44px]"
                                         data-testid={`button-copy-verses-${stop.id}`}
                                       >
                                         <Copy className="w-3 h-3" />
@@ -355,7 +355,7 @@ export default function PaulJourneys() {
 
                           <button
                             onClick={() => copyEvents(stop)}
-                            className="flex items-center gap-1.5 text-xs text-primary mt-2 hover:underline"
+                            className="flex items-center gap-1.5 text-xs text-primary mt-2 hover:underline min-h-[44px]"
                             data-testid={`button-copy-${stop.id}`}
                           >
                             {copiedId === stop.id ? (

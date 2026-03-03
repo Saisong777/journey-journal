@@ -95,7 +95,7 @@ export function TeamMap({ locations, myUserId, center, myPosition }: TeamMapProp
   const defaultCenter: [number, number] = center || [31.7683, 35.2137];
 
   return (
-    <div className="w-full h-72 rounded-lg overflow-hidden shadow-card">
+    <div className="w-full max-w-full h-72 rounded-lg overflow-hidden shadow-card">
       <MapContainer
         center={defaultCenter}
         zoom={14}

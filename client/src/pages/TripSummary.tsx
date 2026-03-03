@@ -91,7 +91,7 @@ const TripSummary = () => {
   const isLoading = tripLoading || statsLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -104,11 +104,11 @@ const TripSummary = () => {
         </section>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-12">
-            <TabsTrigger value="overview" className="text-caption">總覽</TabsTrigger>
-            <TabsTrigger value="itinerary" className="text-caption">行程</TabsTrigger>
-            <TabsTrigger value="photos" className="text-caption">照片</TabsTrigger>
-            <TabsTrigger value="export" className="text-caption">匯出</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 h-12 gap-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-overview">總覽</TabsTrigger>
+            <TabsTrigger value="itinerary" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-itinerary">行程</TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-photos">照片</TabsTrigger>
+            <TabsTrigger value="export" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-export">匯出</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">

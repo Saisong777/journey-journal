@@ -20,7 +20,7 @@ export default function Tools() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="旅遊工具" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">

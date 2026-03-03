@@ -323,7 +323,7 @@ export default function AdminInvitations() {
         )}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>新增邀請碼</DialogTitle>
               <DialogDescription>
@@ -382,7 +382,7 @@ export default function AdminInvitations() {
         </Dialog>
 
         <Dialog open={!!qrDialogCode} onOpenChange={() => setQrDialogCode(null)}>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-center">邀請碼 QR Code</DialogTitle>
               <DialogDescription className="text-center">

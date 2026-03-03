@@ -189,10 +189,10 @@ export default function Location() {
     || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : null);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="團員定位" />
 
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in overflow-x-hidden">
         <section className="bg-card rounded-lg shadow-card p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-body font-semibold">團員狀態</h2>

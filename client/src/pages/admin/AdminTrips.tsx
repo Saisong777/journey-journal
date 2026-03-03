@@ -505,7 +505,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
           <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
         </div>
       ) : tripMembers && tripMembers.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -656,7 +656,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
 
       {/* Send Notification Dialog */}
       <Dialog open={showNotifyDialog} onOpenChange={setShowNotifyDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <Send className="w-5 h-5 inline mr-2" />
@@ -707,7 +707,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
       </Dialog>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <UserPlus className="w-5 h-5 inline mr-2" />
@@ -752,7 +752,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
         </DialogContent>
       </Dialog>
       <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <UserCog className="w-5 h-5 inline mr-2" />
@@ -809,7 +809,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
       </Dialog>
 
       <Dialog open={!!removingMember} onOpenChange={(open) => !open && setRemovingMember(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <UserMinus className="w-5 h-5 inline mr-2 text-destructive" />
@@ -937,7 +937,7 @@ export default function AdminTrips() {
                 新增旅程
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>新增旅程</DialogTitle>
               </DialogHeader>
@@ -1028,7 +1028,7 @@ export default function AdminTrips() {
                               編輯
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>編輯旅程</DialogTitle>
                             </DialogHeader>

@@ -344,7 +344,7 @@ export default function DailyJourney() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="每日旅程" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -379,7 +379,7 @@ export default function DailyJourney() {
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2">
             {days.map((day, index) => (
               <button
                 key={index}
@@ -403,7 +403,7 @@ export default function DailyJourney() {
         </section>
 
         {/* Step Tabs */}
-        <section className="flex gap-2">
+        <section className="flex gap-2 flex-shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -431,7 +431,7 @@ export default function DailyJourney() {
 
         {/* Morning Devotion Tab */}
         {activeTab === "morning" && (
-          <section className="space-y-5 animate-fade-in">
+          <section className="space-y-5 animate-fade-in min-h-[200px]">
             {(devotionalLoading || bibleLoading) ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -479,7 +479,7 @@ export default function DailyJourney() {
                         value={reflection}
                         onChange={(e) => setReflection(e.target.value)}
                         placeholder="今天有什麼感動或領受..."
-                        className="min-h-[100px] text-body resize-none"
+                        className="min-h-[100px] max-h-[200px] text-body resize-none"
                         data-testid="input-reflection-nodevotional"
                       />
                     </div>
@@ -511,7 +511,7 @@ export default function DailyJourney() {
                         value={prayerContent}
                         onChange={(e) => setPrayerContent(e.target.value)}
                         placeholder="親愛的天父，感謝祢..."
-                        className="min-h-[80px] text-body resize-none"
+                        className="min-h-[80px] max-h-[200px] text-body resize-none"
                         data-testid="input-prayer-nodevotional"
                       />
                     </div>
@@ -792,7 +792,7 @@ export default function DailyJourney() {
                       value={reflection}
                       onChange={(e) => setReflection(e.target.value)}
                       placeholder="這段經文對我說了什麼？我有什麼感動或領受..."
-                      className="min-h-[100px] text-body resize-none"
+                      className="min-h-[100px] max-h-[200px] text-body resize-none"
                       data-testid="input-reflection"
                     />
                   </div>
@@ -826,7 +826,7 @@ export default function DailyJourney() {
                       value={prayerContent}
                       onChange={(e) => setPrayerContent(e.target.value)}
                       placeholder="親愛的天父，感謝祢..."
-                      className="min-h-[80px] text-body resize-none"
+                      className="min-h-[80px] max-h-[200px] text-body resize-none"
                       data-testid="input-prayer"
                     />
                   </div>
@@ -868,7 +868,7 @@ export default function DailyJourney() {
 
         {/* Adventure Tab */}
         {activeTab === "adventure" && (
-          <section className="space-y-4 animate-fade-in">
+          <section className="space-y-4 animate-fade-in min-h-[200px]">
             <div className="bg-card rounded-lg shadow-card p-4">
               <div className="flex items-center justify-around text-center">
                 <div>
@@ -939,7 +939,7 @@ export default function DailyJourney() {
 
         {/* Evening Tab */}
         {activeTab === "evening" && (
-          <section className="space-y-5 animate-fade-in">
+          <section className="space-y-5 animate-fade-in min-h-[200px]">
             {eveningLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1000,7 +1000,7 @@ export default function DailyJourney() {
                     value={gratitude}
                     onChange={(e) => setGratitude(e.target.value)}
                     placeholder="今天最讓我感恩的是..."
-                    className="min-h-[80px] text-body resize-none"
+                    className="min-h-[80px] max-h-[200px] text-body resize-none"
                     data-testid="input-gratitude"
                   />
                 </div>
@@ -1011,7 +1011,7 @@ export default function DailyJourney() {
                     value={highlight}
                     onChange={(e) => setHighlight(e.target.value)}
                     placeholder="今天讓我最印象深刻的事情是..."
-                    className="min-h-[80px] text-body resize-none"
+                    className="min-h-[80px] max-h-[200px] text-body resize-none"
                     data-testid="input-highlight"
                   />
                 </div>
@@ -1022,7 +1022,7 @@ export default function DailyJourney() {
                     value={prayerForTomorrow}
                     onChange={(e) => setPrayerForTomorrow(e.target.value)}
                     placeholder="求主帶領明天的旅程..."
-                    className="min-h-[80px] text-body resize-none"
+                    className="min-h-[80px] max-h-[200px] text-body resize-none"
                     data-testid="input-prayer-tomorrow"
                   />
                 </div>

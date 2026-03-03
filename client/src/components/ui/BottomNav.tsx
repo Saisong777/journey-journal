@@ -21,13 +21,14 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center justify-around py-2 px-4 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.label}
+              data-testid={`nav-${item.path.replace('/', '') || 'home'}`}
               onClick={() => navigate(item.path)}
               className={cn(
                 "flex flex-col items-center gap-1 py-2 px-4 rounded-lg transition-all",
@@ -46,8 +47,6 @@ export function BottomNav() {
           );
         })}
       </div>
-      {/* Safe area for iOS */}
-      <div className="h-safe-area-inset-bottom bg-card" />
     </nav>
   );
 }

@@ -147,7 +147,7 @@ export default function Devotional() {
   const totalPrayers = allEntries?.filter((e) => e.prayer).length || 0;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="靈修禱告" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">

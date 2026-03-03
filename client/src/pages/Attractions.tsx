@@ -129,7 +129,7 @@ const Attractions = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <Header />
         <main className="px-4 py-6 max-w-lg mx-auto space-y-6">
           <Skeleton className="h-8 w-32" />
@@ -148,7 +148,7 @@ const Attractions = () => {
 
   if (!tripDays || tripDays.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <Header />
         <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
           <section className="space-y-2">
@@ -167,7 +167,7 @@ const Attractions = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">

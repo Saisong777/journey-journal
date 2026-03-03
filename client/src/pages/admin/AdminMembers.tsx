@@ -310,88 +310,133 @@ export default function AdminMembers() {
           </div>
         </div>
 
-        <div className="bg-card rounded-lg shadow-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>姓名</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>電話</TableHead>
-                <TableHead>權限</TableHead>
-                <TableHead>參加行程</TableHead>
-                <TableHead>帳號狀態</TableHead>
-                <TableHead>註冊日期</TableHead>
-                <TableHead className="w-20">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                    <TableCell className="font-medium">{user.name || "-"}</TableCell>
-                    <TableCell className="text-caption">{user.email}</TableCell>
-                    <TableCell>{user.phone || "-"}</TableCell>
-                    <TableCell>{getRoleBadge(user.platformRole)}</TableCell>
-                    <TableCell>
-                      {user.trips.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {user.trips.map(t => (
-                            <Badge key={t.tripId} variant="secondary" className="text-xs">
-                              {t.title}
-                            </Badge>
-                          ))}
+        <div className="md:hidden space-y-3">
+          {filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <div key={user.id} className="bg-card rounded-lg shadow-card p-4 space-y-3" data-testid={`card-user-${user.id}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{user.name || "-"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    {user.phone && <p className="text-xs text-muted-foreground">{user.phone}</p>}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditDialog(user)} data-testid={`button-edit-user-m-${user.id}`}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setDeletingUser(user)} data-testid={`button-delete-user-m-${user.id}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {getRoleBadge(user.platformRole)}
+                  {user.hasOwnPassword ? (
+                    <Badge className="bg-green-100 text-green-700 text-xs">已設定密碼</Badge>
+                  ) : (
+                    <Badge className="bg-amber-100 text-amber-700 text-xs">臨時密碼</Badge>
+                  )}
+                </div>
+                {user.trips.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {user.trips.map(t => (
+                      <Badge key={t.tripId} variant="secondary" className="text-xs">{t.title}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 bg-card rounded-lg">
+              <p className="text-muted-foreground text-sm">{searchQuery ? "找不到符合條件的會員" : "尚無註冊會員"}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="hidden md:block bg-card rounded-lg shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>電話</TableHead>
+                  <TableHead>權限</TableHead>
+                  <TableHead>參加行程</TableHead>
+                  <TableHead>帳號狀態</TableHead>
+                  <TableHead>註冊日期</TableHead>
+                  <TableHead className="w-20">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                      <TableCell className="font-medium">{user.name || "-"}</TableCell>
+                      <TableCell className="text-caption">{user.email}</TableCell>
+                      <TableCell>{user.phone || "-"}</TableCell>
+                      <TableCell>{getRoleBadge(user.platformRole)}</TableCell>
+                      <TableCell>
+                        {user.trips.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {user.trips.map(t => (
+                              <Badge key={t.tripId} variant="secondary" className="text-xs">
+                                {t.title}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">無</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {user.hasOwnPassword ? (
+                          <Badge className="bg-green-100 text-green-700">已設定密碼</Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-700">臨時密碼</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-caption">
+                        {user.createdAt
+                          ? format(new Date(user.createdAt), "yyyy/MM/dd", { locale: zhTW })
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => openEditDialog(user)}
+                            data-testid={`button-edit-user-${user.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => setDeletingUser(user)}
+                            data-testid={`button-delete-user-${user.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">無</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.hasOwnPassword ? (
-                        <Badge className="bg-green-100 text-green-700">已設定密碼</Badge>
-                      ) : (
-                        <Badge className="bg-amber-100 text-amber-700">臨時密碼</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-caption">
-                      {user.createdAt
-                        ? format(new Date(user.createdAt), "yyyy/MM/dd", { locale: zhTW })
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => openEditDialog(user)}
-                          data-testid={`button-edit-user-${user.id}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => setDeletingUser(user)}
-                          data-testid={`button-delete-user-${user.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        {searchQuery ? "找不到符合條件的會員" : "尚無註冊會員"}
+                      </p>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      {searchQuery ? "找不到符合條件的會員" : "尚無註冊會員"}
-                    </p>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
@@ -540,7 +585,7 @@ export default function AdminMembers() {
         </Dialog>
 
         <Dialog open={!!addingTripForUser} onOpenChange={(open) => !open && setAddingTripForUser(null)}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>加入行程</DialogTitle>
             </DialogHeader>

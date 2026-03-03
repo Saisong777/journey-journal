@@ -216,7 +216,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <Header title="設定" />
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -265,38 +265,42 @@ export default function Settings() {
               {section.title}
             </h3>
             <div className="bg-card rounded-lg shadow-card overflow-hidden">
-              {section.items.map((item, index) => (
-                <button
-                  key={item.label}
-                  onClick={item.onClick}
-                  className={cn(
-                    "w-full p-4 flex items-center gap-4 text-left",
-                    "hover:bg-muted/50 transition-colors",
-                    index < section.items.length - 1 && "border-b border-border"
-                  )}
-                >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <item.icon className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body font-medium">{item.label}</p>
-                    {item.description && (
-                      <p className="text-caption text-muted-foreground truncate">
-                        {item.description}
-                      </p>
+              {section.items.map((item, index) => {
+                const Wrapper = item.action === "toggle" ? "div" : "button";
+                return (
+                  <Wrapper
+                    key={item.label}
+                    onClick={item.action !== "toggle" ? item.onClick : undefined}
+                    className={cn(
+                      "w-full p-4 flex items-center gap-4 text-left",
+                      "hover:bg-muted/50 transition-colors cursor-pointer",
+                      index < section.items.length - 1 && "border-b border-border"
                     )}
-                  </div>
-                  {item.action === "navigate" && (
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  )}
-                  {item.action === "toggle" && (
-                    <Switch
-                      checked={item.value}
-                      onCheckedChange={item.onClick}
-                    />
-                  )}
-                </button>
-              ))}
+                    data-testid={`setting-item-${item.label}`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <item.icon className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body font-medium">{item.label}</p>
+                      {item.description && (
+                        <p className="text-caption text-muted-foreground truncate">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                    {item.action === "navigate" && (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    {item.action === "toggle" && (
+                      <Switch
+                        checked={item.value}
+                        onCheckedChange={item.onClick}
+                      />
+                    )}
+                  </Wrapper>
+                );
+              })}
             </div>
           </section>
         ))}
