@@ -6,24 +6,24 @@ export function useNetworkStatus() {
   );
   const [wasOffline, setWasOffline] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isOnlineRef = useRef(isOnline);
 
-  const handleOnline = useCallback(() => {
+  isOnlineRef.current = isOnline;
+
+  const markOnline = useCallback(() => {
+    if (!isOnlineRef.current) {
+      setWasOffline(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setWasOffline(false), 3000);
+    }
     setIsOnline(true);
-    setWasOffline(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setWasOffline(false), 3000);
   }, []);
 
-  const handleOffline = useCallback(() => {
+  const markOffline = useCallback(() => {
     setIsOnline(false);
   }, []);
 
-  const checkConnectivity = useCallback(async () => {
-    if (!navigator.onLine) {
-      setIsOnline(false);
-      return;
-    }
+  const checkConnectivity = useCallback(async (): Promise<boolean> => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -33,32 +33,43 @@ export function useNetworkStatus() {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      setIsOnline((prev) => {
-        if (!prev) {
-          setWasOffline(true);
-          if (timerRef.current) clearTimeout(timerRef.current);
-          timerRef.current = setTimeout(() => setWasOffline(false), 3000);
-        }
-        return true;
-      });
+      return true;
     } catch {
-      setIsOnline(false);
+      return false;
     }
   }, []);
 
   useEffect(() => {
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    const handleBrowserOnline = async () => {
+      const reachable = await checkConnectivity();
+      if (reachable) {
+        markOnline();
+      }
+    };
 
-    checkIntervalRef.current = setInterval(checkConnectivity, 10000);
+    const handleBrowserOffline = () => {
+      markOffline();
+    };
+
+    window.addEventListener("online", handleBrowserOnline);
+    window.addEventListener("offline", handleBrowserOffline);
+
+    const interval = setInterval(async () => {
+      const reachable = await checkConnectivity();
+      if (reachable) {
+        if (!isOnlineRef.current) markOnline();
+      } else {
+        markOffline();
+      }
+    }, 10000);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+      window.removeEventListener("online", handleBrowserOnline);
+      window.removeEventListener("offline", handleBrowserOffline);
+      clearInterval(interval);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [handleOnline, handleOffline, checkConnectivity]);
+  }, [checkConnectivity, markOnline, markOffline]);
 
   return { isOnline, wasOffline };
 }
