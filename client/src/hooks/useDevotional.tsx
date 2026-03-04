@@ -149,7 +149,7 @@ export function useSaveDevotional() {
 
         return response.json();
       } catch (error) {
-        if (!navigator.onLine) {
+        if (error instanceof TypeError) {
           await addToQueue({
             type: "devotional",
             endpoint: url,
@@ -161,6 +161,7 @@ export function useSaveDevotional() {
         throw error;
       }
     },
+    retry: false,
     onSuccess: (result) => {
       if (result?.offline) {
         toast({

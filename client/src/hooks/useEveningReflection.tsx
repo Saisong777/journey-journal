@@ -76,7 +76,7 @@ export function useSaveEveningReflection() {
         }
         return response.json();
       } catch (error) {
-        if (!navigator.onLine) {
+        if (error instanceof TypeError) {
           await addToQueue({
             type: "evening",
             endpoint: "/api/evening-reflections",
@@ -88,6 +88,7 @@ export function useSaveEveningReflection() {
         throw error;
       }
     },
+    retry: false,
     onSuccess: (result) => {
       if (result?.offline) {
         toast({

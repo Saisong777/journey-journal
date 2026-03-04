@@ -86,7 +86,7 @@ export function useCreateJournalEntry() {
 
         return response.json();
       } catch (error) {
-        if (!navigator.onLine) {
+        if (error instanceof TypeError) {
           await addToQueue({
             type: "journal",
             endpoint: "/api/journal-entries",
@@ -98,6 +98,7 @@ export function useCreateJournalEntry() {
         throw error;
       }
     },
+    retry: false,
     onSuccess: (result) => {
       if (result?.offline) {
         toast({
