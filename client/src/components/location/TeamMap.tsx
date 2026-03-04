@@ -113,7 +113,24 @@ export function TeamMap({ locations, myUserId, center, myPosition }: TeamMapProp
             <Popup>
               <div className="text-center">
                 <p className="font-semibold">您的位置</p>
-                <p className="text-xs text-gray-500">即時定位</p>
+                <p className="text-xs text-gray-500 mb-2">即時定位</p>
+                <a
+                  href={`https://www.google.com/maps?q=${myPosition[0]},${myPosition[1]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-block",
+                    padding: "4px 10px",
+                    background: "#d97706",
+                    color: "white",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                  }}
+                >
+                  在 Google Map 開啟
+                </a>
               </div>
             </Popup>
           </Marker>
@@ -133,9 +150,26 @@ export function TeamMap({ locations, myUserId, center, myPosition }: TeamMapProp
                     {loc.profile?.name || "未知成員"}
                     {isMe && " (我)"}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mb-2">
                     更新於 {formatTimeAgo(loc.updatedAt)}
                   </p>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-block",
+                      padding: "4px 10px",
+                      background: "#d97706",
+                      color: "white",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                    }}
+                  >
+                    在 Google Map 開啟
+                  </a>
                 </div>
               </Popup>
             </Marker>

@@ -1,4 +1,4 @@
-import { MapPin, Clock, Phone, MessageCircle } from "lucide-react";
+import { MapPin, Clock, Phone, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface MemberLocationData {
@@ -10,6 +10,8 @@ export interface MemberLocationData {
   distance?: string;
   status: "online" | "offline" | "moving";
   group?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface MemberLocationCardProps {
@@ -102,9 +104,18 @@ export function MemberLocationCard({ member, onClick }: MemberLocationCardProps)
         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
           <Phone className="w-4 h-4 text-muted-foreground" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
-          <MessageCircle className="w-4 h-4 text-muted-foreground" />
-        </div>
+        {member.latitude != null && member.longitude != null && (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${member.latitude},${member.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors"
+            data-testid={`button-google-maps-${member.id}`}
+          >
+            <Navigation className="w-4 h-4 text-primary" />
+          </a>
+        )}
       </div>
     </button>
   );

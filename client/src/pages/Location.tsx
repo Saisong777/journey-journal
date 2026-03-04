@@ -80,6 +80,8 @@ export default function Location() {
     distance: "",
     status: isOnline(loc.updatedAt) ? "online" : "offline",
     group: undefined,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
   }));
 
   function isOnline(updatedAt: string): boolean {
