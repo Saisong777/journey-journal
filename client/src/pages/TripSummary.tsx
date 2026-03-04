@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTrip } from "@/hooks/useTrip";
 import { useTripStats, useTripPhotos, useTripHighlights, formatTripDateRange, calculateTripDuration } from "@/hooks/useTripSummary";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { useToast } from "@/hooks/use-toast";
+import { transformPhotoUrl } from "@/lib/photoUtils";
+import { queryClient } from "@/lib/queryClient";
 import { format, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
@@ -24,8 +25,6 @@ const TripSummary = () => {
   const { data: photos, isLoading: photosLoading } = useTripPhotos();
   const { data: highlights, isLoading: highlightsLoading } = useTripHighlights();
   const { data: journals, isLoading: journalsLoading } = useJournalEntries();
-  const { toast } = useToast();
-
   // Build schedule data from journals
   const scheduleData = (journals || []).filter(j => j.entryDate).map((journal, index) => ({
     day: index + 1,
@@ -59,7 +58,7 @@ const TripSummary = () => {
       ? calculateTripDuration(trip.startDate, trip.endDate)
       : 0,
     memberCount: stats?.memberCount || 0,
-    coverImage: trip?.coverImageUrl || defaultCoverImage,
+    coverImage: trip?.coverImageUrl ? transformPhotoUrl(trip.coverImageUrl) : defaultCoverImage,
     tripId: trip?.id,
   };
 
@@ -82,10 +81,7 @@ const TripSummary = () => {
   }));
 
   const handleCoverChange = (url: string) => {
-    toast({
-      title: "封面已更新",
-      description: "您的回憶錄封面已成功更換",
-    });
+    queryClient.invalidateQueries({ queryKey: ["/api/trip"] });
   };
 
   const isLoading = tripLoading || statsLoading;

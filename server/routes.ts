@@ -329,6 +329,77 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/trips/:tripId/cover-image", requireAuth, async (req, res) => {
+    try {
+      const { tripId } = req.params;
+      const { coverImageUrl } = req.body;
+      if (!coverImageUrl || typeof coverImageUrl !== "string") {
+        return res.status(400).json({ error: "coverImageUrl is required" });
+      }
+      const updated = await storage.updateTrip(tripId, { coverImageUrl } as any);
+      if (!updated) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      res.json({ success: true, coverImageUrl: updated.coverImageUrl });
+    } catch (error) {
+      console.error("Failed to update cover image:", error);
+      res.status(500).json({ error: "Failed to update cover image" });
+    }
+  });
+
+  app.get("/api/weather", requireAuth, async (req, res) => {
+    try {
+      const userRole = await storage.getUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.status(404).json({ error: "No active trip" });
+      }
+      const trip = await storage.getTrip(userRole.tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+
+      const dest = (trip.destination || "").toLowerCase();
+      let lat = 31.7683;
+      let lon = 35.2137;
+      if (dest.includes("土耳其") || dest.includes("turkey")) { lat = 39.9334; lon = 32.8597; }
+      else if (dest.includes("以色列") || dest.includes("israel")) { lat = 31.7683; lon = 35.2137; }
+      else if (dest.includes("日本") || dest.includes("japan")) { lat = 35.6762; lon = 139.6503; }
+      else if (dest.includes("希臘") || dest.includes("greece")) { lat = 37.9838; lon = 23.7275; }
+      else if (dest.includes("埃及") || dest.includes("egypt")) { lat = 30.0444; lon = 31.2357; }
+      else if (dest.includes("約旦") || dest.includes("jordan")) { lat = 31.9539; lon = 35.9106; }
+      else if (dest.includes("義大利") || dest.includes("italy")) { lat = 41.9028; lon = 12.4964; }
+
+      const cacheKey = `weather_${lat}_${lon}`;
+      const now = Date.now();
+      if ((global as any).__weatherCache?.[cacheKey] && now - (global as any).__weatherCache[cacheKey].ts < 600000) {
+        return res.json((global as any).__weatherCache[cacheKey].data);
+      }
+
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,uv_index&timezone=auto`;
+      const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
+
+      const [weatherRes, aqRes] = await Promise.all([
+        fetch(weatherUrl).then(r => r.json()),
+        fetch(aqUrl).then(r => r.json()),
+      ]);
+
+      const temperature = weatherRes?.current?.temperature_2m ?? null;
+      const humidity = weatherRes?.current?.relative_humidity_2m ?? null;
+      const uvIndex = weatherRes?.current?.uv_index ?? null;
+      const aqi = aqRes?.current?.us_aqi ?? null;
+
+      const data = { temperature, humidity, uvIndex, aqi, destination: trip.destination, updatedAt: new Date().toISOString() };
+
+      if (!(global as any).__weatherCache) (global as any).__weatherCache = {};
+      (global as any).__weatherCache[cacheKey] = { data, ts: now };
+
+      res.json(data);
+    } catch (error) {
+      console.error("Failed to fetch weather:", error);
+      res.status(500).json({ error: "Failed to fetch weather data" });
+    }
+  });
+
   app.get("/api/members", requireAuth, async (req, res) => {
     try {
       const userRole = await storage.getUserRole(req.userId!);

@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
 import { Camera, Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
+import { transformPhotoUrl } from "@/lib/photoUtils";
+import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 interface CoverImageUploadProps {
@@ -14,10 +17,10 @@ export function CoverImageUpload({
   onImageChange,
   tripId,
 }: CoverImageUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { uploadFile, isUploading } = useUpload();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,24 +47,19 @@ export function CoverImageUpload({
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
 
-    setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("tripId", tripId || "");
-
-      const response = await fetch("/api/upload/cover", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!response.ok) {
+      const result = await uploadFile(file);
+      if (!result) {
         throw new Error("Upload failed");
       }
 
-      const data = await response.json();
-      onImageChange(data.url);
+      if (tripId) {
+        await apiRequest("PATCH", `/api/trips/${tripId}/cover-image`, {
+          coverImageUrl: result.objectPath,
+        });
+      }
+
+      onImageChange(result.objectPath);
       toast({
         title: "上傳成功",
         description: "封面圖片已更新",
@@ -69,12 +67,15 @@ export function CoverImageUpload({
     } catch (error) {
       console.error("Upload error:", error);
       toast({
-        title: "上傳功能開發中",
-        description: "暫時無法上傳圖片",
+        title: "上傳失敗",
+        description: "請稍後再試",
+        variant: "destructive",
       });
       setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -85,7 +86,8 @@ export function CoverImageUpload({
     }
   };
 
-  const displayImage = previewUrl || currentImage;
+  const resolvedCurrent = currentImage.startsWith("http") ? currentImage : transformPhotoUrl(currentImage);
+  const displayImage = previewUrl || resolvedCurrent;
 
   return (
     <div className="relative group">
