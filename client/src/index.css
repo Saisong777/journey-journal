@@ -123,9 +123,6 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
-    height: 100dvh;
-    height: 100vh;
   }
 
   /* 大字體基準，適合年長者閱讀 */
