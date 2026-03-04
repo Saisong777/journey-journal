@@ -8,22 +8,9 @@ import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
 import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
 import { useTrip } from "@/hooks/useTrip";
 import { cn } from "@/lib/utils";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 import { format, addDays, startOfDay, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
-
-function transformPhotoUrl(photoUrl: string): string {
-  if (photoUrl.includes("storage.googleapis.com") && photoUrl.includes("/uploads/")) {
-    const match = photoUrl.match(/\/uploads\/([a-f0-9-]+)/);
-    if (match) {
-      return `/api/uploads/file/${match[1]}`;
-    }
-  }
-  if (photoUrl.startsWith("/objects/uploads/")) {
-    const objectId = photoUrl.replace("/objects/uploads/", "");
-    return `/api/uploads/file/${objectId}`;
-  }
-  return photoUrl;
-}
 
 export default function Journal() {
   const [isAddOpen, setIsAddOpen] = useState(false);

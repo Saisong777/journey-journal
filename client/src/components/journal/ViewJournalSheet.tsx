@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { JournalEntryData } from "./JournalEntry";
 import { getAuthToken } from "@/lib/queryClient";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 
 const MAX_PHOTOS = 7;
 
@@ -39,20 +40,6 @@ const moodLabels: Record<string, { emoji: string; label: string }> = {
   grateful: { emoji: "💛", label: "感恩" },
   amazed: { emoji: "✨", label: "驚嘆" },
 };
-
-function transformPhotoUrl(photoUrl: string): string {
-  if (photoUrl.includes("storage.googleapis.com") && photoUrl.includes("/uploads/")) {
-    const match = photoUrl.match(/\/uploads\/([a-f0-9-]+)/);
-    if (match) {
-      return `/api/uploads/file/${match[1]}`;
-    }
-  }
-  if (photoUrl.startsWith("/objects/uploads/")) {
-    const objectId = photoUrl.replace("/objects/uploads/", "");
-    return `/api/uploads/file/${objectId}`;
-  }
-  return photoUrl;
-}
 
 interface EditPhoto {
   displayUrl: string;

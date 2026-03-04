@@ -3,6 +3,7 @@ import { useTrip } from "./useTrip";
 import { useJournalEntries } from "./useJournalEntries";
 import { useDevotionalEntries } from "./useDevotional";
 import { useMembers } from "./useMembers";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
@@ -53,7 +54,7 @@ export function useTripPhotos() {
         for (const photo of entry.photos || []) {
           photos.push({
             id: photo.id,
-            url: photo.photoUrl,
+            url: transformPhotoUrl(photo.photoUrl),
             caption: photo.caption || entry.title,
             date: entry.entryDate ? format(parseISO(entry.entryDate), "M月d日", { locale: zhTW }) : "",
             location: entry.location || "未知地點",
