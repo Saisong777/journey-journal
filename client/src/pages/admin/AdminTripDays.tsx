@@ -510,7 +510,7 @@ export default function AdminTripDays() {
                 新增每日行程
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>新增每日行程</DialogTitle>
               </DialogHeader>
@@ -610,7 +610,7 @@ export default function AdminTripDays() {
                           編輯
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>編輯每日行程</DialogTitle>
                         </DialogHeader>

@@ -43,7 +43,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
         </aside>
 
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 min-w-0 p-4 md:p-6">
           {children}
         </main>
       </div>
