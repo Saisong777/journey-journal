@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
 import { getAuthToken } from "@/lib/queryClient";
+import { addToQueue } from "@/lib/offlineQueue";
 
 export interface EveningReflectionDB {
   id: string;
@@ -56,28 +57,50 @@ export function useSaveEveningReflection() {
       prayerForTomorrow: string;
       entryDate?: string;
     }) => {
-      const response = await fetch("/api/evening-reflections", {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include",
-        body: JSON.stringify({
-          gratitude: data.gratitude,
-          highlight: data.highlight,
-          prayerForTomorrow: data.prayerForTomorrow,
-          entryDate: data.entryDate || new Date().toISOString().split("T")[0],
-        }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to save evening reflection");
+      const payload = {
+        gratitude: data.gratitude,
+        highlight: data.highlight,
+        prayerForTomorrow: data.prayerForTomorrow,
+        entryDate: data.entryDate || new Date().toISOString().split("T")[0],
+      };
+
+      try {
+        const response = await fetch("/api/evening-reflections", {
+          method: "POST",
+          headers: getHeaders(),
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          throw new Error("Failed to save evening reflection");
+        }
+        return response.json();
+      } catch (error) {
+        if (!navigator.onLine) {
+          await addToQueue({
+            type: "evening",
+            endpoint: "/api/evening-reflections",
+            method: "POST",
+            data: payload,
+          });
+          return { offline: true };
+        }
+        throw error;
       }
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result?.offline) {
+        toast({
+          title: "已儲存至本機",
+          description: "連線後將自動同步晚間感恩",
+        });
+      } else {
+        toast({
+          title: "成功",
+          description: "晚間感恩已儲存",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["evening-reflection"] });
-      toast({
-        title: "成功",
-        description: "晚間感恩已儲存",
-      });
     },
     onError: (error) => {
       console.error("Error saving evening reflection:", error);

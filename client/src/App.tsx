@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { queryClient } from "@/lib/queryClient";
+import { OfflineSyncProvider } from "@/lib/offlineSyncContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Journal from "./pages/Journal";
@@ -37,6 +38,7 @@ import NotFound from "./pages/NotFound";
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <OfflineSyncProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -236,6 +238,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </OfflineSyncProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

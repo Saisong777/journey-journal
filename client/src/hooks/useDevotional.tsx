@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
 import { getAuthToken } from "@/lib/queryClient";
+import { addToQueue } from "@/lib/offlineQueue";
 
 function getAuthHeaders(): HeadersInit {
   const token = getAuthToken();
@@ -124,33 +125,55 @@ export function useSaveDevotional() {
       const url = entry.id ? `/api/devotional-entries/${entry.id}` : "/api/devotional-entries";
       const method = entry.id ? "PATCH" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          ...getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          scriptureReference: entry.scriptureReference || "",
-          reflection: entry.reflection || "",
-          prayer: entry.prayer || "",
-          entryDate,
-        }),
-      });
+      const payload = {
+        scriptureReference: entry.scriptureReference || "",
+        reflection: entry.reflection || "",
+        prayer: entry.prayer || "",
+        entryDate,
+      };
 
-      if (!response.ok) {
-        throw new Error("Failed to save devotional entry");
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save devotional entry");
+        }
+
+        return response.json();
+      } catch (error) {
+        if (!navigator.onLine) {
+          await addToQueue({
+            type: "devotional",
+            endpoint: url,
+            method: method as "POST" | "PATCH",
+            data: payload,
+          });
+          return { offline: true };
+        }
+        throw error;
       }
-
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result?.offline) {
+        toast({
+          title: "已儲存至本機",
+          description: "連線後將自動同步靈修記錄",
+        });
+      } else {
+        toast({
+          title: "成功",
+          description: "靈修記錄已儲存",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["devotional-entries"] });
-      toast({
-        title: "成功",
-        description: "靈修記錄已儲存",
-      });
     },
     onError: (error) => {
       console.error("Error saving devotional:", error);

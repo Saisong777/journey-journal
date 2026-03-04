@@ -2,7 +2,11 @@ import { WifiOff, Wifi } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { cn } from "@/lib/utils";
 
-export function OfflineBanner() {
+interface OfflineBannerProps {
+  pendingCount?: number;
+}
+
+export function OfflineBanner({ pendingCount = 0 }: OfflineBannerProps) {
   const { isOnline, wasOffline } = useNetworkStatus();
 
   if (isOnline && !wasOffline) return null;
@@ -25,7 +29,10 @@ export function OfflineBanner() {
       ) : (
         <>
           <WifiOff className="w-4 h-4" />
-          <span>目前無網路連線，顯示的是先前載入的資料</span>
+          <span>
+            目前無網路連線，顯示的是先前載入的資料
+            {pendingCount > 0 && `（${pendingCount} 筆資料待同步）`}
+          </span>
         </>
       )}
     </div>

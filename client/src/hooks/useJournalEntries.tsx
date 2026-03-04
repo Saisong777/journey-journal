@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
 import { getAuthToken } from "@/lib/queryClient";
+import { addToQueue } from "@/lib/offlineQueue";
 
 export interface JournalEntryDB {
   id: string;
@@ -62,32 +63,56 @@ export function useCreateJournalEntry() {
       location: string;
       photos: string[];
     }) => {
-      const response = await fetch("/api/journal-entries", {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include",
-        body: JSON.stringify({
-          title: entry.title,
-          content: entry.content,
-          location: entry.location,
-          photos: entry.photos,
-        }),
-      });
+      const payload = {
+        title: entry.title,
+        content: entry.content,
+        location: entry.location,
+        photos: entry.photos,
+      };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Journal entry creation failed:", errorText);
-        throw new Error("Failed to create journal entry");
+      try {
+        const response = await fetch("/api/journal-entries", {
+          method: "POST",
+          headers: getHeaders(),
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Journal entry creation failed:", errorText);
+          throw new Error("Failed to create journal entry");
+        }
+
+        return response.json();
+      } catch (error) {
+        if (!navigator.onLine) {
+          await addToQueue({
+            type: "journal",
+            endpoint: "/api/journal-entries",
+            method: "POST",
+            data: { ...payload, photos: [] },
+          });
+          return { offline: true, hadPhotos: entry.photos.length > 0 };
+        }
+        throw error;
       }
-
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result?.offline) {
+        toast({
+          title: "已儲存至本機",
+          description: result.hadPhotos
+            ? "文字內容已儲存，連線後將自動同步（照片需連線後重新添加）"
+            : "連線後將自動同步日誌",
+        });
+      } else {
+        toast({
+          title: "成功",
+          description: "日誌已儲存",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
-      toast({
-        title: "成功",
-        description: "日誌已儲存",
-      });
     },
     onError: (error) => {
       console.error("Error creating journal entry:", error);
