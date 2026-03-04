@@ -52,7 +52,7 @@ export function FeatureCard({
         "w-full p-4 rounded-lg transition-all duration-300",
         "flex flex-col items-center text-center gap-2",
         "touch-target shadow-card hover:shadow-elevated",
-        "active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+        "active:brightness-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         variantStyles[variant],
         className
       )}

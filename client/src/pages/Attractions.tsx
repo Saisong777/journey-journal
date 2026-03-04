@@ -225,7 +225,7 @@ const Attractions = () => {
             <button
               key={attraction.id}
               onClick={() => handleAttractionClick(attraction)}
-              className="w-full bg-card rounded-lg shadow-card p-4 text-left hover:shadow-elevated transition-all active:scale-[0.99]"
+              className="w-full bg-card rounded-lg shadow-card p-4 text-left hover:shadow-elevated transition-all active:brightness-95"
               data-testid={`card-attraction-${attraction.id}`}
             >
               <div className="flex items-start justify-between gap-3">

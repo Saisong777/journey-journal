@@ -25,7 +25,7 @@ export function TripCard({
       onClick={onClick}
       className={cn(
         "w-full bg-card rounded-lg overflow-hidden shadow-card transition-all duration-300",
-        "hover:shadow-elevated active:scale-[0.99]",
+        "hover:shadow-elevated active:brightness-95",
         "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         isActive && "ring-2 ring-primary"
       )}

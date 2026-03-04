@@ -47,7 +47,7 @@ export function GroupList({ onSelectGroup }: GroupListProps) {
           className={cn(
             "w-full bg-card rounded-lg shadow-soft p-4",
             "flex items-center gap-4 text-left",
-            "transition-all hover:shadow-card active:scale-[0.99]",
+            "transition-all hover:shadow-card active:brightness-95",
             "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           )}
         >

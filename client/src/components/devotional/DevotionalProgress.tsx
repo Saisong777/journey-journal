@@ -58,7 +58,7 @@ export function DevotionalProgress({
             onClick={() => onSelectDay?.(day.day)}
             className={cn(
               "w-full bg-card rounded-lg p-4 flex items-center gap-4",
-              "transition-all hover:shadow-card active:scale-[0.99]",
+              "transition-all hover:shadow-card active:brightness-95",
               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
               day.isToday && "ring-2 ring-primary"
             )}

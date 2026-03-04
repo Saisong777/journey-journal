@@ -71,7 +71,7 @@ export function ScriptureCard({ scripture, onStartReading }: ScriptureCardProps)
             "w-full py-4 rounded-xl gradient-warm text-primary-foreground",
             "flex items-center justify-center gap-2",
             "text-body font-semibold shadow-card",
-            "hover:shadow-elevated active:scale-[0.99] transition-all"
+            "hover:shadow-elevated active:brightness-95 transition-all"
           )}
         >
           <Play className="w-5 h-5" />

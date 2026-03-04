@@ -17,7 +17,7 @@ export function DailyDevotional({ bibleRefs }: DailyDevotionalProps) {
       
       <button 
         onClick={() => navigate("/daily-journey")}
-        className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:scale-[0.99]"
+        className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:brightness-95"
         data-testid="button-devotional"
       >
         <div className="flex items-start gap-4">

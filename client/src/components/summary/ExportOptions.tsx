@@ -250,7 +250,7 @@ export function ExportOptions() {
 
       <div className="grid grid-cols-2 gap-3">
         <Card
-          className="p-4 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
+          className="p-4 cursor-pointer hover:shadow-md transition-shadow active:brightness-95"
           onClick={anyExporting ? undefined : handleExportPdf}
           data-testid="card-export-pdf"
         >
@@ -266,7 +266,7 @@ export function ExportOptions() {
         </Card>
 
         <Card
-          className="p-4 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
+          className="p-4 cursor-pointer hover:shadow-md transition-shadow active:brightness-95"
           onClick={anyExporting ? undefined : handleExportPhotos}
           data-testid="card-export-photos"
         >

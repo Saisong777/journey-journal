@@ -21,7 +21,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-elevated z-50 transform-gpu" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center justify-around py-2 px-4 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

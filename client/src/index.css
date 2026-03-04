@@ -123,12 +123,17 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 大字體基準，適合年長者閱讀 */
   html {
     font-size: 18px;
     overscroll-behavior: none;
+  }
+
+  .min-h-screen {
+    min-height: 100dvh;
   }
 
   @media (max-width: 640px) {

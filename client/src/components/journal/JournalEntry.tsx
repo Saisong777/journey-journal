@@ -29,7 +29,7 @@ export function JournalEntry({ entry, onClick }: JournalEntryProps) {
       onClick={onClick}
       className={cn(
         "w-full bg-card rounded-lg shadow-card overflow-hidden",
-        "text-left transition-all hover:shadow-elevated active:scale-[0.99]",
+        "text-left transition-all hover:shadow-elevated active:brightness-95",
         "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       )}
     >

@@ -33,7 +33,7 @@ export function AttractionCard({
   return (
     <button
       onClick={onClick}
-      className="w-full bg-card rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 active:scale-[0.98] text-left"
+      className="w-full bg-card rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 active:brightness-95 text-left"
     >
       <div className="relative h-40">
         <img

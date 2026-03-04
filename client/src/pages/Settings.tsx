@@ -238,7 +238,7 @@ export default function Settings() {
         {/* Profile Card */}
         <section
           onClick={() => setIsProfileOpen(true)}
-          className="bg-card rounded-lg shadow-card p-5 flex items-center gap-4 cursor-pointer hover:shadow-elevated transition-all active:scale-[0.99]"
+          className="bg-card rounded-lg shadow-card p-5 flex items-center gap-4 cursor-pointer hover:shadow-elevated transition-all active:brightness-95"
         >
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
             <span className="text-title text-muted-foreground">
