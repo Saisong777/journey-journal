@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useTrip } from "./useTrip";
@@ -91,16 +92,14 @@ export function useDevotionalEntries(date?: string) {
 
 export function useMyDevotionalEntry(date: string) {
   const { user } = useAuth();
-  const { data: entries } = useDevotionalEntries(date);
+  const { data: entries, isLoading } = useDevotionalEntries(date);
 
-  return useQuery({
-    queryKey: ["my-devotional", date, user?.id],
-    queryFn: async () => {
-      if (!entries || !user?.id) return null;
-      return entries.find((e) => e.userId === user.id) || null;
-    },
-    enabled: !!entries && !!user?.id,
-  });
+  const data = useMemo(() => {
+    if (!entries || !user?.id) return null;
+    return entries.find((e) => e.userId === user.id) || null;
+  }, [entries, user?.id]);
+
+  return { data, isLoading };
 }
 
 export function useSaveDevotional() {
@@ -148,7 +147,6 @@ export function useSaveDevotional() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devotional-entries"] });
-      queryClient.invalidateQueries({ queryKey: ["my-devotional"] });
       toast({
         title: "成功",
         description: "靈修記錄已儲存",
