@@ -252,7 +252,7 @@ export default function DailyJourney() {
 
   const handleSaveDevotional = async () => {
     await saveDevotional.mutateAsync({
-      scriptureReference: todayScripture.reference,
+      scriptureReference: todayScripture?.reference || "",
       reflection,
       prayer: [...selectedTopics, prayerContent].filter(Boolean).join("; "),
       date: dateStr,
