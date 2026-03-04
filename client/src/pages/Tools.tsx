@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Calculator, Info, ClipboardCheck } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { CurrencyConverter } from "@/components/tools/CurrencyConverter";
 import { TripChecklist } from "@/components/tools/TripChecklist";
 import { TripBriefing } from "@/components/tools/TripBriefing";
@@ -14,10 +13,8 @@ export default function Tools() {
   const [viewMode, setViewMode] = useState<ViewMode>("briefing");
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="旅遊工具" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout title="旅遊工具">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         <WeatherInfo />
 
         <section className="flex gap-2">
@@ -46,9 +43,7 @@ export default function Tools() {
         {viewMode === "briefing" && <TripBriefing />}
         {viewMode === "currency" && <CurrencyConverter />}
         {viewMode === "checklist" && <TripChecklist />}
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

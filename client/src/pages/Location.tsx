@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberLocationCard, MemberLocationData } from "@/components/location/MemberLocationCard";
 import { GroupList } from "@/components/location/GroupList";
 import { TeamMap } from "@/components/location/TeamMap";
@@ -189,10 +188,8 @@ export default function Location() {
     || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : null);
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="團員定位" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in overflow-x-hidden">
+    <PageLayout title="團員定位">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in overflow-x-hidden">
         <section className="bg-card rounded-lg shadow-card p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-body font-semibold">團員狀態</h2>
@@ -351,9 +348,7 @@ export default function Location() {
             <GroupList />
           </section>
         )}
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

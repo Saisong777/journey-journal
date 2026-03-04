@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { BookOpen, Calendar, Users, Sparkles, Loader2 } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ScriptureCard, ScriptureData } from "@/components/devotional/ScriptureCard";
 import { DevotionalProgress } from "@/components/devotional/DevotionalProgress";
 import { ReflectionSheet } from "@/components/devotional/ReflectionSheet";
@@ -147,10 +146,8 @@ export default function Devotional() {
   const totalPrayers = allEntries?.filter((e) => e.prayer).length || 0;
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="靈修禱告" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout title="靈修禱告">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {/* Daily Greeting */}
         <section className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full">
@@ -304,7 +301,7 @@ export default function Devotional() {
             )}
           </section>
         )}
-      </main>
+      </div>
 
       <ReflectionSheet
         open={isReflectionOpen}
@@ -312,8 +309,6 @@ export default function Devotional() {
         scripture={todayScripture.reference}
         onSave={handleSaveReflection}
       />
-
-      <BottomNav />
-    </div>
+    </PageLayout>
   );
 }

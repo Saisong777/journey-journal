@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -136,10 +135,8 @@ export default function PaulJourneys() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="保羅行蹤" />
-
-      <main className="px-4 py-4 max-w-lg mx-auto space-y-4 animate-fade-in">
+    <PageLayout title="保羅行蹤">
+      <div className="px-4 py-4 max-w-lg mx-auto space-y-4 animate-fade-in">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {JOURNEY_TABS.map((tab) => (
             <button
@@ -374,9 +371,7 @@ export default function PaulJourneys() {
             </div>
           </>
         )}
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

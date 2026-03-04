@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Calendar, Book, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,9 +128,8 @@ const Attractions = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-safe-bottom">
-        <Header />
-        <main className="px-4 py-6 max-w-lg mx-auto space-y-6">
+      <PageLayout>
+        <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-12 w-full" />
           <div className="flex gap-2">
@@ -140,17 +138,15 @@ const Attractions = () => {
           {[1, 2, 3, 4].map(i => (
             <Skeleton key={i} className="h-24 w-full rounded-lg" />
           ))}
-        </main>
-        <BottomNav />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   if (!tripDays || tripDays.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-safe-bottom">
-        <Header />
-        <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <PageLayout>
+        <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
           <section className="space-y-2">
             <h1 className="text-display">景點資訊</h1>
             <p className="text-body text-muted-foreground">
@@ -160,17 +156,15 @@ const Attractions = () => {
           <div className="text-center py-12 bg-card rounded-lg">
             <p className="text-body text-muted-foreground">目前沒有行程資料</p>
           </div>
-        </main>
-        <BottomNav />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header />
+    <PageLayout>
 
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         <section className="space-y-2">
           <h1 className="text-display" data-testid="text-attractions-title">景點資訊</h1>
           <p className="text-body text-muted-foreground">
@@ -279,7 +273,7 @@ const Attractions = () => {
             )}
           </div>
         )}
-      </main>
+      </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl">
@@ -338,8 +332,7 @@ const Attractions = () => {
         </SheetContent>
       </Sheet>
 
-      <BottomNav />
-    </div>
+    </PageLayout>
   );
 };
 

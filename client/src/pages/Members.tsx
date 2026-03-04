@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Search, Users, Phone, Loader2 } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberCard, MemberData } from "@/components/members/MemberCard";
 import { MemberDetailSheet } from "@/components/members/MemberDetailSheet";
 import { Input } from "@/components/ui/input";
@@ -78,10 +77,8 @@ export default function Members() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="團員管理" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout title="團員管理">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {/* Stats */}
         <section className="bg-card rounded-lg shadow-card p-4">
           <div className="flex items-center justify-around text-center">
@@ -197,15 +194,13 @@ export default function Members() {
             </div>
           </section>
         )}
-      </main>
+      </div>
 
       <MemberDetailSheet
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         member={selectedMember}
       />
-
-      <BottomNav />
-    </div>
+    </PageLayout>
   );
 }

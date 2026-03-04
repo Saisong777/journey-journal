@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Footprints, ChevronRight } from "lucide-react";
 
 const features = [
@@ -17,10 +16,8 @@ export default function BibleLibrary() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="聖經資料館" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout title="聖經資料館">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         <p className="text-sm text-muted-foreground" data-testid="text-library-intro">
           透過互動式資料探索聖經中的歷史足跡與人物故事
         </p>
@@ -44,9 +41,7 @@ export default function BibleLibrary() {
             </button>
           ))}
         </div>
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

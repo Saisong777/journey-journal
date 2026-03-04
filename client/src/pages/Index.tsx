@@ -1,4 +1,4 @@
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { QuickActions } from "@/components/home/QuickActions";
 import { TodaySchedule } from "@/components/home/TodaySchedule";
 import { DailyDevotional } from "@/components/home/DailyDevotional";
@@ -109,8 +109,8 @@ const Index = () => {
   const hasBibleRefs = !!todaySchedule?.bibleRefs && todaySchedule.bibleRefs.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout showHeader={false}>
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {tripLoading ? (
           <section className="text-center space-y-3">
             <Skeleton className="h-5 w-32 mx-auto" />
@@ -173,10 +173,8 @@ const Index = () => {
         <TodaySchedule todaySchedule={todaySchedule} isLoading={scheduleLoading} />
 
         <QuickActions />
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

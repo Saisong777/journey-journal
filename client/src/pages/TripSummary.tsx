@@ -1,5 +1,4 @@
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { TripOverview } from "@/components/summary/TripOverview";
 import { DailyItinerary } from "@/components/summary/DailyItinerary";
 import { PhotoGallery } from "@/components/summary/PhotoGallery";
@@ -87,10 +86,8 @@ const TripSummary = () => {
   const isLoading = tripLoading || statsLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout>
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {/* Title */}
         <section className="text-center space-y-2">
           <h1 className="text-display">旅程回憶錄</h1>
@@ -175,10 +172,8 @@ const TripSummary = () => {
             <ExportOptions />
           </TabsContent>
         </Tabs>
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

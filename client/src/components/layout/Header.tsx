@@ -11,7 +11,7 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className={cn(
-      "sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border transform-gpu",
+      "bg-card/95 backdrop-blur-sm border-b border-border flex-shrink-0 transform-gpu",
       className
     )}>
       <div className="flex items-center justify-center px-4 py-3 max-w-lg mx-auto">

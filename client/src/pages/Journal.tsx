@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Plus, Calendar, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntry";
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
@@ -106,10 +105,8 @@ export default function Journal() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-safe-bottom">
-      <Header title="每日日誌" />
-
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+    <PageLayout title="每日日誌">
+      <div className="relative px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {/* Date Selector */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -215,7 +212,7 @@ export default function Journal() {
             </div>
           )}
         </section>
-      </main>
+      </div>
 
       {/* Floating Add Button */}
       <button
@@ -251,8 +248,6 @@ export default function Journal() {
         onDelete={handleDeleteEntry}
         onUpdate={handleUpdateEntry}
       />
-
-      <BottomNav />
-    </div>
+    </PageLayout>
   );
 }
