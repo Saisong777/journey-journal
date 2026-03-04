@@ -80,7 +80,7 @@ const TripSummary = () => {
   }));
 
   const handleCoverChange = (url: string) => {
-    queryClient.invalidateQueries({ queryKey: ["/api/trip"] });
+    queryClient.invalidateQueries({ queryKey: ["trip"] });
   };
 
   const isLoading = tripLoading || statsLoading;

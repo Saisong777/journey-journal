@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CoverImageUpload } from "./CoverImageUpload";
@@ -26,26 +25,20 @@ export function TripOverview({
   editable = true,
   onCoverChange,
 }: TripOverviewProps) {
-  const [currentCover, setCurrentCover] = useState(coverImage);
-
-  const handleCoverChange = (url: string) => {
-    setCurrentCover(url);
-    onCoverChange?.(url);
-  };
 
   return (
     <div className="space-y-6">
       {/* Cover Image with Upload */}
       {editable ? (
         <CoverImageUpload
-          currentImage={currentCover}
-          onImageChange={handleCoverChange}
+          currentImage={coverImage}
+          onImageChange={(url) => onCoverChange?.(url)}
           tripId={tripId}
         />
       ) : (
         <div className="relative h-56 rounded-2xl overflow-hidden">
           <img
-            src={currentCover}
+            src={coverImage}
             alt={title}
             className="w-full h-full object-cover"
           />
