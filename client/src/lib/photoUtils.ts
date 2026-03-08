@@ -1,4 +1,4 @@
-import gps from "exifr/gps";
+import exifr from "exifr";
 
 const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL || "";
 
@@ -23,7 +23,7 @@ export interface PhotoWithMeta {
 export async function extractGps(file: File): Promise<PhotoGps | null> {
   try {
     if (!file.type.startsWith("image/")) return null;
-    const coords = await gps(file);
+    const coords = await exifr.gps(file);
     if (coords && typeof coords.latitude === "number" && typeof coords.longitude === "number") {
       return { latitude: coords.latitude, longitude: coords.longitude };
     }
