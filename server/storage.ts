@@ -360,52 +360,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
-    let entriesQuery = db.select().from(journalEntries).where(eq(journalEntries.tripId, tripId));
-    
-    const entries = await entriesQuery.orderBy(desc(journalEntries.createdAt));
-    
-    const result = await Promise.all(
-      entries.map(async (entry) => {
-        const photos = await db
-          .select()
-          .from(journalPhotos)
-          .where(eq(journalPhotos.journalEntryId, entry.id));
-        return { ...entry, photos };
-      })
-    );
+    const conditions: ReturnType<typeof eq>[] = [eq(journalEntries.tripId, tripId)];
+    if (date) conditions.push(eq(journalEntries.entryDate, date));
 
-    if (date) {
-      return result.filter((e) => e.entryDate === date);
-    }
-    return result;
-  }
-
-  async getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
-    const conditions = [eq(journalEntries.userId, userId)];
-    if (tripId) {
-      conditions.push(eq(journalEntries.tripId, tripId));
-    }
-    
     const entries = await db
       .select()
       .from(journalEntries)
       .where(and(...conditions))
       .orderBy(desc(journalEntries.createdAt));
-    
-    const result = await Promise.all(
-      entries.map(async (entry) => {
-        const photos = await db
-          .select()
-          .from(journalPhotos)
-          .where(eq(journalPhotos.journalEntryId, entry.id));
-        return { ...entry, photos };
-      })
-    );
 
-    if (date) {
-      return result.filter((e) => e.entryDate === date);
-    }
-    return result;
+    if (entries.length === 0) return [];
+
+    const allPhotos = await db
+      .select()
+      .from(journalPhotos)
+      .where(inArray(journalPhotos.journalEntryId, entries.map((e) => e.id)));
+
+    const photosByEntry = allPhotos.reduce<Record<string, JournalPhoto[]>>((acc, photo) => {
+      (acc[photo.journalEntryId] ??= []).push(photo);
+      return acc;
+    }, {});
+
+    return entries.map((entry) => ({ ...entry, photos: photosByEntry[entry.id] ?? [] }));
+  }
+
+  async getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
+    const conditions: ReturnType<typeof eq>[] = [eq(journalEntries.userId, userId)];
+    if (tripId) conditions.push(eq(journalEntries.tripId, tripId));
+    if (date) conditions.push(eq(journalEntries.entryDate, date));
+
+    const entries = await db
+      .select()
+      .from(journalEntries)
+      .where(and(...conditions))
+      .orderBy(desc(journalEntries.createdAt));
+
+    if (entries.length === 0) return [];
+
+    const allPhotos = await db
+      .select()
+      .from(journalPhotos)
+      .where(inArray(journalPhotos.journalEntryId, entries.map((e) => e.id)));
+
+    const photosByEntry = allPhotos.reduce<Record<string, JournalPhoto[]>>((acc, photo) => {
+      (acc[photo.journalEntryId] ??= []).push(photo);
+      return acc;
+    }, {});
+
+    return entries.map((entry) => ({ ...entry, photos: photosByEntry[entry.id] ?? [] }));
   }
 
   async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {

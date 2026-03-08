@@ -1,6 +1,35 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 
+// --- User existence cache (avoids a DB hit on every API request) ---
+const userExistenceCache = new Map<string, { exists: boolean; expiresAt: number }>();
+const USER_CACHE_TTL = 30_000; // 30 seconds
+
+// --- Weather cache ---
+const weatherCache = new Map<string, { data: unknown; ts: number }>();
+const WEATHER_CACHE_TTL = 600_000; // 10 minutes
+
+// --- Destination geocoding table ---
+const DESTINATION_COORDS: Array<{ keywords: string[]; lat: number; lon: number }> = [
+  { keywords: ["以色列", "israel"], lat: 31.7683, lon: 35.2137 },
+  { keywords: ["土耳其", "turkey"], lat: 39.9334, lon: 32.8597 },
+  { keywords: ["日本", "japan"], lat: 35.6762, lon: 139.6503 },
+  { keywords: ["希臘", "greece"], lat: 37.9838, lon: 23.7275 },
+  { keywords: ["埃及", "egypt"], lat: 30.0444, lon: 31.2357 },
+  { keywords: ["約旦", "jordan"], lat: 31.9539, lon: 35.9106 },
+  { keywords: ["義大利", "italy"], lat: 41.9028, lon: 12.4964 },
+];
+
+function resolveDestinationCoords(destination: string): { lat: number; lon: number } {
+  const dest = destination.toLowerCase();
+  for (const entry of DESTINATION_COORDS) {
+    if (entry.keywords.some((kw) => dest.includes(kw))) {
+      return { lat: entry.lat, lon: entry.lon };
+    }
+  }
+  return { lat: 31.7683, lon: 35.2137 }; // default: Israel
+}
+
 const registerSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -96,9 +125,21 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
 
   if (req.userId) {
     try {
-      const user = await storage.getUser(req.userId);
-      if (!user) {
+      const now = Date.now();
+      const cached = userExistenceCache.get(req.userId);
+      let userExists: boolean;
+
+      if (cached && cached.expiresAt > now) {
+        userExists = cached.exists;
+      } else {
+        const user = await storage.getUser(req.userId);
+        userExists = !!user;
+        userExistenceCache.set(req.userId, { exists: userExists, expiresAt: now + USER_CACHE_TTL });
+      }
+
+      if (!userExists) {
         console.log("[extractUser] stale userId detected:", req.userId, "- clearing auth state");
+        userExistenceCache.delete(req.userId);
         req.userId = undefined;
         if (req.session?.userId) {
           req.session.userId = undefined;
@@ -234,11 +275,10 @@ export function registerRoutes(app: Express) {
         user = await storage.getUserByEmail(googleUser.email);
 
         if (user) {
-          // Link Google account to existing user
-          await storage.updateUser(user.id, { googleId: googleUser.id } as any);
-          if (!user.profileImageUrl && googleUser.picture) {
-            await storage.updateUser(user.id, { profileImageUrl: googleUser.picture });
-          }
+          // Link Google account to existing user (single update)
+          const linkData: Record<string, string> = { googleId: googleUser.id };
+          if (!user.profileImageUrl && googleUser.picture) linkData.profileImageUrl = googleUser.picture;
+          await storage.updateUser(user.id, linkData as any);
         } else {
           // Create new user
           user = await storage.createUser({
@@ -272,7 +312,8 @@ export function registerRoutes(app: Express) {
 
       req.session.userId = user.id;
       req.session.save(() => {
-        res.redirect(`/?authToken=${token}`);
+        // Use hash fragment so the token is never sent to the server in logs
+        res.redirect(`/#authToken=${token}`);
       });
     } catch (error) {
       console.error("[google-oauth] callback error:", error);
@@ -448,14 +489,17 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  async function getCurrentTripForUser(userId: string) {
+    const userRole = await storage.getUserRole(userId);
+    if (!userRole || !userRole.tripId) return null;
+    const trip = await storage.getTrip(userRole.tripId);
+    if (!trip) return null;
+    return { ...trip, userRole: userRole.role };
+  }
+
   app.get("/api/trip", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
-      if (!userRole || !userRole.tripId) {
-        return res.json(null);
-      }
-      const trip = await storage.getTrip(userRole.tripId);
-      res.json(trip ? { ...trip, userRole: userRole.role } : null);
+      res.json(await getCurrentTripForUser(req.userId!));
     } catch (error) {
       console.error("Failed to get trip:", error);
       res.status(500).json({ error: "Failed to get trip" });
@@ -464,20 +508,9 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trips/current", requireAuth, async (req, res) => {
     try {
-      const userId = req.userId!;
-      console.log("Fetching current trip for user:", userId);
-      const userRole = await storage.getUserRole(userId);
-      console.log("User role found:", JSON.stringify(userRole));
-      if (!userRole || !userRole.tripId) {
-        console.log("No tripId in user role");
-        return res.status(404).json({ error: "No active trip found" });
-      }
-      const trip = await storage.getTrip(userRole.tripId);
-      console.log("Trip found:", trip?.title);
-      if (!trip) {
-        return res.status(404).json({ error: "Trip not found" });
-      }
-      res.json({ ...trip, userRole: userRole.role });
+      const result = await getCurrentTripForUser(req.userId!);
+      if (!result) return res.status(404).json({ error: "No active trip found" });
+      res.json(result);
     } catch (error) {
       console.error("Failed to get current trip:", error);
       res.status(500).json({ error: "Failed to get current trip" });
@@ -513,40 +546,29 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Trip not found" });
       }
 
-      const dest = (trip.destination || "").toLowerCase();
-      let lat = 31.7683;
-      let lon = 35.2137;
-      if (dest.includes("土耳其") || dest.includes("turkey")) { lat = 39.9334; lon = 32.8597; }
-      else if (dest.includes("以色列") || dest.includes("israel")) { lat = 31.7683; lon = 35.2137; }
-      else if (dest.includes("日本") || dest.includes("japan")) { lat = 35.6762; lon = 139.6503; }
-      else if (dest.includes("希臘") || dest.includes("greece")) { lat = 37.9838; lon = 23.7275; }
-      else if (dest.includes("埃及") || dest.includes("egypt")) { lat = 30.0444; lon = 31.2357; }
-      else if (dest.includes("約旦") || dest.includes("jordan")) { lat = 31.9539; lon = 35.9106; }
-      else if (dest.includes("義大利") || dest.includes("italy")) { lat = 41.9028; lon = 12.4964; }
-
-      const cacheKey = `weather_${lat}_${lon}`;
+      const { lat, lon } = resolveDestinationCoords(trip.destination || "");
+      const cacheKey = `${lat}_${lon}`;
       const now = Date.now();
-      if ((global as any).__weatherCache?.[cacheKey] && now - (global as any).__weatherCache[cacheKey].ts < 600000) {
-        return res.json((global as any).__weatherCache[cacheKey].data);
+      const cached = weatherCache.get(cacheKey);
+      if (cached && now - cached.ts < WEATHER_CACHE_TTL) {
+        return res.json(cached.data);
       }
 
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,uv_index&timezone=auto`;
       const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
 
       const [weatherRes, aqRes] = await Promise.all([
-        fetch(weatherUrl).then(r => r.json()),
-        fetch(aqUrl).then(r => r.json()),
+        fetch(weatherUrl).then((r) => r.json()),
+        fetch(aqUrl).then((r) => r.json()),
       ]);
 
-      const temperature = weatherRes?.current?.temperature_2m ?? null;
-      const humidity = weatherRes?.current?.relative_humidity_2m ?? null;
-      const uvIndex = weatherRes?.current?.uv_index ?? null;
-      const aqi = aqRes?.current?.us_aqi ?? null;
+      const temperature = (weatherRes as any)?.current?.temperature_2m ?? null;
+      const humidity = (weatherRes as any)?.current?.relative_humidity_2m ?? null;
+      const uvIndex = (weatherRes as any)?.current?.uv_index ?? null;
+      const aqi = (aqRes as any)?.current?.us_aqi ?? null;
 
       const data = { temperature, humidity, uvIndex, aqi, destination: trip.destination, updatedAt: new Date().toISOString() };
-
-      if (!(global as any).__weatherCache) (global as any).__weatherCache = {};
-      (global as any).__weatherCache[cacheKey] = { data, ts: now };
+      weatherCache.set(cacheKey, { data, ts: now });
 
       res.json(data);
     } catch (error) {
