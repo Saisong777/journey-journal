@@ -73,6 +73,7 @@ export const users = pgTable("users", {
   password: text("password"),
   tempPassword: text("temp_password"),
   replitId: text("replit_id").unique(),
+  googleId: text("google_id").unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
   profileImageUrl: text("profile_image_url"),

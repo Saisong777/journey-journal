@@ -52,6 +52,7 @@ function parseScriptureReference(ref: string): { bookName: string; chapter: numb
 declare module "express-session" {
   interface SessionData {
     userId?: string;
+    oauthState?: string;
   }
 }
 
@@ -129,6 +130,139 @@ async function requireSuperAdmin(req: Request, res: Response, next: NextFunction
 export function registerRoutes(app: Express) {
   // Apply extractUser middleware to all API routes
   app.use("/api", extractUser);
+
+  // Google OAuth: initiate login
+  app.get("/api/login", (req, res) => {
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    if (!GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: "Google OAuth not configured" });
+    }
+
+    const state = crypto.randomBytes(16).toString("hex");
+    req.session.oauthState = state;
+
+    const APP_URL = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+    const redirectUri = `${APP_URL}/api/auth/google/callback`;
+
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      access_type: "online",
+      prompt: "select_account",
+    });
+
+    req.session.save(() => {
+      res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    });
+  });
+
+  // Google OAuth: callback
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code, state, error: oauthError } = req.query as Record<string, string>;
+      const APP_URL = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+
+      if (oauthError) {
+        console.error("[google-oauth] error from Google:", oauthError);
+        return res.redirect("/?error=oauth_denied");
+      }
+
+      if (!state || state !== req.session.oauthState) {
+        console.error("[google-oauth] state mismatch");
+        return res.redirect("/?error=oauth_state_mismatch");
+      }
+      delete req.session.oauthState;
+
+      const redirectUri = `${APP_URL}/api/auth/google/callback`;
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errBody = await tokenResponse.text();
+        console.error("[google-oauth] token exchange failed:", errBody);
+        return res.redirect("/?error=oauth_token_failed");
+      }
+
+      const tokenData = await tokenResponse.json() as { access_token: string };
+
+      const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!userInfoResponse.ok) {
+        console.error("[google-oauth] userinfo fetch failed");
+        return res.redirect("/?error=oauth_userinfo_failed");
+      }
+
+      const googleUser = await userInfoResponse.json() as {
+        id: string; email: string; name: string;
+        given_name?: string; family_name?: string; picture?: string;
+      };
+
+      // Find or create user
+      let user = await storage.getUserByGoogleId(googleUser.id);
+
+      if (!user) {
+        user = await storage.getUserByEmail(googleUser.email);
+
+        if (user) {
+          // Link Google account to existing user
+          await storage.updateUser(user.id, { googleId: googleUser.id } as any);
+          if (!user.profileImageUrl && googleUser.picture) {
+            await storage.updateUser(user.id, { profileImageUrl: googleUser.picture });
+          }
+        } else {
+          // Create new user
+          user = await storage.createUser({
+            email: googleUser.email,
+            password: null,
+            googleId: googleUser.id,
+            firstName: googleUser.given_name || null,
+            lastName: googleUser.family_name || null,
+            profileImageUrl: googleUser.picture || null,
+          } as any);
+
+          await storage.createProfile({
+            userId: user.id,
+            name: googleUser.name || googleUser.email,
+            email: googleUser.email,
+            avatarUrl: googleUser.picture || null,
+          });
+
+          await storage.createUserRole({
+            userId: user.id,
+            tripId: null,
+            role: "member",
+          });
+        }
+      }
+
+      // Set session and generate token
+      const token = generateToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await tokenStore.set(token, { userId: user.id, expiresAt });
+
+      req.session.userId = user.id;
+      req.session.save(() => {
+        res.redirect(`/?authToken=${token}`);
+      });
+    } catch (error) {
+      console.error("[google-oauth] callback error:", error);
+      res.redirect("/?error=oauth_failed");
+    }
+  });
 
   app.post("/api/auth/register", async (req, res) => {
     try {

@@ -526,6 +526,18 @@ export async function runStartupMigration() {
 
     await importPaulJourneys();
 
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`);
+        console.log("[startup-migration] ensured google_id column on users");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] google_id column migration error:", e);
+    }
+
     console.log("[startup-migration] complete");
   } catch (error) {
     console.error("[startup-migration] error:", error);
