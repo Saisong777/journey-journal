@@ -72,6 +72,11 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
+  if (!process.env.REPL_ID) {
+    console.log("[Auth] REPL_ID not set, skipping Replit OIDC setup");
+    return;
+  }
+
   const config = await getOidcConfig();
 
   app.get("/api/login", async (req, res) => {
