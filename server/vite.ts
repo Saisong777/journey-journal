@@ -51,7 +51,10 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath));
-  app.use((_req, res) => {
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
