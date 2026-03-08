@@ -22,12 +22,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const authToken = params.get("authToken");
+    // Support both query param (legacy) and hash fragment (preferred — never sent to server)
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const authToken = hashParams.get("authToken") || searchParams.get("authToken");
     if (authToken) {
       setAuthToken(authToken);
-      params.delete("authToken");
-      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+      hashParams.delete("authToken");
+      searchParams.delete("authToken");
+      const newHash = hashParams.toString() ? `#${hashParams.toString()}` : "";
+      const newUrl = window.location.pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "") + newHash;
       window.history.replaceState({}, "", newUrl);
     }
     checkSession();

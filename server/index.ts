@@ -104,8 +104,8 @@ app.use((req, res, next) => {
       tableName: "sessions",
       pruneSessionInterval: 60 * 15,
     }),
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
