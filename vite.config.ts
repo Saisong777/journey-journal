@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/[a-z]\.tile\.openstreetmap\.org\/.*/i,
@@ -25,7 +26,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /\/api\//,
+            urlPattern: /\/api\/(?!login|auth\/google)/,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
