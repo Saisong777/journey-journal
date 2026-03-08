@@ -49,6 +49,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  console.log("[server] starting up...", { NODE_ENV: process.env.NODE_ENV, PORT: process.env.PORT, HAS_DB: !!process.env.DATABASE_URL });
   // Setup session middleware (PostgreSQL store)
   const pgStore = connectPg(session);
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -75,8 +76,12 @@ app.use((req, res, next) => {
   registerUploadRoutes(app);
 
   // Run startup migration (ensure admin roles and trip data exist)
-  await runStartupMigration();
-  
+  try {
+    await runStartupMigration();
+  } catch (e) {
+    console.error("[startup-migration] failed, server will continue:", e);
+  }
+
   // Register application routes
   registerRoutes(app);
 
@@ -99,4 +104,7 @@ app.use((req, res, next) => {
   server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on port ${port}`);
   });
-})();
+})().catch((err) => {
+  console.error("[server] fatal startup error:", err);
+  process.exit(1);
+});
