@@ -76,8 +76,25 @@ function resolveBookName(name: string): string {
   return name;
 }
 
-function parseScriptureReference(ref: string): { bookName: string; chapter: number; verseStart?: number; verseEnd?: number } | null {
+type ScriptureRange = { bookName: string; chapter: number; verseStart?: number; verseEnd?: number };
+
+function parseScriptureReference(ref: string): ScriptureRange | null {
   const trimmed = ref.trim();
+
+  // Cross-chapter format: 書名 章:節-章:節 (e.g. 使徒行傳 13:51-14:5)
+  const crossMatch = trimmed.match(/^(.+?)\s+(\d+):(\d+)\s*[-–]\s*(\d+):(\d+)$/)
+    || trimmed.match(/^([^\d]+)(\d+):(\d+)\s*[-–]\s*(\d+):(\d+)$/);
+  if (crossMatch) {
+    const bookName = resolveBookName(crossMatch[1].trim());
+    const chStart = parseInt(crossMatch[2], 10);
+    const vStart = parseInt(crossMatch[3], 10);
+    const chEnd = parseInt(crossMatch[4], 10);
+    const vEnd = parseInt(crossMatch[5], 10);
+    if (!isNaN(chStart) && !isNaN(chEnd)) {
+      return { bookName, chapter: chStart, verseStart: vStart, verseEnd: vEnd, _crossChapter: { chEnd, vEnd } } as any;
+    }
+  }
+
   let match = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+)(?:\s*[-–]\s*(\d+))?)?$/);
   if (!match) {
     match = trimmed.match(/^([^\d]+)(\d+)(?::(\d+)(?:\s*[-–]\s*(\d+))?)?$/);
@@ -92,6 +109,36 @@ function parseScriptureReference(ref: string): { bookName: string; chapter: numb
 
   if (isNaN(chapter)) return null;
   return { bookName, chapter, verseStart, verseEnd };
+}
+
+async function lookupParsedReference(parsed: ScriptureRange & { _crossChapter?: { chEnd: number; vEnd: number } }): Promise<{ number: number; text: string }[]> {
+  const cross = (parsed as any)._crossChapter as { chEnd: number; vEnd: number } | undefined;
+  if (cross) {
+    // Cross-chapter: fetch from chStart:vStart to chEnd:vEnd
+    const allVerses: { number: number; text: string }[] = [];
+    for (let ch = parsed.chapter; ch <= cross.chEnd; ch++) {
+      let verses;
+      if (ch === parsed.chapter) {
+        // First chapter: from verseStart to end of chapter
+        const all = await storage.lookupBibleVerses(parsed.bookName, ch);
+        verses = parsed.verseStart ? all.filter(v => v.verse >= parsed.verseStart!) : all;
+      } else if (ch === cross.chEnd) {
+        // Last chapter: from verse 1 to vEnd
+        verses = await storage.lookupBibleVerses(parsed.bookName, ch, 1, cross.vEnd);
+      } else {
+        // Middle chapters: entire chapter
+        verses = await storage.lookupBibleVerses(parsed.bookName, ch);
+      }
+      if (verses.length > 0) {
+        allVerses.push({ number: 0, text: `── ${parsed.bookName} ${ch} ──` });
+      }
+      allVerses.push(...verses.map(v => ({ number: v.verse, text: v.text })));
+    }
+    return allVerses;
+  }
+  // Single chapter
+  const verses = await storage.lookupBibleVerses(parsed.bookName, parsed.chapter, parsed.verseStart, parsed.verseEnd);
+  return verses.map(v => ({ number: v.verse, text: v.text }));
 }
 
 declare module "express-session" {
@@ -1503,11 +1550,11 @@ export function registerRoutes(app: Express) {
           firstBookName = parsed.bookName;
           firstChapter = parsed.chapter;
         }
-        const verses = await storage.lookupBibleVerses(parsed.bookName, parsed.chapter, parsed.verseStart, parsed.verseEnd);
+        const verses = await lookupParsedReference(parsed as any);
         if (refs.length > 1 && verses.length > 0) {
-          allVerses.push({ number: 0, text: `── ${parsed.bookName} ${parsed.chapter}${parsed.verseStart ? ':' + parsed.verseStart + (parsed.verseEnd && parsed.verseEnd !== parsed.verseStart ? '-' + parsed.verseEnd : '') : ''} ──` });
+          allVerses.push({ number: 0, text: `── ${singleRef.trim()} ──` });
         }
-        allVerses.push(...verses.map(v => ({ number: v.verse, text: v.text })));
+        allVerses.push(...verses);
       }
 
       if (allVerses.length === 0) {
