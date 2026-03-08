@@ -4,7 +4,7 @@ import { fileUploads } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import express from "express";
 import path from "path";
-import { isR2Configured, uploadToR2, getPublicUrl } from "./r2";
+import { isR2Configured, uploadToR2, downloadFromR2 } from "./r2";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -119,11 +119,19 @@ export function registerUploadRoutes(app: Express): void {
 
       const objectId = req.params.objectId;
 
-      // Try R2 first if configured — redirect to presigned URL
+      // Try R2 first if configured — stream through server
       if (isR2Configured()) {
         const key = `uploads/${objectId}`;
-        const url = await getPublicUrl(key);
-        return res.redirect(302, url);
+        const r2File = await downloadFromR2(key);
+        if (r2File) {
+          res.set({
+            "Content-Type": r2File.contentType,
+            "Content-Length": r2File.data.length.toString(),
+            "Cache-Control": "public, max-age=86400",
+          });
+          return res.send(r2File.data);
+        }
+        // Fall through to PostgreSQL if not found in R2
       }
 
       // Fallback: serve from PostgreSQL

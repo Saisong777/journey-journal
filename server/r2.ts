@@ -61,6 +61,30 @@ export async function uploadToR2(
 }
 
 /**
+ * Download a file from R2 and return its data and content type.
+ */
+export async function downloadFromR2(key: string): Promise<{ data: Buffer; contentType: string } | null> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    });
+    const response = await getClient().send(command);
+    if (!response.Body) return null;
+    const bytes = await response.Body.transformToByteArray();
+    return {
+      data: Buffer.from(bytes),
+      contentType: response.ContentType || "application/octet-stream",
+    };
+  } catch (e: any) {
+    if (e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    throw e;
+  }
+}
+
+/**
  * Resolve a stored R2 key to a publicly-accessible URL.
  * If R2_PUBLIC_URL is set, returns a direct public URL.
  * Otherwise, returns a presigned GET URL valid for 1 hour.
