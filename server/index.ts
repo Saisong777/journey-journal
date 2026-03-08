@@ -1,9 +1,10 @@
 import express from "express";
 import { createServer } from "http";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerUploadRoutes } from "./uploadRoutes";
 import { runStartupMigration } from "./startupMigration";
 
 const app = express();
@@ -42,13 +43,31 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Setup Replit Auth (BEFORE other routes)
-  await setupAuth(app);
-  registerAuthRoutes(app);
-  
-  // Register object storage routes
-  registerObjectStorageRoutes(app);
-  
+  // Setup session middleware (PostgreSQL store)
+  const pgStore = connectPg(session);
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  app.use(session({
+    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+    store: new pgStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: false,
+      ttl: sessionTtl,
+      tableName: "sessions",
+      pruneSessionInterval: 60 * 15,
+    }),
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax" as const,
+      maxAge: sessionTtl,
+    },
+  }));
+
+  // Register upload routes
+  registerUploadRoutes(app);
+
   // Run startup migration (ensure admin roles and trip data exist)
   await runStartupMigration();
   
@@ -70,7 +89,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const port = 5000;
+  const port = parseInt(process.env.PORT || "5000", 10);
   server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on port ${port}`);
   });

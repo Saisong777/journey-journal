@@ -73,10 +73,6 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
     }
   }
   
-  if (!req.userId && req.isAuthenticated && req.isAuthenticated() && (req.user as any)?.dbUserId) {
-    req.userId = (req.user as any).dbUserId;
-  }
-  
   if (!req.userId && req.session?.userId) {
     req.userId = req.session.userId;
   }
