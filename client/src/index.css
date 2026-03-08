@@ -119,16 +119,30 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    overscroll-behavior: none;
+    @apply bg-background text-foreground tracking-wide font-sans;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading tracking-tight;
   }
 
   /* 大字體基準，適合年長者閱讀，並支援大螢幕 Fluid Typography */
   html {
     font-size: 18px;
     overscroll-behavior: none;
+  }
+
+  /* 平滑滾動與修復 iOS 行為 */
+  html,
+  body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .min-h-screen {

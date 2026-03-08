@@ -24,10 +24,10 @@ export default function Auth() {
       navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
-  
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  
+
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
@@ -56,8 +56,8 @@ export default function Auth() {
       if (!response.ok) {
         toast({
           title: "登入失敗",
-          description: data.error === "Invalid credentials" 
-            ? "電子郵件或密碼錯誤" 
+          description: data.error === "Invalid credentials"
+            ? "電子郵件或密碼錯誤"
             : data.error,
           variant: "destructive",
         });
@@ -85,7 +85,7 @@ export default function Auth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (signupPassword !== signupConfirmPassword) {
       toast({
         title: "密碼不一致",
@@ -150,7 +150,7 @@ export default function Auth() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!resetEmail) {
       toast({
         title: "請輸入電子郵件",
@@ -266,9 +266,9 @@ export default function Auth() {
           <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
             <span className="text-3xl text-primary-foreground">T</span>
           </div>
-          <h1 className="text-2xl font-bold">朝聖之旅</h1>
+          <h1 className="text-2xl font-bold">一起同行</h1>
           <p className="text-muted-foreground">
-            與團員一同記錄屬靈旅程
+            一起經歷與神同行的喜樂
           </p>
         </div>
 
@@ -346,7 +346,7 @@ export default function Auth() {
                       "登入"
                     )}
                   </Button>
-                  
+
                   <div className="relative w-full">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
@@ -355,7 +355,7 @@ export default function Auth() {
                       <span className="bg-card px-2 text-muted-foreground">或使用以下方式</span>
                     </div>
                   </div>
-                  
+
                   <Button
                     type="button"
                     variant="outline"
@@ -472,7 +472,7 @@ export default function Auth() {
                       "註冊"
                     )}
                   </Button>
-                  
+
                   <div className="relative w-full">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
@@ -481,7 +481,7 @@ export default function Auth() {
                       <span className="bg-card px-2 text-muted-foreground">或使用以下方式</span>
                     </div>
                   </div>
-                  
+
                   <Button
                     type="button"
                     variant="outline"

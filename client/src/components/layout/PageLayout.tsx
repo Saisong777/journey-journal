@@ -4,6 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useOfflineSyncStatus } from "@/lib/offlineSyncContext";
 
+import { motion } from "framer-motion";
+
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -36,9 +38,15 @@ export function PageLayout({
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto overscroll-none scroll-smooth">
+        <motion.main
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="flex-1 overflow-y-auto overscroll-none scroll-smooth"
+        >
           {children}
-        </main>
+        </motion.main>
 
         {/* 手機版底部導覽列 */}
         {showBottomNav && (

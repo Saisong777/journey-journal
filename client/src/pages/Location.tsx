@@ -191,7 +191,7 @@ export default function Location() {
 
   return (
     <PageLayout title="團員定位">
-      <div className="px-4 md:px-8 py-6 container max-w-5xl mx-auto space-y-8 animate-fade-in overflow-x-hidden pb-24">
+      <div className="px-4 md:px-8 py-6 pb-32 container max-w-5xl mx-auto space-y-8 animate-fade-in overflow-x-hidden">
         <section className="bg-card/80 backdrop-blur-md rounded-xl shadow-card p-5 border border-white/20">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-title font-semibold">團員狀態</h2>

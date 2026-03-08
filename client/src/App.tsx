@@ -35,209 +35,221 @@ import AuthCallbackSuccess from "./pages/AuthCallbackSuccess";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 
+import { AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/welcome" element={<Landing />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback-success" element={<AuthCallbackSuccess />} />
+        <Route
+          path="/verify-trip"
+          element={
+            <ProtectedRoute skipTripCheck>
+              <VerifyTrip />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/daily-journey"
+          element={
+            <ProtectedRoute>
+              <DailyJourney />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/journal"
+          element={
+            <ProtectedRoute>
+              <DailyJourney />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/devotional"
+          element={
+            <ProtectedRoute>
+              <DailyJourney />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/location"
+          element={
+            <ProtectedRoute>
+              <Location />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools"
+          element={
+            <ProtectedRoute>
+              <Tools />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/members"
+          element={
+            <ProtectedRoute>
+              <Members />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute skipSetupCheck>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attractions"
+          element={
+            <ProtectedRoute>
+              <Attractions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/summary"
+          element={
+            <ProtectedRoute>
+              <TripSummary />
+            </ProtectedRoute>
+          }
+        />
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trips"
+          element={
+            <AdminRoute>
+              <AdminTrips />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trip-days"
+          element={
+            <AdminRoute>
+              <AdminTripDays />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trip-days/:tripId"
+          element={
+            <AdminRoute>
+              <AdminTripDays />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/devotionals"
+          element={
+            <AdminRoute>
+              <AdminDevotionals />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/devotionals/:tripId"
+          element={
+            <AdminRoute>
+              <AdminDevotionals />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trip-notes"
+          element={
+            <AdminRoute>
+              <AdminTripNotes />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/invitations"
+          element={
+            <AdminRoute>
+              <AdminInvitations />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/members"
+          element={
+            <AdminRoute>
+              <AdminMembers />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/bible-library"
+          element={
+            <AdminRoute>
+              <AdminBibleLibrary />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/bible-library"
+          element={
+            <ProtectedRoute>
+              <BibleLibrary />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bible-library/paul-journeys"
+          element={
+            <ProtectedRoute>
+              <PaulJourneys />
+            </ProtectedRoute>
+          }
+        />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <OfflineSyncProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/welcome" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/auth/callback-success" element={<AuthCallbackSuccess />} />
-            <Route
-              path="/verify-trip"
-              element={
-                <ProtectedRoute skipTripCheck>
-                  <VerifyTrip />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/daily-journey"
-              element={
-                <ProtectedRoute>
-                  <DailyJourney />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/journal"
-              element={
-                <ProtectedRoute>
-                  <DailyJourney />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/devotional"
-              element={
-                <ProtectedRoute>
-                  <DailyJourney />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/location"
-              element={
-                <ProtectedRoute>
-                  <Location />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tools"
-              element={
-                <ProtectedRoute>
-                  <Tools />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/members"
-              element={
-                <ProtectedRoute>
-                  <Members />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute skipSetupCheck>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/attractions"
-              element={
-                <ProtectedRoute>
-                  <Attractions />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/summary"
-              element={
-                <ProtectedRoute>
-                  <TripSummary />
-                </ProtectedRoute>
-              }
-            />
-            {/* Admin Routes */}
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/trips"
-              element={
-                <AdminRoute>
-                  <AdminTrips />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/trip-days"
-              element={
-                <AdminRoute>
-                  <AdminTripDays />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/trip-days/:tripId"
-              element={
-                <AdminRoute>
-                  <AdminTripDays />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/devotionals"
-              element={
-                <AdminRoute>
-                  <AdminDevotionals />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/devotionals/:tripId"
-              element={
-                <AdminRoute>
-                  <AdminDevotionals />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/trip-notes"
-              element={
-                <AdminRoute>
-                  <AdminTripNotes />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/invitations"
-              element={
-                <AdminRoute>
-                  <AdminInvitations />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/members"
-              element={
-                <AdminRoute>
-                  <AdminMembers />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/bible-library"
-              element={
-                <AdminRoute>
-                  <AdminBibleLibrary />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/bible-library"
-              element={
-                <ProtectedRoute>
-                  <BibleLibrary />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/bible-library/paul-journeys"
-              element={
-                <ProtectedRoute>
-                  <PaulJourneys />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AnimatedRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
       </OfflineSyncProvider>
     </AuthProvider>
   </QueryClientProvider>

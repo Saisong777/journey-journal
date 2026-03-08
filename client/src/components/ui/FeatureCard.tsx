@@ -1,5 +1,6 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -46,13 +47,15 @@ export function FeatureCard({
   className,
 }: FeatureCardProps) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "w-full p-4 rounded-xl transition-all duration-300",
+        "w-full p-4 rounded-xl transition-colors duration-300",
         "flex flex-col items-center text-center gap-2.5",
         "touch-target shadow-card hover:shadow-elevated",
-        "active:scale-95 hover:-translate-y-1",
         "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         variantStyles[variant],
         className
@@ -73,6 +76,6 @@ export function FeatureCard({
           {description}
         </p>
       </div>
-    </button>
+    </motion.button>
   );
 }

