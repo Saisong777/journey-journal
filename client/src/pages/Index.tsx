@@ -110,7 +110,7 @@ const Index = () => {
 
   return (
     <PageLayout showHeader={false}>
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="px-4 md:px-8 py-6 container max-w-5xl mx-auto space-y-8 animate-fade-in">
         {tripLoading ? (
           <section className="text-center space-y-3">
             <Skeleton className="h-5 w-32 mx-auto" />
@@ -118,25 +118,25 @@ const Index = () => {
             <Skeleton className="h-12 w-40 mx-auto" />
           </section>
         ) : trip ? (
-          <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-6 text-center space-y-3 shadow-card" data-testid="section-hero">
+          <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-6 md:p-8 text-center space-y-4 shadow-card border border-primary/10" data-testid="section-hero">
             <h1 className="text-display text-foreground" data-testid="text-trip-title">{trip.title}</h1>
 
             {isTripStarted ? (
               <>
-                <p className="text-body text-muted-foreground">
+                <p className="text-body-lg text-muted-foreground">
                   {getGreeting()}，{userName}，願神與您同在，今天是
                 </p>
-                <p className="text-5xl font-bold text-primary" data-testid="text-day-number">
+                <p className="text-6xl font-bold text-primary" data-testid="text-day-number">
                   第 {dayNumber} 天
                 </p>
                 {todaySchedule?.title && (
-                  <div className="flex items-center justify-center gap-2 text-body text-foreground mt-1">
-                    <MapPin className="w-4 h-4 text-primary" />
+                  <div className="flex items-center justify-center gap-2 text-body-lg text-foreground mt-2">
+                    <MapPin className="w-5 h-5 text-primary" />
                     <span className="font-medium">{todaySchedule.title}</span>
                   </div>
                 )}
                 {todaySchedule?.cityArea && (
-                  <p className="text-caption text-muted-foreground">{todaySchedule.cityArea}</p>
+                  <p className="text-body text-muted-foreground">{todaySchedule.cityArea}</p>
                 )}
               </>
             ) : (
@@ -170,9 +170,14 @@ const Index = () => {
           <DailyDevotional bibleRefs={todaySchedule?.bibleRefs} />
         )}
 
-        <TodaySchedule todaySchedule={todaySchedule} isLoading={scheduleLoading} />
-
-        <QuickActions />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <TodaySchedule todaySchedule={todaySchedule} isLoading={scheduleLoading} />
+          </div>
+          <div>
+            <QuickActions />
+          </div>
+        </div>
       </div>
     </PageLayout>
   );

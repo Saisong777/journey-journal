@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/ui/BottomNav";
+import { SidebarNav } from "@/components/ui/SidebarNav";
 import { Header } from "@/components/layout/Header";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useOfflineSyncStatus } from "@/lib/offlineSyncContext";
@@ -21,13 +22,31 @@ export function PageLayout({
   const { pendingCount } = useOfflineSyncStatus();
 
   return (
-    <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
-      <OfflineBanner pendingCount={pendingCount} />
-      {showHeader && <Header title={title} className={headerClassName} />}
-      <main className="flex-1 overflow-y-auto overscroll-none">
-        {children}
-      </main>
-      {showBottomNav && <BottomNav />}
+    <div className="h-[100dvh] flex overflow-hidden bg-background">
+      {/* 桌面版/平板版側邊欄 */}
+      {showBottomNav && <SidebarNav />}
+
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <OfflineBanner pendingCount={pendingCount} />
+
+        {/* 手機版 Header (桌面版也可以共用或隱藏) */}
+        {showHeader && (
+          <div className="md:hidden">
+            <Header title={title} className={headerClassName} />
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto overscroll-none scroll-smooth">
+          {children}
+        </main>
+
+        {/* 手機版底部導覽列 */}
+        {showBottomNav && (
+          <div className="md:hidden mt-auto">
+            <BottomNav />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

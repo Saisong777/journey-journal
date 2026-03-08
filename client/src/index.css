@@ -52,15 +52,15 @@
     --terracotta: 15 60% 55%;
     --stone: 30 10% 60%;
 
-    /* 漸層 */
-    --gradient-warm: linear-gradient(135deg, hsl(35 91% 45%) 0%, hsl(25 80% 50%) 100%);
+    /* 漸層 - 更豐富平滑的色彩過渡 */
+    --gradient-warm: linear-gradient(135deg, hsl(35 91% 45%) 0%, hsl(25 80% 50%) 50%, hsl(15 70% 45%) 100%);
     --gradient-olive: linear-gradient(135deg, hsl(85 25% 45%) 0%, hsl(95 30% 35%) 100%);
     --gradient-sunset: linear-gradient(180deg, hsl(35 91% 55%) 0%, hsl(15 70% 50%) 100%);
 
-    /* 陰影 */
-    --shadow-soft: 0 4px 20px -4px hsl(25 30% 15% / 0.1);
-    --shadow-card: 0 8px 30px -8px hsl(25 30% 15% / 0.12);
-    --shadow-elevated: 0 12px 40px -12px hsl(25 30% 15% / 0.15);
+    /* 陰影 - 更深的層次感 (Elevation) */
+    --shadow-soft: 0 4px 20px -4px hsl(25 30% 15% / 0.15);
+    --shadow-card: 0 8px 30px -8px hsl(25 30% 15% / 0.2);
+    --shadow-elevated: 0 16px 40px -12px hsl(25 30% 15% / 0.25);
 
     /* Sidebar */
     --sidebar-background: 40 33% 97%;
@@ -125,7 +125,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* 大字體基準，適合年長者閱讀 */
+  /* 大字體基準，適合年長者閱讀，並支援大螢幕 Fluid Typography */
   html {
     font-size: 18px;
     overscroll-behavior: none;
@@ -133,6 +133,20 @@
 
   .min-h-screen {
     min-height: 100dvh;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 19px;
+      /* iPad 等尺寸略微放大字級 */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 20px;
+      /* 電腦版進一步放大字體，利用多餘空間 */
+    }
   }
 
   @media (max-width: 640px) {
@@ -177,6 +191,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }

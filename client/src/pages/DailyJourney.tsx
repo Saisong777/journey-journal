@@ -331,31 +331,31 @@ export default function DailyJourney() {
 
   return (
     <PageLayout title="每日旅程">
-      <div className="relative px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="relative px-4 md:px-8 py-6 container max-w-5xl mx-auto space-y-8 animate-fade-in pb-24">
         {/* Date Selector */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-title">
+            <h2 className="text-display">
               {format(selectedDate, "yyyy年M月", { locale: zhTW })}
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setSelectedDate(prev => addDays(prev, -7))}
-                className="p-2 rounded-lg hover:bg-muted transition-colors touch-target"
+                className="p-2 rounded-xl hover:bg-muted transition-all active:scale-95 touch-target"
                 data-testid="button-prev-week"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setSelectedDate(new Date())}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95"
                 data-testid="button-today"
               >
                 今天
               </button>
               <button
                 onClick={() => setSelectedDate(prev => addDays(prev, 7))}
-                className="p-2 rounded-lg hover:bg-muted transition-colors touch-target"
+                className="p-2 rounded-xl hover:bg-muted transition-all active:scale-95 touch-target"
                 data-testid="button-next-week"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -363,23 +363,23 @@ export default function DailyJourney() {
             </div>
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2">
+          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
             {days.map((day, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedDate(day.fullDate)}
                 data-testid={`button-day-${index}`}
                 className={cn(
-                  "flex-shrink-0 w-16 py-3 rounded-xl flex flex-col items-center gap-1 transition-all touch-target",
+                  "flex-shrink-0 w-20 py-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all touch-target snap-start",
                   selectedDayIndex === index
-                    ? "gradient-warm text-primary-foreground shadow-card"
-                    : "bg-card text-foreground hover:bg-muted"
+                    ? "gradient-warm text-primary-foreground shadow-elevated transform scale-105"
+                    : "bg-card/80 backdrop-blur-md text-foreground hover:bg-muted border border-border shadow-sm hover:shadow-card hover:-translate-y-1"
                 )}
               >
-                <span className="text-caption">{day.day}</span>
-                <span className="text-title">{day.date.split("/")[1]}</span>
+                <span className={cn("text-caption font-medium", selectedDayIndex === index ? "text-primary-foreground/90" : "text-muted-foreground")}>{day.day}</span>
+                <span className="text-display text-2xl">{day.date.split("/")[1]}</span>
                 {day.isToday && selectedDayIndex !== index && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  <div className="w-2 h-2 rounded-full bg-primary mt-1 shadow-sm" />
                 )}
               </button>
             ))}
@@ -387,27 +387,27 @@ export default function DailyJourney() {
         </section>
 
         {/* Step Tabs */}
-        <section className="flex gap-2 flex-shrink-0">
+        <section className="flex gap-3 flex-shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               data-testid={`tab-${tab.key}`}
               className={cn(
-                "flex-1 py-3 rounded-lg flex items-center justify-center gap-1.5 transition-all touch-target relative",
+                "flex-1 py-4 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-2 transition-all touch-target relative",
                 activeTab === tab.key
                   ? tab.key === "morning"
-                    ? "bg-amber-100 text-amber-800 shadow-card dark:bg-amber-900/30 dark:text-amber-200"
+                    ? "bg-amber-100 text-amber-800 shadow-elevated dark:bg-amber-900/40 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
                     : tab.key === "adventure"
-                    ? "bg-emerald-100 text-emerald-800 shadow-card dark:bg-emerald-900/30 dark:text-emerald-200"
-                    : "bg-indigo-100 text-indigo-800 shadow-card dark:bg-indigo-900/30 dark:text-indigo-200"
-                  : "bg-card text-muted-foreground hover:bg-muted"
+                      ? "bg-emerald-100 text-emerald-800 shadow-elevated dark:bg-emerald-900/40 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800"
+                      : "bg-indigo-100 text-indigo-800 shadow-elevated dark:bg-indigo-900/40 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800"
+                  : "bg-card/80 backdrop-blur-md text-muted-foreground hover:bg-muted border border-white/10 hover:shadow-card hover:-translate-y-1"
               )}
             >
-              <tab.icon className="w-4 h-4" />
-              <span className="text-caption font-medium">{tab.label}</span>
+              <tab.icon className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="text-body font-semibold">{tab.label}</span>
               {tab.completed && (
-                <Check className="w-3.5 h-3.5 absolute top-1.5 right-1.5 text-green-600" />
+                <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 absolute top-2 right-2 text-green-600 bg-green-100 rounded-full p-0.5" />
               )}
             </button>
           ))}

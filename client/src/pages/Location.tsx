@@ -18,13 +18,13 @@ function formatTimeAgo(dateString: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  
+
   if (diffMins < 1) return "剛剛";
   if (diffMins < 60) return `${diffMins} 分鐘前`;
-  
+
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours} 小時前`;
-  
+
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} 天前`;
 }
@@ -36,7 +36,7 @@ export default function Location() {
   const [isLocating, setIsLocating] = useState(false);
   const [myPosition, setMyPosition] = useState<[number, number] | null>(null);
   const autoLocatedRef = useRef(false);
-  
+
   const { data: locations = [], refetch, isLoading } = useLocations();
   const updateLocation = useUpdateLocation();
   const { user } = useAuth();
@@ -48,7 +48,7 @@ export default function Location() {
   useEffect(() => {
     if (autoLocatedRef.current) return;
     autoLocatedRef.current = true;
-    
+
     if (!navigator.geolocation) {
       setLocationError("您的瀏覽器不支援定位功能");
       setIsGettingLocation(false);
@@ -108,7 +108,7 @@ export default function Location() {
 
   const handleShareLocation = () => {
     setIsLocating(true);
-    
+
     if (!navigator.geolocation) {
       toast({
         title: "不支援定位",
@@ -186,30 +186,30 @@ export default function Location() {
     );
   };
 
-  const mapCenter: [number, number] | null = myPosition 
+  const mapCenter: [number, number] | null = myPosition
     || (locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : null);
 
   return (
     <PageLayout title="團員定位">
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in overflow-x-hidden">
-        <section className="bg-card rounded-lg shadow-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-body font-semibold">團員狀態</h2>
-            <div className="flex items-center gap-2">
+      <div className="px-4 md:px-8 py-6 container max-w-5xl mx-auto space-y-8 animate-fade-in overflow-x-hidden pb-24">
+        <section className="bg-card/80 backdrop-blur-md rounded-xl shadow-card p-5 border border-white/20">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-title font-semibold">團員狀態</h2>
+            <div className="flex items-center gap-3">
               <Button
-                variant="outline"
                 size="sm"
                 onClick={handleShareLocation}
                 disabled={isLocating}
+                className="rounded-full px-4 gradient-warm border-none shadow-sm hover:translate-y-px hover:shadow-card transition-all"
                 data-testid="button-share-location"
               >
-                <Navigation className={cn("w-4 h-4 mr-1", isLocating && "animate-pulse")} />
+                <Navigation className={cn("w-4 h-4 mr-1.5", isLocating && "animate-pulse")} />
                 {isLocating ? "定位中..." : "分享位置"}
               </Button>
               <button
                 onClick={handleRefresh}
                 className={cn(
-                  "p-2 rounded-lg hover:bg-muted transition-colors touch-target",
+                  "p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors touch-target",
                   isRefreshing && "animate-spin"
                 )}
                 data-testid="button-refresh-locations"
@@ -218,27 +218,27 @@ export default function Location() {
               </button>
             </div>
           </div>
-          
-          <div className="flex items-center gap-6 text-caption">
+
+          <div className="flex items-center gap-6 text-body font-medium">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <div className="w-3.5 h-3.5 rounded-full bg-green-500 shadow-sm ring-4 ring-green-500/20" />
               <span>在線 {onlineCount} 人</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-stone" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="w-3.5 h-3.5 rounded-full bg-stone" />
               <span>離線 {offlineCount} 人</span>
             </div>
           </div>
 
           {offlineCount > 0 && (
-            <div className="mt-3 p-3 bg-terracotta/10 rounded-lg flex items-center gap-2 text-terracotta">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-caption">{offlineCount} 位團員暫時離線，請留意</span>
+            <div className="mt-4 p-4 bg-terracotta/10 rounded-xl flex items-center gap-3 text-terracotta border border-terracotta/20">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-body-lg font-medium">{offlineCount} 位團員暫時離線，請留意</span>
             </div>
           )}
         </section>
 
-        <section className="flex gap-2">
+        <section className="flex gap-3">
           {[
             { key: "map", label: "地圖", icon: MapPin },
             { key: "list", label: "列表", icon: Users },
@@ -248,15 +248,15 @@ export default function Location() {
               key={tab.key}
               onClick={() => setViewMode(tab.key as ViewMode)}
               className={cn(
-                "flex-1 py-3 rounded-lg flex items-center justify-center gap-2 transition-all touch-target",
+                "flex-1 py-4 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-2 transition-all touch-target",
                 viewMode === tab.key
-                  ? "gradient-warm text-primary-foreground shadow-card"
-                  : "bg-card text-foreground hover:bg-muted"
+                  ? "gradient-warm text-primary-foreground shadow-elevated transform scale-[1.02]"
+                  : "bg-card/80 backdrop-blur-md text-muted-foreground hover:bg-muted border border-white/10 hover:shadow-card hover:-translate-y-1"
               )}
               data-testid={`button-view-${tab.key}`}
             >
-              <tab.icon className="w-4 h-4" />
-              <span className="text-body font-medium">{tab.label}</span>
+              <tab.icon className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="text-body font-semibold">{tab.label}</span>
             </button>
           ))}
         </section>
@@ -273,8 +273,8 @@ export default function Location() {
                 <MapPin className="w-12 h-12 text-destructive mb-3" />
                 <p className="text-body font-medium text-destructive mb-2">定位失敗</p>
                 <p className="text-caption text-muted-foreground mb-4">{locationError}</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => window.location.reload()}
                   data-testid="button-retry-location"
@@ -284,8 +284,8 @@ export default function Location() {
               </div>
             ) : mapCenter ? (
               <>
-                <TeamMap 
-                  locations={locations} 
+                <TeamMap
+                  locations={locations}
                   myUserId={user?.id}
                   center={mapCenter}
                   myPosition={myPosition}
@@ -297,7 +297,7 @@ export default function Location() {
                 )}
               </>
             ) : null}
-            
+
             {filteredMembers.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-body font-semibold">團員位置</h3>

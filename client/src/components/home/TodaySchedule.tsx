@@ -35,7 +35,7 @@ interface TodayScheduleProps {
 
 function parseHighlightsToSchedule(tripDay: TripDay): ScheduleItem[] {
   const items: ScheduleItem[] = [];
-  
+
   if (tripDay.breakfast && tripDay.breakfast !== "X" && tripDay.breakfast !== "x") {
     items.push({
       time: "07:30",
@@ -144,63 +144,63 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
         </div>
       </div>
 
-      <div className="bg-card rounded-lg shadow-card overflow-hidden">
+      <div className="bg-card/80 backdrop-blur-md rounded-xl shadow-card overflow-hidden border border-white/20">
         {scheduleItems.length === 0 ? (
-          <div className="p-6 text-center text-muted-foreground">
-            <p>今日為自由活動日</p>
+          <div className="p-8 text-center text-muted-foreground">
+            <p className="text-body-lg">今日為自由活動日，好好享受！</p>
           </div>
         ) : (
           scheduleItems.map((item, index) => (
             <div
               key={index}
               className={cn(
-                "flex items-center gap-4 p-4 border-b border-border last:border-0",
-                item.isNext && "bg-primary/5"
+                "flex items-center gap-4 p-5 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30",
+                item.isNext && "bg-primary/5 border-primary/20"
               )}
               data-testid={`schedule-item-${index}`}
             >
               <div className={cn(
-                "text-center min-w-[60px]",
-                item.isNext ? "text-primary font-semibold" : "text-muted-foreground"
+                "text-center min-w-[64px]",
+                item.isNext ? "text-primary font-bold" : "text-muted-foreground"
               )}>
                 {item.icon === "meal" ? (
-                  <Utensils className="w-4 h-4 mx-auto mb-1" />
+                  <Utensils className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
                 ) : item.icon === "lodging" ? (
-                  <Home className="w-4 h-4 mx-auto mb-1" />
+                  <Home className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
                 ) : (
-                  <Clock className="w-4 h-4 mx-auto mb-1" />
+                  <Clock className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
                 )}
-                <span className="text-body">{item.time}</span>
+                <span className="text-body-lg">{item.time}</span>
               </div>
 
-              <div className="relative flex flex-col items-center">
+              <div className="relative flex flex-col items-center self-stretch py-2">
                 <div className={cn(
-                  "w-3 h-3 rounded-full",
-                  item.isNext ? "bg-primary" : "bg-muted"
+                  "w-3.5 h-3.5 rounded-full z-10 shadow-sm",
+                  item.isNext ? "bg-primary ring-4 ring-primary/20" : "bg-muted border-2 border-border"
                 )} />
                 {index < scheduleItems.length - 1 && (
-                  <div className="absolute top-3 w-0.5 h-12 bg-muted" />
+                  <div className="absolute top-5 w-0.5 h-[calc(100%+12px)] bg-gradient-to-b from-border to-border/50" />
                 )}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 py-1">
                 <h3 className={cn(
-                  "text-body font-medium",
-                  item.isNext && "text-primary"
+                  "text-body-lg font-semibold",
+                  item.isNext ? "text-primary" : "text-foreground"
                 )}>
                   {item.title}
                 </h3>
                 {item.location && (
-                  <div className="flex items-center gap-1 text-muted-foreground text-caption">
-                    <MapPin className="w-3 h-3" />
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-body mt-1">
+                    <MapPin className="w-4 h-4 opacity-70" />
                     {item.location}
                   </div>
                 )}
               </div>
 
               {item.isNext && (
-                <span className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-caption font-medium">
-                  下一站
+                <span className="hidden sm:inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-caption font-bold shadow-sm animate-pulse">
+                  即將前往
                 </span>
               )}
             </div>
