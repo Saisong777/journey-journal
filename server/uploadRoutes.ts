@@ -24,9 +24,11 @@ export function registerUploadRoutes(app: Express): void {
   // POST /api/uploads/request-url — returns presigned R2 URL or local fallback
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
-      // Require authentication
+      // Require authentication (session or Bearer token)
+      const authHeader = req.headers.authorization;
+      const hasToken = authHeader && authHeader.startsWith("Bearer ");
       const hasSession = (req as any).session?.userId;
-      if (!hasSession) {
+      if (!hasToken && !hasSession) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
@@ -83,9 +85,11 @@ export function registerUploadRoutes(app: Express): void {
   // PUT /api/uploads/direct/:id — PostgreSQL bytea fallback (when R2 not configured)
   app.put("/api/uploads/direct/:id", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
     try {
-      // Require authentication
+      // Require authentication (session or Bearer token)
+      const authHeader = req.headers.authorization;
+      const hasToken = authHeader && authHeader.startsWith("Bearer ");
       const hasSession = (req as any).session?.userId;
-      if (!hasSession) {
+      if (!hasToken && !hasSession) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
