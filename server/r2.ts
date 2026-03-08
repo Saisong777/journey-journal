@@ -44,6 +44,23 @@ export async function getPresignedPutUrl(
 }
 
 /**
+ * Upload a file buffer to R2 from the server.
+ */
+export async function uploadToR2(
+  key: string,
+  data: Buffer,
+  contentType: string,
+): Promise<void> {
+  const command = new PutObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    Body: data,
+    ContentType: contentType,
+  });
+  await getClient().send(command);
+}
+
+/**
  * Resolve a stored R2 key to a publicly-accessible URL.
  * If R2_PUBLIC_URL is set, returns a direct public URL.
  * Otherwise, returns a presigned GET URL valid for 1 hour.
