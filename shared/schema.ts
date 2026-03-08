@@ -1,6 +1,12 @@
-import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index, serial, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+const bytea = customType<{ data: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -260,6 +266,15 @@ export const paulJourneys = pgTable("paul_journeys", {
   index("idx_paul_journeys_sequence").on(table.journey, table.sequence),
 ]);
 
+export const fileUploads = pgTable("file_uploads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  data: bytea("data").notNull(),
+  contentType: text("content_type").notNull(),
+  fileName: text("file_name"),
+  size: integer("size"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
@@ -303,3 +318,4 @@ export type InsertTripNote = z.infer<typeof insertTripNoteSchema>;
 export type InsertTripNoteAssignment = z.infer<typeof insertTripNoteAssignmentSchema>;
 export type AppSetting = typeof appSettings.$inferSelect;
 export type PaulJourney = typeof paulJourneys.$inferSelect;
+export type FileUpload = typeof fileUploads.$inferSelect;

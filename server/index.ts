@@ -9,7 +9,13 @@ import { runStartupMigration } from "./startupMigration";
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json());
+app.use((req, res, next) => {
+  // Skip JSON parsing for direct binary upload route
+  if (req.path.startsWith("/api/uploads/direct/")) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
