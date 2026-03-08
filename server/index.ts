@@ -28,12 +28,13 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// S4: Global rate limit — 100 requests per 15 min
-app.use(rateLimit({
+// S4: Global rate limit — 300 requests per 15 min (skip non-API routes)
+app.use("/api", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith("/auth/google/callback"),
   message: { error: "Too many requests, please try again later" },
 }));
 
