@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { compressImage } from "@/lib/photoUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,11 +124,15 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
     setIsUploading(true);
 
     try {
-      for (const file of filesToUpload) {
-        const token = getAuthToken();
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+      const token = getAuthToken();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
+      // Compress all images in parallel
+      const compressed = await Promise.all(filesToUpload.map(f => compressImage(f)));
+
+      // Upload all in parallel
+      const results = await Promise.all(compressed.map(async (file) => {
         const urlResponse = await fetch("/api/uploads/request-url", {
           method: "POST",
           credentials: "include",
@@ -138,9 +143,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
             contentType: file.type,
           }),
         });
-
         if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-
         const { uploadURL, objectPath } = await urlResponse.json();
 
         const uploadResponse = await fetch(uploadURL, {
@@ -148,12 +151,13 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
           body: file,
           headers: { "Content-Type": file.type },
         });
-
         if (!uploadResponse.ok) throw new Error("Failed to upload file");
 
         const previewUrl = URL.createObjectURL(file);
-        setEditPhotos(prev => [...prev, { displayUrl: previewUrl, objectPath, isNew: true }]);
-      }
+        return { displayUrl: previewUrl, objectPath, isNew: true };
+      }));
+
+      setEditPhotos(prev => [...prev, ...results]);
     } catch (error) {
       console.error("Upload failed:", error);
     } finally {

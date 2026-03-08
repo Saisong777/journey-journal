@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/queryClient";
+import { compressImage } from "@/lib/photoUtils";
 
 interface AddJournalSheetProps {
   open: boolean;
@@ -88,18 +89,21 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
     if (remaining <= 0) return;
 
     setIsUploading(true);
-    
+
     try {
-      for (const file of Array.from(files).slice(0, remaining)) {
-        const token = getAuthToken();
-        const headers: HeadersInit = {
-          "Content-Type": "application/json",
-        };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-        
-        // Step 1: Get presigned URL
+      const token = getAuthToken();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const filesToUpload = Array.from(files).slice(0, remaining);
+
+      // Compress all images in parallel
+      const compressed = await Promise.all(filesToUpload.map(f => compressImage(f)));
+
+      // Upload all in parallel
+      const results = await Promise.all(compressed.map(async (file) => {
         const urlResponse = await fetch("/api/uploads/request-url", {
           method: "POST",
           credentials: "include",
@@ -110,36 +114,25 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
             contentType: file.type,
           }),
         });
-        
-        if (!urlResponse.ok) {
-          throw new Error("Failed to get upload URL");
-        }
-        
+        if (!urlResponse.ok) throw new Error("Failed to get upload URL");
         const { uploadURL, objectPath } = await urlResponse.json();
-        
-        // Step 2: Upload file directly to the presigned URL
+
         const uploadResponse = await fetch(uploadURL, {
           method: "PUT",
           body: file,
-          headers: {
-            "Content-Type": file.type,
-          },
+          headers: { "Content-Type": file.type },
         });
-        
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload file");
-        }
-        
-        // Store both the display URL and object path
-        // Create a temporary URL for display (will use blob URL for preview)
+        if (!uploadResponse.ok) throw new Error("Failed to upload file");
+
         const previewUrl = URL.createObjectURL(file);
-        setPhotos(prev => [...prev, { url: previewUrl, objectPath }]);
-      }
+        return { url: previewUrl, objectPath };
+      }));
+
+      setPhotos(prev => [...prev, ...results]);
     } catch (error) {
       console.error("Upload failed:", error);
     } finally {
       setIsUploading(false);
-      // Reset file input
       e.target.value = "";
     }
   };

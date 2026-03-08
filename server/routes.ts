@@ -3,7 +3,11 @@ import { z } from "zod";
 
 // --- User existence cache (avoids a DB hit on every API request) ---
 const userExistenceCache = new Map<string, { exists: boolean; expiresAt: number }>();
-const USER_CACHE_TTL = 30_000; // 30 seconds
+const USER_CACHE_TTL = 300_000; // 5 minutes
+
+// --- User role cache (avoids repeated getUserRole DB queries) ---
+const userRoleCache = new Map<string, { role: any; expiresAt: number }>();
+const USER_ROLE_CACHE_TTL = 60_000; // 1 minute
 
 // --- Weather cache ---
 const weatherCache = new Map<string, { data: unknown; ts: number }>();
@@ -258,6 +262,15 @@ async function requireSuperAdmin(req: Request, res: Response, next: NextFunction
     return res.status(403).json({ error: "Forbidden: Super Admin only" });
   }
   next();
+}
+
+async function getCachedUserRole(userId: string) {
+  const now = Date.now();
+  const cached = userRoleCache.get(userId);
+  if (cached && cached.expiresAt > now) return cached.role;
+  const role = await storage.getUserRole(userId);
+  userRoleCache.set(userId, { role, expiresAt: now + USER_ROLE_CACHE_TTL });
+  return role;
 }
 
 export function registerRoutes(app: Express) {
@@ -621,7 +634,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/weather", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(404).json({ error: "No active trip" });
       }
@@ -663,7 +676,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/members", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -676,7 +689,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/groups", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -689,7 +702,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/journal-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole) {
         return res.json([]);
       }
@@ -704,7 +717,7 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/journal-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
@@ -720,13 +733,13 @@ export function registerRoutes(app: Express) {
       });
 
       if (photos && Array.isArray(photos) && photos.length > 0) {
-        for (const photoUrl of photos) {
-          await storage.createJournalPhoto({
+        await storage.createJournalPhotos(
+          photos.map((photoUrl: string) => ({
             journalEntryId: entry.id,
             photoUrl,
             caption: null,
-          });
-        }
+          }))
+        );
       }
 
       res.json(entry);
@@ -806,7 +819,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.json([]);
       }
@@ -820,7 +833,7 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/devotional-entries", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
@@ -872,7 +885,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/evening-reflections", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.json(null);
       }
@@ -886,7 +899,7 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/evening-reflections", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
         return res.status(400).json({ error: "User not in a trip" });
       }
@@ -1019,7 +1032,7 @@ export function registerRoutes(app: Express) {
   // Public trip days endpoint for members
   app.get("/api/trip-days", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1033,7 +1046,7 @@ export function registerRoutes(app: Express) {
   // Get today's trip day based on current date
   app.get("/api/trip-days/today", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json(null);
       }
@@ -1078,7 +1091,7 @@ export function registerRoutes(app: Express) {
   // Get today's attractions for journal location selection
   app.get("/api/trip-days/today/attractions", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1138,7 +1151,7 @@ export function registerRoutes(app: Express) {
   app.get("/api/trip-days/attractions", requireAuth, async (req, res) => {
     try {
       const dateParam = req.query.date as string | undefined;
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1465,7 +1478,7 @@ export function registerRoutes(app: Express) {
   // Location endpoints
   app.get("/api/locations", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1484,7 +1497,7 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid coordinates" });
       }
 
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.status(400).json({ error: "No trip assigned" });
       }
@@ -1633,7 +1646,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trips/current/devotional-courses", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1647,7 +1660,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/trips/current/notes", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json([]);
       }
@@ -1661,7 +1674,7 @@ export function registerRoutes(app: Express) {
   // User-facing: get special remarks for current trip
   app.get("/api/trips/current/remarks", requireAuth, async (req, res) => {
     try {
-      const userRole = await storage.getUserRole(req.userId!);
+      const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) {
         return res.json({ specialRemarks: null });
       }
@@ -1852,7 +1865,7 @@ export function registerRoutes(app: Express) {
       }
 
       // Check if user already has a role for this trip
-      const existingRole = await storage.getUserRole(req.userId!);
+      const existingRole = await getCachedUserRole(req.userId!);
       if (existingRole && existingRole.tripId === invitation.tripId) {
         return res.status(400).json({ error: "您已加入此旅程" });
       }

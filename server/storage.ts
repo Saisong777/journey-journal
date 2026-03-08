@@ -438,6 +438,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async createJournalPhotos(photos: InsertJournalPhoto[]): Promise<JournalPhoto[]> {
+    if (photos.length === 0) return [];
+    return db.insert(journalPhotos).values(photos).returning();
+  }
+
   async deleteJournalPhoto(id: string): Promise<void> {
     await db.delete(journalPhotos).where(eq(journalPhotos.id, id));
   }
@@ -447,13 +452,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]> {
-    let query = db.select().from(devotionalEntries).where(eq(devotionalEntries.tripId, tripId));
-    const entries = await query.orderBy(desc(devotionalEntries.createdAt));
-    
+    const conditions = [eq(devotionalEntries.tripId, tripId)];
     if (date) {
-      return entries.filter((e) => e.entryDate === date);
+      conditions.push(eq(devotionalEntries.entryDate, date));
     }
-    return entries;
+    return db.select().from(devotionalEntries)
+      .where(and(...conditions))
+      .orderBy(desc(devotionalEntries.createdAt));
   }
 
   async createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry> {

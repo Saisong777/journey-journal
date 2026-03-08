@@ -1,5 +1,62 @@
 const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL || "";
 
+const MAX_DIMENSION = 1920;
+const JPEG_QUALITY = 0.8;
+
+/**
+ * Compress an image file using canvas.
+ * Resizes to max 1920px on longest side and re-encodes as JPEG at 80% quality.
+ */
+export function compressImage(file: File): Promise<File> {
+  // Skip non-image files and GIFs (preserve animation)
+  if (!file.type.startsWith("image/") || file.type === "image/gif") {
+    return Promise.resolve(file);
+  }
+  // Skip small files (< 300KB)
+  if (file.size < 300 * 1024) {
+    return Promise.resolve(file);
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      // Scale down if larger than MAX_DIMENSION
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            resolve(new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
+          } else {
+            resolve(file); // Compressed is larger, keep original
+          }
+        },
+        "image/jpeg",
+        JPEG_QUALITY,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file); // On error, keep original
+    };
+    img.src = url;
+  });
+}
+
 export function transformPhotoUrl(photoUrl: string): string {
   // R2 images: stored as "r2://uploads/{uuid}"
   if (photoUrl.startsWith("r2://")) {
