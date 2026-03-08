@@ -4,6 +4,7 @@ import { fileUploads } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import express from "express";
 import path from "path";
+import { isR2Configured, getPresignedPutUrl, getPublicUrl } from "./r2";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -20,10 +21,15 @@ function sanitizeFilename(name: string): string {
 }
 
 export function registerUploadRoutes(app: Express): void {
-  // POST /api/uploads/request-url — accepts JSON metadata, stores nothing yet
-  // Returns a direct upload URL pointing to our own server
+  // POST /api/uploads/request-url — returns presigned R2 URL or local fallback
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
+      // Require authentication
+      const hasSession = (req as any).session?.userId;
+      if (!hasSession) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
       const { name, size, contentType } = req.body;
 
       if (!name) {
@@ -32,28 +38,37 @@ export function registerUploadRoutes(app: Express): void {
         });
       }
 
-      // S2: Validate file type
+      // Validate file type
       if (contentType && !ALLOWED_MIME_TYPES.has(contentType)) {
         return res.status(400).json({
           error: "File type not allowed. Allowed types: JPEG, PNG, WebP, GIF, PDF",
         });
       }
 
-      // S2: Validate file size
+      // Validate file size
       if (size && size > MAX_UPLOAD_SIZE) {
         return res.status(400).json({
           error: "File too large. Maximum size is 10MB",
         });
       }
 
-      // S2: Sanitize filename
       const safeName = sanitizeFilename(name);
-
-      // Generate a unique ID for this upload
       const id = crypto.randomUUID();
+
+      // R2 mode: return presigned PUT URL for direct client upload
+      if (isR2Configured()) {
+        const key = `uploads/${id}`;
+        const presignedUrl = await getPresignedPutUrl(key, contentType || "application/octet-stream");
+        return res.json({
+          uploadURL: presignedUrl,
+          objectPath: `r2://${key}`,
+          metadata: { name: safeName, size, contentType },
+        });
+      }
+
+      // Fallback: PostgreSQL bytea
       const uploadURL = `/api/uploads/direct/${id}`;
       const objectPath = `/objects/uploads/${id}`;
-
       res.json({
         uploadURL,
         objectPath,
@@ -65,13 +80,18 @@ export function registerUploadRoutes(app: Express): void {
     }
   });
 
-  // PUT /api/uploads/direct/:id — receives raw binary file data
+  // PUT /api/uploads/direct/:id — PostgreSQL bytea fallback (when R2 not configured)
   app.put("/api/uploads/direct/:id", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
     try {
+      // Require authentication
+      const hasSession = (req as any).session?.userId;
+      if (!hasSession) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
       const id = req.params.id;
       const contentType = req.headers["content-type"] || "application/octet-stream";
 
-      // S2: Validate content type on actual upload
       if (!ALLOWED_MIME_TYPES.has(contentType)) {
         return res.status(400).json({
           error: "File type not allowed. Allowed types: JPEG, PNG, WebP, GIF, PDF",
@@ -94,7 +114,7 @@ export function registerUploadRoutes(app: Express): void {
     }
   });
 
-  // GET /api/uploads/file/:objectId — serves file from PostgreSQL (auth required)
+  // GET /api/uploads/file/:objectId — serves file from PostgreSQL or redirects to R2
   app.get("/api/uploads/file/:objectId", async (req, res) => {
     try {
       // Require authentication: check session or Bearer token
@@ -106,6 +126,15 @@ export function registerUploadRoutes(app: Express): void {
       }
 
       const objectId = req.params.objectId;
+
+      // Try R2 first if configured — redirect to public/presigned URL
+      if (isR2Configured()) {
+        const key = `uploads/${objectId}`;
+        const url = await getPublicUrl(key);
+        return res.redirect(302, url);
+      }
+
+      // Fallback: serve from PostgreSQL
       const [file] = await db
         .select()
         .from(fileUploads)
