@@ -352,51 +352,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
-    let entriesQuery = db.select().from(journalEntries).where(eq(journalEntries.tripId, tripId));
-    
-    const entries = await entriesQuery.orderBy(desc(journalEntries.createdAt));
-    
-    const result = await Promise.all(
-      entries.map(async (entry) => {
-        const photos = await db
-          .select()
-          .from(journalPhotos)
-          .where(eq(journalPhotos.journalEntryId, entry.id));
-        return { ...entry, photos };
-      })
-    );
+    const entries = await db
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.tripId, tripId))
+      .orderBy(desc(journalEntries.createdAt));
 
-    if (date) {
-      return result.filter((e) => e.entryDate === date);
+    if (entries.length === 0) return [];
+
+    const entryIds = entries.map((e) => e.id);
+    const allPhotos = await db.select().from(journalPhotos).where(inArray(journalPhotos.journalEntryId, entryIds));
+    const photosMap = new Map<string, JournalPhoto[]>();
+    for (const photo of allPhotos) {
+      const arr = photosMap.get(photo.journalEntryId) ?? [];
+      arr.push(photo);
+      photosMap.set(photo.journalEntryId, arr);
     }
+
+    const result = entries.map((entry) => ({ ...entry, photos: photosMap.get(entry.id) ?? [] }));
+    if (date) return result.filter((e) => e.entryDate === date);
     return result;
   }
 
   async getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]> {
     const conditions = [eq(journalEntries.userId, userId)];
-    if (tripId) {
-      conditions.push(eq(journalEntries.tripId, tripId));
-    }
-    
+    if (tripId) conditions.push(eq(journalEntries.tripId, tripId));
+
     const entries = await db
       .select()
       .from(journalEntries)
       .where(and(...conditions))
       .orderBy(desc(journalEntries.createdAt));
-    
-    const result = await Promise.all(
-      entries.map(async (entry) => {
-        const photos = await db
-          .select()
-          .from(journalPhotos)
-          .where(eq(journalPhotos.journalEntryId, entry.id));
-        return { ...entry, photos };
-      })
-    );
 
-    if (date) {
-      return result.filter((e) => e.entryDate === date);
+    if (entries.length === 0) return [];
+
+    const entryIds = entries.map((e) => e.id);
+    const allPhotos = await db.select().from(journalPhotos).where(inArray(journalPhotos.journalEntryId, entryIds));
+    const photosMap = new Map<string, JournalPhoto[]>();
+    for (const photo of allPhotos) {
+      const arr = photosMap.get(photo.journalEntryId) ?? [];
+      arr.push(photo);
+      photosMap.set(photo.journalEntryId, arr);
     }
+
+    const result = entries.map((entry) => ({ ...entry, photos: photosMap.get(entry.id) ?? [] }));
+    if (date) return result.filter((e) => e.entryDate === date);
     return result;
   }
 
@@ -499,13 +499,13 @@ export class DatabaseStorage implements IStorage {
 
   async getLocationsByTrip(tripId: string): Promise<(UserLocation & { profile?: Profile })[]> {
     const locations = await db.select().from(userLocations).where(eq(userLocations.tripId, tripId));
-    const profilesList = await this.getAllProfiles();
+    if (locations.length === 0) return [];
+
+    const userIds = locations.map((l) => l.userId);
+    const profilesList = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
     const profileMap = new Map(profilesList.map((p) => [p.userId, p]));
-    
-    return locations.map((loc) => ({
-      ...loc,
-      profile: profileMap.get(loc.userId),
-    }));
+
+    return locations.map((loc) => ({ ...loc, profile: profileMap.get(loc.userId) }));
   }
 
   async updateUserLocation(userId: string, tripId: string, latitude: number, longitude: number): Promise<UserLocation> {

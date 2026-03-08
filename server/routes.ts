@@ -1600,7 +1600,7 @@ export function registerRoutes(app: Express) {
 
           if (user) {
             if (user.tempPassword) {
-              const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+              const tempPwd = crypto.randomBytes(5).toString("base64url").slice(0, 8);
               await storage.updateUser(user.id, { tempPassword: tempPwd });
               actualTempPwd = tempPwd;
             }
@@ -1609,7 +1609,7 @@ export function registerRoutes(app: Express) {
               await storage.createProfile({ userId: user.id, name, email });
             }
           } else {
-            const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+            const tempPwd = crypto.randomBytes(5).toString("base64url").slice(0, 8);
             const hashedPassword = await bcrypt.hash(tempPwd, 10);
             user = await storage.createUser({
               email,

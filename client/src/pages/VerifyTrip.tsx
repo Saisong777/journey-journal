@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getAuthToken } from "@/lib/queryClient";
@@ -16,6 +16,13 @@ export default function VerifyTrip() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navigateTimerRef.current) clearTimeout(navigateTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const urlCode = searchParams.get("code");
@@ -61,7 +68,7 @@ export default function VerifyTrip() {
       setSuccess(true);
       setError(null);
       queryClient.invalidateQueries({ queryKey: ["trip-status"] });
-      setTimeout(() => {
+      navigateTimerRef.current = setTimeout(() => {
         navigate("/");
       }, 2000);
     },

@@ -95,7 +95,10 @@ export const userRoles = pgTable("user_roles", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   role: appRoleEnum("role").default("member").notNull(),
   tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }),
-});
+}, (table) => [
+  index("idx_user_roles_user_id").on(table.userId),
+  index("idx_user_roles_trip_id").on(table.tripId),
+]);
 
 export const journalEntries = pgTable("journal_entries", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -107,7 +110,11 @@ export const journalEntries = pgTable("journal_entries", {
   entryDate: date("entry_date").defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_journal_entries_trip_id").on(table.tripId),
+  index("idx_journal_entries_user_id").on(table.userId),
+  index("idx_journal_entries_entry_date").on(table.entryDate),
+]);
 
 export const journalPhotos = pgTable("journal_photos", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -124,7 +131,9 @@ export const userLocations = pgTable("user_locations", {
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_user_locations_trip_id").on(table.tripId),
+]);
 
 export const devotionalEntries = pgTable("devotional_entries", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -136,7 +145,10 @@ export const devotionalEntries = pgTable("devotional_entries", {
   entryDate: date("entry_date").defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_devotional_entries_trip_id").on(table.tripId),
+  index("idx_devotional_entries_user_id").on(table.userId),
+]);
 
 export const attractionFavorites = pgTable("attraction_favorites", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -192,7 +204,10 @@ export const eveningReflections = pgTable("evening_reflections", {
   entryDate: date("entry_date").defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_evening_reflections_trip_id").on(table.tripId),
+  index("idx_evening_reflections_user_id").on(table.userId),
+]);
 
 export const authTokens = pgTable("auth_tokens", {
   token: varchar("token", { length: 128 }).primaryKey(),
