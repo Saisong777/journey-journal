@@ -56,7 +56,7 @@ app.use((req, res, next) => {
     secret: process.env.SESSION_SECRET || "dev-secret-change-me",
     store: new pgStore({
       conString: process.env.DATABASE_URL,
-      createTableIfMissing: false,
+      createTableIfMissing: true,
       ttl: sessionTtl,
       tableName: "sessions",
       pruneSessionInterval: 60 * 15,
