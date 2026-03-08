@@ -53,6 +53,12 @@ export default function Journal() {
     time: entry.createdAt ? format(parseISO(entry.createdAt), "HH:mm") : "",
     content: entry.content || "",
     photos: entry.photos?.map((p) => transformPhotoUrl(p.photoUrl)) || [],
+    photoDetails: entry.photos?.map((p) => ({
+      url: transformPhotoUrl(p.photoUrl),
+      originalPath: p.photoUrl,
+      latitude: p.latitude ?? null,
+      longitude: p.longitude ?? null,
+    })) || [],
     originalPhotoPaths: entry.photos?.map((p) => p.photoUrl) || [],
     mood: undefined,
   }));
@@ -60,7 +66,7 @@ export default function Journal() {
   const handleSaveEntry = async (newEntry: {
     location: string;
     content: string;
-    photos: string[];
+    photos: { photoUrl: string; latitude?: number | null; longitude?: number | null }[];
     mood: string;
   }) => {
     await createEntry.mutateAsync({
@@ -76,7 +82,7 @@ export default function Journal() {
     setViewingEntry(null);
   };
 
-  const handleUpdateEntry = async (id: string, data: { content: string; location: string; photos?: string[] }) => {
+  const handleUpdateEntry = async (id: string, data: { content: string; location: string; photos?: { photoUrl: string; latitude?: number | null; longitude?: number | null }[] }) => {
     await updateEntry.mutateAsync({
       id,
       content: data.content,
@@ -88,8 +94,14 @@ export default function Journal() {
       if (!prev) return null;
       const updated = { ...prev, content: data.content, location: data.location };
       if (data.photos) {
-        updated.originalPhotoPaths = data.photos;
-        updated.photos = data.photos.map(p => transformPhotoUrl(p));
+        updated.originalPhotoPaths = data.photos.map(p => p.photoUrl);
+        updated.photos = data.photos.map(p => transformPhotoUrl(p.photoUrl));
+        updated.photoDetails = data.photos.map(p => ({
+          url: transformPhotoUrl(p.photoUrl),
+          originalPath: p.photoUrl,
+          latitude: p.latitude ?? null,
+          longitude: p.longitude ?? null,
+        }));
       }
       return updated;
     });

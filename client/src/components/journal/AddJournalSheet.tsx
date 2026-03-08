@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/queryClient";
-import { compressImage } from "@/lib/photoUtils";
+import { compressImage, extractGps, type PhotoGps, type PhotoWithMeta } from "@/lib/photoUtils";
 
 interface AddJournalSheetProps {
   open: boolean;
@@ -19,7 +19,7 @@ interface AddJournalSheetProps {
   onSave?: (entry: {
     location: string;
     content: string;
-    photos: string[];
+    photos: PhotoWithMeta[];
     mood: string;
   }) => void;
 }
@@ -35,7 +35,7 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
-  const [photos, setPhotos] = useState<{ url: string; objectPath: string }[]>([]);
+  const [photos, setPhotos] = useState<{ url: string; objectPath: string; gps: PhotoGps | null }[]>([]);
   const [locations, setLocations] = useState<string[]>(["其他景點"]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -99,11 +99,14 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
 
       const filesToUpload = Array.from(files).slice(0, remaining);
 
-      // Compress all images in parallel
-      const compressed = await Promise.all(filesToUpload.map(f => compressImage(f)));
+      // Extract GPS and compress in parallel
+      const prepared = await Promise.all(filesToUpload.map(async (f) => {
+        const [compressed, gpsData] = await Promise.all([compressImage(f), extractGps(f)]);
+        return { compressed, gps: gpsData };
+      }));
 
       // Upload all in parallel
-      const results = await Promise.all(compressed.map(async (file) => {
+      const results = await Promise.all(prepared.map(async ({ compressed: file, gps: gpsData }) => {
         const urlResponse = await fetch("/api/uploads/request-url", {
           method: "POST",
           credentials: "include",
@@ -125,7 +128,7 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
         if (!uploadResponse.ok) throw new Error("Failed to upload file");
 
         const previewUrl = URL.createObjectURL(file);
-        return { url: previewUrl, objectPath };
+        return { url: previewUrl, objectPath, gps: gpsData };
       }));
 
       setPhotos(prev => [...prev, ...results]);
@@ -153,7 +156,11 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
         await onSave?.({
           location: selectedLocation || "",
           content,
-          photos: photos.map(p => p.objectPath),
+          photos: photos.map(p => ({
+            photoUrl: p.objectPath,
+            latitude: p.gps?.latitude ?? null,
+            longitude: p.gps?.longitude ?? null,
+          })),
           mood: selectedMood,
         });
         // Cleanup preview URLs

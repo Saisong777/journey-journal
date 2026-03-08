@@ -128,6 +128,8 @@ export const journalPhotos = pgTable("journal_photos", {
   journalEntryId: uuid("journal_entry_id").references(() => journalEntries.id, { onDelete: "cascade" }).notNull(),
   photoUrl: text("photo_url").notNull(),
   caption: text("caption"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("idx_journal_photos_entry_id").on(table.journalEntryId),

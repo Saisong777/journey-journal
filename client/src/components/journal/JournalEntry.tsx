@@ -1,12 +1,20 @@
 import { MapPin, Clock, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export interface PhotoDetail {
+  url: string;
+  originalPath: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface JournalEntryData {
   id: string;
   location: string;
   time: string;
   content: string;
   photos: string[];
+  photoDetails?: PhotoDetail[];
   originalPhotoPaths?: string[];
   mood?: "happy" | "peaceful" | "grateful" | "amazed";
 }

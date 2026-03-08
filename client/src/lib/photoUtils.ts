@@ -1,7 +1,37 @@
+import gps from "exifr/gps";
+
 const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL || "";
 
 const MAX_DIMENSION = 1920;
 const JPEG_QUALITY = 0.8;
+
+export interface PhotoGps {
+  latitude: number;
+  longitude: number;
+}
+
+export interface PhotoWithMeta {
+  photoUrl: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/**
+ * Extract GPS coordinates from photo EXIF data.
+ * Must be called on the ORIGINAL file before compressImage() strips EXIF.
+ */
+export async function extractGps(file: File): Promise<PhotoGps | null> {
+  try {
+    if (!file.type.startsWith("image/")) return null;
+    const coords = await gps(file);
+    if (coords && typeof coords.latitude === "number" && typeof coords.longitude === "number") {
+      return { latitude: coords.latitude, longitude: coords.longitude };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Compress an image file using canvas.

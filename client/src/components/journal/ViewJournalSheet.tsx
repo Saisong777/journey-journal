@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { compressImage } from "@/lib/photoUtils";
+import { compressImage, extractGps, type PhotoGps, type PhotoWithMeta } from "@/lib/photoUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +24,7 @@ import {
 import { JournalEntryData } from "./JournalEntry";
 import { getAuthToken } from "@/lib/queryClient";
 import { transformPhotoUrl } from "@/lib/photoUtils";
+import { PhotoLocationBadge } from "./PhotoLocationBadge";
 
 const MAX_PHOTOS = 7;
 
@@ -32,7 +33,7 @@ interface ViewJournalSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete?: (id: string) => Promise<void>;
-  onUpdate?: (id: string, data: { content: string; location: string; photos?: string[] }) => Promise<void>;
+  onUpdate?: (id: string, data: { content: string; location: string; photos?: PhotoWithMeta[] }) => Promise<void>;
 }
 
 const moodLabels: Record<string, { emoji: string; label: string }> = {
@@ -46,6 +47,8 @@ interface EditPhoto {
   displayUrl: string;
   objectPath: string;
   isNew: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate }: ViewJournalSheetProps) {
@@ -62,11 +65,20 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
     if (entry) {
       setEditContent(entry.content);
       setEditLocation(entry.location || "");
-      setEditPhotos((entry.originalPhotoPaths || entry.photos).map(p => ({
-        displayUrl: transformPhotoUrl(p),
-        objectPath: p,
-        isNew: false,
-      })));
+      setEditPhotos(entry.photoDetails
+        ? entry.photoDetails.map(p => ({
+            displayUrl: p.url,
+            objectPath: p.originalPath,
+            isNew: false,
+            latitude: p.latitude,
+            longitude: p.longitude,
+          }))
+        : (entry.originalPhotoPaths || entry.photos).map(p => ({
+            displayUrl: transformPhotoUrl(p),
+            objectPath: p,
+            isNew: false,
+          }))
+      );
     }
   }, [entry]);
 
@@ -94,8 +106,12 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
     if (!onUpdate) return;
     setIsSaving(true);
     try {
-      const photoPaths = editPhotos.map(p => p.objectPath);
-      await onUpdate(entry.id, { content: editContent, location: editLocation, photos: photoPaths });
+      const photos: PhotoWithMeta[] = editPhotos.map(p => ({
+        photoUrl: p.objectPath,
+        latitude: p.latitude ?? null,
+        longitude: p.longitude ?? null,
+      }));
+      await onUpdate(entry.id, { content: editContent, location: editLocation, photos });
       setIsEditing(false);
     } finally {
       setIsSaving(false);
@@ -105,11 +121,20 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
   const handleCancelEdit = () => {
     setEditContent(entry.content);
     setEditLocation(entry.location || "");
-    setEditPhotos((entry.originalPhotoPaths || entry.photos).map(p => ({
-      displayUrl: transformPhotoUrl(p),
-      objectPath: p,
-      isNew: false,
-    })));
+    setEditPhotos(entry.photoDetails
+      ? entry.photoDetails.map(p => ({
+          displayUrl: p.url,
+          objectPath: p.originalPath,
+          isNew: false,
+          latitude: p.latitude,
+          longitude: p.longitude,
+        }))
+      : (entry.originalPhotoPaths || entry.photos).map(p => ({
+          displayUrl: transformPhotoUrl(p),
+          objectPath: p,
+          isNew: false,
+        }))
+    );
     setIsEditing(false);
   };
 
@@ -128,11 +153,14 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // Compress all images in parallel
-      const compressed = await Promise.all(filesToUpload.map(f => compressImage(f)));
+      // Extract GPS and compress in parallel
+      const prepared = await Promise.all(filesToUpload.map(async (f) => {
+        const [compressed, gpsData] = await Promise.all([compressImage(f), extractGps(f)]);
+        return { compressed, gps: gpsData };
+      }));
 
       // Upload all in parallel
-      const results = await Promise.all(compressed.map(async (file) => {
+      const results = await Promise.all(prepared.map(async ({ compressed: file, gps: gpsData }) => {
         const urlResponse = await fetch("/api/uploads/request-url", {
           method: "POST",
           credentials: "include",
@@ -154,7 +182,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
         if (!uploadResponse.ok) throw new Error("Failed to upload file");
 
         const previewUrl = URL.createObjectURL(file);
-        return { displayUrl: previewUrl, objectPath, isNew: true };
+        return { displayUrl: previewUrl, objectPath, isNew: true, latitude: gpsData?.latitude ?? null, longitude: gpsData?.longitude ?? null };
       }));
 
       setEditPhotos(prev => [...prev, ...results]);
@@ -252,15 +280,18 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
               entry.photos.length > 0 && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
-                    {entry.photos.map((photo, index) => (
-                      <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    {(entry.photoDetails || entry.photos.map(p => ({ url: p, originalPath: p, latitude: null, longitude: null }))).map((photo, index) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                         <img
-                          src={photo}
+                          src={typeof photo === "string" ? photo : photo.url}
                           alt={`照片 ${index + 1}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           data-testid={`img-view-photo-${index}`}
                         />
+                        {typeof photo === "object" && photo.latitude != null && photo.longitude != null && (
+                          <PhotoLocationBadge latitude={photo.latitude} longitude={photo.longitude} />
+                        )}
                       </div>
                     ))}
                   </div>

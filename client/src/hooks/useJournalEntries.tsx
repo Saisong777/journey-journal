@@ -3,6 +3,7 @@ import { useTrip } from "./useTrip";
 import { useToast } from "./use-toast";
 import { getAuthToken } from "@/lib/queryClient";
 import { addToQueue } from "@/lib/offlineQueue";
+import type { PhotoWithMeta } from "@/lib/photoUtils";
 
 export interface JournalEntryDB {
   id: string;
@@ -18,6 +19,8 @@ export interface JournalEntryDB {
     id: string;
     photoUrl: string;
     caption: string | null;
+    latitude: number | null;
+    longitude: number | null;
   }>;
 }
 
@@ -61,7 +64,7 @@ export function useCreateJournalEntry() {
       title: string;
       content: string;
       location: string;
-      photos: string[];
+      photos: PhotoWithMeta[];
     }) => {
       const payload = {
         title: entry.title,
@@ -142,7 +145,7 @@ export function useUpdateJournalEntry() {
       title?: string;
       content?: string;
       location?: string;
-      photos?: string[];
+      photos?: PhotoWithMeta[];
     }) => {
       const response = await fetch(`/api/journal-entries/${id}`, {
         method: "PATCH",

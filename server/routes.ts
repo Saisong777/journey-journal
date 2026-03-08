@@ -734,11 +734,16 @@ export function registerRoutes(app: Express) {
 
       if (photos && Array.isArray(photos) && photos.length > 0) {
         await storage.createJournalPhotos(
-          photos.map((photoUrl: string) => ({
-            journalEntryId: entry.id,
-            photoUrl,
-            caption: null,
-          }))
+          photos.map((photo: string | { photoUrl: string; latitude?: number; longitude?: number }) => {
+            const isObj = typeof photo === "object";
+            return {
+              journalEntryId: entry.id,
+              photoUrl: isObj ? photo.photoUrl : photo,
+              caption: null,
+              latitude: isObj ? (photo.latitude ?? null) : null,
+              longitude: isObj ? (photo.longitude ?? null) : null,
+            };
+          })
         );
       }
 
@@ -773,19 +778,24 @@ export function registerRoutes(app: Express) {
       if (photos && Array.isArray(photos)) {
         const existingPhotos = await storage.getJournalPhotos(req.params.id);
         const existingPaths = existingPhotos.map(p => p.photoUrl);
-        const newPaths = photos as string[];
+        const newPhotos = photos.map((p: string | { photoUrl: string; latitude?: number; longitude?: number }) =>
+          typeof p === "object" ? p : { photoUrl: p, latitude: null, longitude: null }
+        );
+        const newPaths = newPhotos.map(p => p.photoUrl);
 
         const toDelete = existingPhotos.filter(p => !newPaths.includes(p.photoUrl));
         for (const photo of toDelete) {
           await storage.deleteJournalPhoto(photo.id);
         }
 
-        const toAdd = newPaths.filter(p => !existingPaths.includes(p));
-        for (const photoUrl of toAdd) {
+        const toAdd = newPhotos.filter(p => !existingPaths.includes(p.photoUrl));
+        for (const photo of toAdd) {
           await storage.createJournalPhoto({
             journalEntryId: req.params.id,
-            photoUrl,
+            photoUrl: photo.photoUrl,
             caption: null,
+            latitude: photo.latitude ?? null,
+            longitude: photo.longitude ?? null,
           });
         }
       }
