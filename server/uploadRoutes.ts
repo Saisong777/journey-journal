@@ -109,14 +109,8 @@ export function registerUploadRoutes(app: Express): void {
   // GET /api/uploads/file/:objectId — serves file from R2 or PostgreSQL
   app.get("/api/uploads/file/:objectId", async (req, res) => {
     try {
-      // Require authentication: check session or Bearer token
-      const authHeader = req.headers.authorization;
-      const hasToken = authHeader && authHeader.startsWith("Bearer ");
-      const hasSession = (req as any).session?.userId;
-      if (!hasToken && !hasSession) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+      // No auth — file IDs are random UUIDs, unguessable.
+      // <img> tags cannot send Authorization headers.
       const objectId = req.params.objectId;
 
       // Try R2 first if configured — stream through server
