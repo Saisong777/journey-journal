@@ -103,6 +103,7 @@ export interface IStorage {
   getJournalEntries(tripId: string, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
   getJournalEntriesByUser(userId: string, tripId: string | null, date?: string): Promise<(JournalEntry & { photos: JournalPhoto[] })[]>;
   createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
+  getJournalEntry(id: string): Promise<JournalEntry | undefined>;
   updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined>;
   deleteJournalEntry(id: string): Promise<void>;
 
@@ -111,6 +112,7 @@ export interface IStorage {
   getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]>;
 
   getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]>;
+  getDevotionalEntry(id: string): Promise<DevotionalEntry | undefined>;
   createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry>;
   updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined>;
 
@@ -411,6 +413,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getJournalEntry(id: string): Promise<JournalEntry | undefined> {
+    const [entry] = await db.select().from(journalEntries).where(eq(journalEntries.id, id)).limit(1);
+    return entry;
+  }
+
   async updateJournalEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined> {
     const [updated] = await db
       .update(journalEntries)
@@ -450,6 +457,11 @@ export class DatabaseStorage implements IStorage {
   async createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry> {
     const [created] = await db.insert(devotionalEntries).values(entry).returning();
     return created;
+  }
+
+  async getDevotionalEntry(id: string): Promise<DevotionalEntry | undefined> {
+    const [entry] = await db.select().from(devotionalEntries).where(eq(devotionalEntries.id, id)).limit(1);
+    return entry;
   }
 
   async updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined> {

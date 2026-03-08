@@ -61,7 +61,7 @@ export function useNetworkStatus() {
       } else {
         markOffline();
       }
-    }, 10000);
+    }, 30000); // M1: Reduced from 10s to 30s
 
     return () => {
       window.removeEventListener("online", handleBrowserOnline);

@@ -3,6 +3,21 @@ import { db } from "./db";
 import { fileUploads } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import express from "express";
+import path from "path";
+
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+]);
+
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+
+function sanitizeFilename(name: string): string {
+  return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, "_");
+}
 
 export function registerUploadRoutes(app: Express): void {
   // POST /api/uploads/request-url — accepts JSON metadata, stores nothing yet
@@ -17,6 +32,23 @@ export function registerUploadRoutes(app: Express): void {
         });
       }
 
+      // S2: Validate file type
+      if (contentType && !ALLOWED_MIME_TYPES.has(contentType)) {
+        return res.status(400).json({
+          error: "File type not allowed. Allowed types: JPEG, PNG, WebP, GIF, PDF",
+        });
+      }
+
+      // S2: Validate file size
+      if (size && size > MAX_UPLOAD_SIZE) {
+        return res.status(400).json({
+          error: "File too large. Maximum size is 10MB",
+        });
+      }
+
+      // S2: Sanitize filename
+      const safeName = sanitizeFilename(name);
+
       // Generate a unique ID for this upload
       const id = crypto.randomUUID();
       const uploadURL = `/api/uploads/direct/${id}`;
@@ -25,7 +57,7 @@ export function registerUploadRoutes(app: Express): void {
       res.json({
         uploadURL,
         objectPath,
-        metadata: { name, size, contentType },
+        metadata: { name: safeName, size, contentType },
       });
     } catch (error) {
       console.error("Error generating upload URL:", error);
@@ -34,10 +66,18 @@ export function registerUploadRoutes(app: Express): void {
   });
 
   // PUT /api/uploads/direct/:id — receives raw binary file data
-  app.put("/api/uploads/direct/:id", express.raw({ type: "*/*", limit: "20mb" }), async (req, res) => {
+  app.put("/api/uploads/direct/:id", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
     try {
       const id = req.params.id;
       const contentType = req.headers["content-type"] || "application/octet-stream";
+
+      // S2: Validate content type on actual upload
+      if (!ALLOWED_MIME_TYPES.has(contentType)) {
+        return res.status(400).json({
+          error: "File type not allowed. Allowed types: JPEG, PNG, WebP, GIF, PDF",
+        });
+      }
+
       const data = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body);
 
       await db.insert(fileUploads).values({

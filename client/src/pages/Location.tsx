@@ -68,7 +68,7 @@ export default function Location() {
         }
         setIsGettingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 } // M2: Default low accuracy
     );
   }, []);
 

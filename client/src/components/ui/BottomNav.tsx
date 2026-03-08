@@ -24,7 +24,7 @@ export function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pb-4 px-4 pointer-events-none">
       <nav
-        className="bg-card/85 backdrop-blur-xl border border-border/50 shadow-elevated rounded-full flex-shrink-0 pointer-events-auto flex items-center p-1.5"
+        className="bg-card border border-border/50 shadow-sm rounded-full flex-shrink-0 pointer-events-auto flex items-center p-1.5"
       >
         <div className="flex items-center justify-between w-full gap-1">
           {navItems.map((item) => {

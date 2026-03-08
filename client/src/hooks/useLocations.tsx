@@ -40,7 +40,7 @@ export function useLocations() {
       }
       return response.json();
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000, // M3: Reduced from 30s to 60s
   });
 }
 

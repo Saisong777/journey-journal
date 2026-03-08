@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,39 +9,51 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { queryClient } from "@/lib/queryClient";
 import { OfflineSyncProvider } from "@/lib/offlineSyncContext";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Journal from "./pages/Journal";
-import Location from "./pages/Location";
-import Devotional from "./pages/Devotional";
-import DailyJourney from "./pages/DailyJourney";
-import Tools from "./pages/Tools";
-import Members from "./pages/Members";
-import Settings from "./pages/Settings";
-import Attractions from "./pages/Attractions";
-import TripSummary from "./pages/TripSummary";
-import ResetPassword from "./pages/ResetPassword";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminTrips from "./pages/admin/AdminTrips";
-import AdminTripDays from "./pages/admin/AdminTripDays";
-import AdminDevotionals from "./pages/admin/AdminDevotionals";
-import AdminInvitations from "./pages/admin/AdminInvitations";
-import AdminMembers from "./pages/admin/AdminMembers";
-import AdminTripNotes from "./pages/admin/AdminTripNotes";
-import AdminBibleLibrary from "./pages/admin/AdminBibleLibrary";
-import BibleLibrary from "./pages/BibleLibrary";
-import PaulJourneys from "./pages/PaulJourneys";
-import VerifyTrip from "./pages/VerifyTrip";
-import AuthCallbackSuccess from "./pages/AuthCallbackSuccess";
-import Landing from "./pages/Landing";
-import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
+
+// P1: Lazy-loaded pages for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Location = lazy(() => import("./pages/Location"));
+const DailyJourney = lazy(() => import("./pages/DailyJourney"));
+const Tools = lazy(() => import("./pages/Tools"));
+const Members = lazy(() => import("./pages/Members"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Attractions = lazy(() => import("./pages/Attractions"));
+const TripSummary = lazy(() => import("./pages/TripSummary"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const BibleLibrary = lazy(() => import("./pages/BibleLibrary"));
+const PaulJourneys = lazy(() => import("./pages/PaulJourneys"));
+const VerifyTrip = lazy(() => import("./pages/VerifyTrip"));
+const AuthCallbackSuccess = lazy(() => import("./pages/AuthCallbackSuccess"));
+const Landing = lazy(() => import("./pages/Landing"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Admin pages — separate chunk
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminTrips = lazy(() => import("./pages/admin/AdminTrips"));
+const AdminTripDays = lazy(() => import("./pages/admin/AdminTripDays"));
+const AdminDevotionals = lazy(() => import("./pages/admin/AdminDevotionals"));
+const AdminInvitations = lazy(() => import("./pages/admin/AdminInvitations"));
+const AdminMembers = lazy(() => import("./pages/admin/AdminMembers"));
+const AdminTripNotes = lazy(() => import("./pages/admin/AdminTripNotes"));
+const AdminBibleLibrary = lazy(() => import("./pages/admin/AdminBibleLibrary"));
 
 import { AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-10 h-10 animate-spin text-primary" />
+    </div>
+  );
+}
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
+    <Suspense fallback={<PageLoader />}>
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/welcome" element={<Landing />} />
@@ -236,6 +249,7 @@ const AnimatedRoutes = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
+    </Suspense>
   );
 };
 

@@ -1,4 +1,20 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import { z } from "zod";
+
+const registerSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required").max(100),
+});
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const changePasswordSchema = z.object({
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+});
 import crypto from "crypto";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
@@ -266,7 +282,11 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, name } = req.body;
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { email, password, name } = parsed.data;
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
@@ -305,7 +325,11 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { email, password } = parsed.data;
 
       const user = await storage.getUserByEmail(email);
       if (!user) {
@@ -357,10 +381,11 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/auth/change-password", requireAuth, async (req, res) => {
     try {
-      const { newPassword } = req.body;
-      if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+      const parsed = changePasswordSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
       }
+      const { newPassword } = parsed.data;
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateUser(req.userId!, { password: hashedPassword, tempPassword: null });
       res.json({ success: true });
@@ -606,6 +631,18 @@ export function registerRoutes(app: Express) {
   });
 
   app.patch("/api/journal-entries/:id", requireAuth, async (req, res) => {
+      // S1: Verify ownership before update
+      const existing = await storage.getJournalEntry(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Journal entry not found" });
+      }
+      if (existing.userId !== req.userId) {
+        const isAdmin = await storage.hasAdminAccess(req.userId!);
+        if (!isAdmin) {
+          return res.status(403).json({ error: "You can only edit your own entries" });
+        }
+      }
+
     try {
       const { title, content, location, photos } = req.body;
       const entry = await storage.updateJournalEntry(req.params.id, {
@@ -642,6 +679,18 @@ export function registerRoutes(app: Express) {
 
   app.delete("/api/journal-entries/:id", requireAuth, async (req, res) => {
     try {
+      // S1: Verify ownership before delete
+      const existing = await storage.getJournalEntry(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Journal entry not found" });
+      }
+      if (existing.userId !== req.userId) {
+        const isAdmin = await storage.hasAdminAccess(req.userId!);
+        if (!isAdmin) {
+          return res.status(403).json({ error: "You can only delete your own entries" });
+        }
+      }
+
       await storage.deleteJournalEntry(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -689,6 +738,18 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/devotional-entries/:id", requireAuth, async (req, res) => {
     try {
+      // S1: Verify ownership before update
+      const existing = await storage.getDevotionalEntry(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Devotional entry not found" });
+      }
+      if (existing.userId !== req.userId) {
+        const isAdmin = await storage.hasAdminAccess(req.userId!);
+        if (!isAdmin) {
+          return res.status(403).json({ error: "You can only edit your own entries" });
+        }
+      }
+
       const { scriptureReference, reflection, prayer } = req.body;
       const updated = await storage.updateDevotionalEntry(req.params.id, {
         scriptureReference: scriptureReference || "",

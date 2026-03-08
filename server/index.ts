@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { registerUploadRoutes } from "./uploadRoutes";
@@ -9,14 +11,54 @@ import { runStartupMigration } from "./startupMigration";
 
 const app = express();
 app.set('trust proxy', 1);
+
+// S5: Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://*.tile.openstreetmap.org"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// S4: Global rate limit — 100 requests per 15 min
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+}));
+
+// S4: Strict rate limit for auth endpoints — 10 attempts per 15 min
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts, please try again later" },
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
+app.use("/api/verify-invitation", authLimiter);
+
+// S5/S8: Body parsing with explicit size limits
 app.use((req, res, next) => {
   // Skip JSON parsing for direct binary upload route
   if (req.path.startsWith("/api/uploads/direct/")) {
     return next();
   }
-  express.json()(req, res, next);
+  express.json({ limit: "1mb" })(req, res, next);
 });
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 app.use((req, res, next) => {
   const start = Date.now();

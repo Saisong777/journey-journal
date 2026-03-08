@@ -123,6 +123,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* M17: Prevent 300ms tap delay on interactive elements */
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+
   h1,
   h2,
   h3,

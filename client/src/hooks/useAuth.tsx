@@ -48,15 +48,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      
+
+      // M10: Add timeout to prevent blocking first render
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const response = await fetch("/api/auth/session", {
         credentials: "include",
         headers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await response.json();
       setUser(data.user);
     } catch (error) {
-      console.error("Session check failed:", error);
+      if ((error as Error).name !== "AbortError") {
+        console.error("Session check failed:", error);
+      }
     } finally {
       setLoading(false);
     }

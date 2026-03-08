@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "map-tiles",
               expiration: {
-                maxEntries: 500,
+                maxEntries: 150,
                 maxAgeSeconds: 60 * 60 * 24 * 7,
               },
             },
@@ -32,9 +32,9 @@ export default defineConfig(({ mode }) => ({
               cacheName: "api-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,
+                maxAgeSeconds: 60 * 5,
               },
-              networkTimeoutSeconds: 5,
+              networkTimeoutSeconds: 10,
             },
           },
           {
@@ -74,6 +74,15 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          leaflet: ["leaflet", "react-leaflet"],
+          recharts: ["recharts"],
+          "framer-motion": ["framer-motion"],
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: ["@tanstack/react-query"],
