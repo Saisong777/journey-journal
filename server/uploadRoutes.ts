@@ -73,14 +73,8 @@ export function registerUploadRoutes(app: Express): void {
   // PUT /api/uploads/direct/:id — receives file, stores to R2 or PostgreSQL
   app.put("/api/uploads/direct/:id", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
     try {
-      // Require authentication (session or Bearer token)
-      const authHeader = req.headers.authorization;
-      const hasToken = authHeader && authHeader.startsWith("Bearer ");
-      const hasSession = (req as any).session?.userId;
-      if (!hasToken && !hasSession) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+      // No auth check needed — the upload ID is a random UUID from request-url
+      // which already requires authentication
       const id = req.params.id;
       const contentType = req.headers["content-type"] || "application/octet-stream";
 
