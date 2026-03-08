@@ -41,6 +41,7 @@ export function MemberDetailSheet({ open, onOpenChange, member }: MemberDetailSh
                   src={member.avatar}
                   alt={member.name}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               ) : (
                 <span className="text-display text-muted-foreground">

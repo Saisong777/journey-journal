@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import { createServer } from "http";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -50,6 +51,7 @@ app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 app.use("/api/auth/reset-password", authLimiter);
 app.use("/api/verify-invitation", authLimiter);
+app.use("/api/login", authLimiter); // OAuth initiation
 
 // S5/S8: Body parsing with explicit size limits
 app.use((req, res, next) => {
@@ -97,7 +99,9 @@ app.use((req, res, next) => {
   const pgStore = connectPg(session);
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   app.use(session({
-    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+    secret: process.env.SESSION_SECRET || (process.env.NODE_ENV === "production"
+      ? (() => { console.error("[SECURITY] SESSION_SECRET not set in production! Generating random secret (sessions will not persist across restarts)."); return crypto.randomBytes(32).toString("hex"); })()
+      : "dev-secret-change-me"),
     store: new pgStore({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,

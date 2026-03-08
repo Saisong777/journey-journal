@@ -96,6 +96,7 @@ export function CoverImageUpload({
           src={displayImage}
           alt="封面圖片"
           className="w-full h-full object-cover transition-all group-hover:brightness-90"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 

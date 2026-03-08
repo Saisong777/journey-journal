@@ -117,6 +117,7 @@ export default function AdminDashboard() {
                           src={profile.avatarUrl}
                           alt={profile.name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <span className="text-body text-secondary">

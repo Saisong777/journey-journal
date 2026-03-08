@@ -40,6 +40,7 @@ export function AttractionCard({
           src={imageUrl}
           alt={name}
           className="w-full h-full object-cover"
+          loading="lazy"
         />
         <div className="absolute top-3 left-3">
           <span className={cn(

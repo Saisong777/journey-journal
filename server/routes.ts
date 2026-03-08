@@ -47,7 +47,36 @@ const changePasswordSchema = z.object({
 import crypto from "crypto";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
-import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema } from "@shared/schema";
+import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema, insertDevotionalCourseSchema } from "@shared/schema";
+
+// --- Input validation schemas for endpoints that were missing validation ---
+const updateProfileSchema = z.object({
+  name: z.string().max(100).optional(),
+  phone: z.string().max(30).optional(),
+  email: z.string().email().optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+  emergencyContactName: z.string().max(100).optional(),
+  emergencyContactPhone: z.string().max(30).optional(),
+  dietaryRestrictions: z.string().max(500).optional(),
+  medicalNotes: z.string().max(500).optional(),
+  groupId: z.string().uuid().optional().nullable(),
+});
+
+const updateTripSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  destination: z.string().max(200).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  coverImageUrl: z.string().optional().nullable(),
+  specialRemarks: z.string().optional().nullable(),
+  bibleLibraryEnabled: z.boolean().optional(),
+});
+
+const adminUpdateUserSchema = z.object({
+  name: z.string().max(100).optional(),
+  phone: z.string().max(30).optional(),
+  email: z.string().email().optional(),
+});
 import { tokenStore, generateToken, createAuthToken } from "./tokenStore";
 
 const BOOK_ABBREVIATIONS: Record<string, string> = {
@@ -398,12 +427,14 @@ export function registerRoutes(app: Express) {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await tokenStore.set(token, { userId: user.id, expiresAt });
 
-      req.session.userId = user.id;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-        }
-        res.json({ user: { id: user.id, email: user.email }, token });
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((err) => {
+        if (err) console.error("Session regenerate error:", err);
+        req.session.userId = user.id;
+        req.session.save((err) => {
+          if (err) console.error("Session save error:", err);
+          res.json({ user: { id: user.id, email: user.email }, token });
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -445,12 +476,14 @@ export function registerRoutes(app: Express) {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await tokenStore.set(token, { userId: user.id, expiresAt });
 
-      req.session.userId = user.id;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-        }
-        res.json({ user: { id: user.id, email: user.email }, token });
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((err) => {
+        if (err) console.error("Session regenerate error:", err);
+        req.session.userId = user.id;
+        req.session.save((err) => {
+          if (err) console.error("Session save error:", err);
+          res.json({ user: { id: user.id, email: user.email }, token });
+        });
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -522,12 +555,16 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/profile", requireAuth, async (req, res) => {
     try {
+      const parsed = updateProfileSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
       const existing = await storage.getProfile(req.userId!);
       let result;
       if (existing) {
-        result = await storage.updateProfile(req.userId!, req.body);
+        result = await storage.updateProfile(req.userId!, parsed.data as any);
       } else {
-        result = await storage.createProfile({ ...req.body, userId: req.userId! });
+        result = await storage.createProfile({ ...parsed.data, userId: req.userId! } as any);
       }
       res.json(result);
     } catch (error) {
@@ -906,7 +943,11 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/admin/trips", requireAdmin, async (req, res) => {
     try {
-      const trip = await storage.createTrip(req.body);
+      const parsed = insertTripSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues[0].message });
+      }
+      const trip = await storage.createTrip(parsed.data as any);
       res.json(trip);
     } catch (error) {
       res.status(500).json({ error: "Failed to create trip" });
@@ -915,7 +956,11 @@ export function registerRoutes(app: Express) {
 
   app.patch("/api/admin/trips/:id", requireAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateTrip(req.params.id, req.body);
+      const parsed = updateTripSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const updated = await storage.updateTrip(req.params.id, parsed.data as any);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update trip" });
@@ -1183,7 +1228,11 @@ export function registerRoutes(app: Express) {
   app.patch("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
-      const { name, phone, email } = req.body;
+      const parsed = adminUpdateUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { name, phone, email } = parsed.data;
 
       if (email) {
         const existingUser = await storage.getUserByEmail(email);
@@ -1860,7 +1909,7 @@ export function registerRoutes(app: Express) {
 
           if (user) {
             if (user.tempPassword) {
-              const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+              const tempPwd = String(crypto.randomInt(1000, 10000));
               await storage.updateUser(user.id, { tempPassword: tempPwd });
               actualTempPwd = tempPwd;
             }
@@ -1869,7 +1918,7 @@ export function registerRoutes(app: Express) {
               await storage.createProfile({ userId: user.id, name, email });
             }
           } else {
-            const tempPwd = String(Math.floor(1000 + Math.random() * 9000));
+            const tempPwd = String(crypto.randomInt(1000, 10000));
             const hashedPassword = await bcrypt.hash(tempPwd, 10);
             user = await storage.createUser({
               email,

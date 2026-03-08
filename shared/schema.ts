@@ -129,7 +129,9 @@ export const journalPhotos = pgTable("journal_photos", {
   photoUrl: text("photo_url").notNull(),
   caption: text("caption"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_journal_photos_entry_id").on(table.journalEntryId),
+]);
 
 export const userLocations = pgTable("user_locations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -162,7 +164,9 @@ export const attractionFavorites = pgTable("attraction_favorites", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   attractionId: text("attraction_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_attraction_favorites_user_attraction").on(table.userId, table.attractionId),
+]);
 
 export const devotionalCourses = pgTable("devotional_courses", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -176,7 +180,9 @@ export const devotionalCourses = pgTable("devotional_courses", {
   prayer: text("prayer"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_devotional_courses_trip_day").on(table.tripId, table.dayNo),
+]);
 
 export const tripInvitations = pgTable("trip_invitations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -246,7 +252,9 @@ export const tripNoteAssignments = pgTable("trip_note_assignments", {
   noteId: uuid("note_id").references(() => tripNotes.id, { onDelete: "cascade" }).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_trip_note_assignments_trip_note").on(table.tripId, table.noteId),
+]);
 
 export const bibleVerses = pgTable("bible_verses", {
   id: serial("id").primaryKey(),

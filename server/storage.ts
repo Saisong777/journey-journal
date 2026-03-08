@@ -1,4 +1,4 @@
-import { eq, and, inArray, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
@@ -655,13 +655,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementInvitationUsedCount(id: string): Promise<void> {
-    const invitation = await this.getTripInvitation(id);
-    if (invitation) {
-      await db
-        .update(tripInvitations)
-        .set({ usedCount: invitation.usedCount + 1 })
-        .where(eq(tripInvitations.id, id));
-    }
+    await db
+      .update(tripInvitations)
+      .set({ usedCount: sql`${tripInvitations.usedCount} + 1` })
+      .where(eq(tripInvitations.id, id));
   }
 
   async deleteTripInvitation(id: string): Promise<void> {

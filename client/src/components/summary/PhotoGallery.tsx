@@ -53,6 +53,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
               src={photo.url}
               alt={photo.caption}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              loading="lazy"
             />
             {index === 8 && photos.length > 9 && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -72,6 +73,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
                 src={photos[selectedIndex].url}
                 alt={photos[selectedIndex].caption}
                 className="w-full h-auto max-h-[70vh] object-contain"
+                loading="lazy"
               />
               
               {/* Navigation */}

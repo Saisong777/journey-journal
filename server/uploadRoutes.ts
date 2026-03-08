@@ -94,9 +94,17 @@ export function registerUploadRoutes(app: Express): void {
     }
   });
 
-  // GET /api/uploads/file/:objectId — serves file from PostgreSQL
+  // GET /api/uploads/file/:objectId — serves file from PostgreSQL (auth required)
   app.get("/api/uploads/file/:objectId", async (req, res) => {
     try {
+      // Require authentication: check session or Bearer token
+      const authHeader = req.headers.authorization;
+      const hasToken = authHeader && authHeader.startsWith("Bearer ");
+      const hasSession = (req as any).session?.userId;
+      if (!hasToken && !hasSession) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
       const objectId = req.params.objectId;
       const [file] = await db
         .select()

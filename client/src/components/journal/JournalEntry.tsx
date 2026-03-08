@@ -54,6 +54,7 @@ export function JournalEntry({ entry, onClick }: JournalEntryProps) {
                 src={photo}
                 alt={`照片 ${index + 1}`}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               {entry.photos.length > 3 && index === 2 && (
                 <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">

@@ -37,6 +37,7 @@ export function TripCard({
             src={imageUrl}
             alt={title}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

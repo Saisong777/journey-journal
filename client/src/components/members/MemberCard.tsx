@@ -60,6 +60,7 @@ export function MemberCard({ member, onClick }: MemberCardProps) {
               src={member.avatar}
               alt={member.name}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           ) : (
             <span className="text-title text-muted-foreground">

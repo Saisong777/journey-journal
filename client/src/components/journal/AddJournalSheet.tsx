@@ -232,6 +232,7 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
                     src={photo.url}
                     alt={`照片 ${index + 1}`}
                     className="w-24 h-24 object-cover rounded-lg"
+                    loading="lazy"
                     data-testid={`img-photo-${index}`}
                   />
                   <button

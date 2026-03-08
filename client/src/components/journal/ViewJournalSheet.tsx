@@ -209,6 +209,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
                         src={photo.displayUrl}
                         alt={`照片 ${index + 1}`}
                         className="w-24 h-24 object-cover rounded-lg"
+                        loading="lazy"
                         data-testid={`img-edit-photo-${index}`}
                       />
                       <button
@@ -253,6 +254,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
                           src={photo}
                           alt={`照片 ${index + 1}`}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           data-testid={`img-view-photo-${index}`}
                         />
                       </div>
