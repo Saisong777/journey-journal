@@ -38,6 +38,7 @@ export interface DevotionalCourseDB {
   action: string | null;
   prayer: string | null;
   lifeQuestion: string | null;
+  verses?: { number: number; text: string }[];
 }
 
 export interface BibleLookupResult {
@@ -50,6 +51,7 @@ export interface BibleLookupResult {
 export function useTripDevotionalCourses() {
   return useQuery<DevotionalCourseDB[]>({
     queryKey: ["/api/trips/current/devotional-courses"],
+    staleTime: 5 * 60 * 1000, // courses rarely change, cache 5 min
   });
 }
 
@@ -89,6 +91,7 @@ export function useDevotionalEntries(date?: string) {
       return response.json() as Promise<DevotionalEntryDB[]>;
     },
     enabled: !!trip?.id,
+    staleTime: 2 * 60 * 1000, // cache 2 min
   });
 }
 

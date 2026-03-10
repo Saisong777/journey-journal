@@ -1661,8 +1661,31 @@ export function registerRoutes(app: Express) {
         return res.json([]);
       }
       const courses = await storage.getDevotionalCourses(userRole.tripId);
-      res.set("Cache-Control", "no-cache");
-      res.json(courses);
+
+      // Pre-resolve Bible verses for each course to avoid client-side waterfall
+      const coursesWithVerses = await Promise.all(
+        courses.map(async (course) => {
+          if (!course.scripture) return { ...course, verses: [] };
+          try {
+            const refs = course.scripture.split(/[；;]/).map(r => r.trim()).filter(r => r);
+            const allVerses: { number: number; text: string; label?: string }[] = [];
+            for (const singleRef of refs) {
+              const parsed = parseScriptureReference(singleRef);
+              if (!parsed) continue;
+              const verses = await lookupParsedReference(parsed as any);
+              if (refs.length > 1 && verses.length > 0) {
+                allVerses.push({ number: 0, text: `── ${singleRef.trim()} ──` });
+              }
+              allVerses.push(...verses);
+            }
+            return { ...course, verses: allVerses };
+          } catch {
+            return { ...course, verses: [] };
+          }
+        })
+      );
+
+      res.json(coursesWithVerses);
     } catch (error) {
       res.status(500).json({ error: "Failed to get devotional courses" });
     }

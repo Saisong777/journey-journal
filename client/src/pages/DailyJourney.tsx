@@ -10,7 +10,7 @@ import { JournalEntry, JournalEntryData } from "@/components/journal/JournalEntr
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
 import { useJournalEntries, useCreateJournalEntry, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
-import { useDevotionalEntries, useMyDevotionalEntry, useSaveDevotional, useTripDevotionalCourses, useBibleLookup } from "@/hooks/useDevotional";
+import { useDevotionalEntries, useMyDevotionalEntry, useSaveDevotional, useTripDevotionalCourses } from "@/hooks/useDevotional";
 import { useEveningReflection, useSaveEveningReflection } from "@/hooks/useEveningReflection";
 import { useTrip } from "@/hooks/useTrip";
 import { useAuth } from "@/hooks/useAuth";
@@ -253,29 +253,14 @@ export default function DailyJourney() {
     return devotionalCourses.find(c => c.dayNo === currentDay) || null;
   }, [devotionalCourses, currentDay]);
 
-  const scriptureRef = todayCourse?.scripture || null;
-  const { data: bibleLookup, isLoading: bibleLoading } = useBibleLookup(scriptureRef);
-
   const hasCourses = devotionalCourses && devotionalCourses.length > 0;
 
   const todayScripture: ScriptureData | null = useMemo(() => {
-    if (todayCourse && bibleLookup && bibleLookup.verses.length > 0) {
-      return {
-        reference: todayCourse.scripture || "",
-        theme: todayCourse.title,
-        verses: bibleLookup.verses,
-        reflection: todayCourse.reflection || "",
-        place: todayCourse.place || undefined,
-        action: todayCourse.action || undefined,
-        prayer: todayCourse.prayer || undefined,
-        lifeQuestion: todayCourse.lifeQuestion || undefined,
-      };
-    }
     if (todayCourse) {
       return {
         reference: todayCourse.scripture || "",
         theme: todayCourse.title,
-        verses: [],
+        verses: todayCourse.verses || [],
         reflection: todayCourse.reflection || "",
         place: todayCourse.place || undefined,
         action: todayCourse.action || undefined,
@@ -287,7 +272,7 @@ export default function DailyJourney() {
       return fallbackScriptures[currentDay] || fallbackScriptures[((currentDay - 1) % 5) + 1];
     }
     return null;
-  }, [todayCourse, bibleLookup, currentDay, hasCourses]);
+  }, [todayCourse, currentDay, hasCourses]);
 
   const toggleVerseSelection = (idx: number) => {
     setSelectedVerses(prev => {
@@ -544,7 +529,7 @@ export default function DailyJourney() {
         {/* Morning Devotion Tab */}
         {activeTab === "morning" && (
           <section className="space-y-5 animate-fade-in min-h-[200px]">
-            {(devotionalLoading || bibleLoading) ? (
+            {devotionalLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
