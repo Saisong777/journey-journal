@@ -538,6 +538,18 @@ export async function runStartupMigration() {
       console.error("[startup-migration] google_id column migration error:", e);
     }
 
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS life_question TEXT`);
+        console.log("[startup-migration] ensured life_question column on devotional_courses");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] life_question column migration error:", e);
+    }
+
     console.log("[startup-migration] complete");
   } catch (error) {
     console.error("[startup-migration] error:", error);

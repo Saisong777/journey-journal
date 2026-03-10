@@ -10,53 +10,57 @@ import { useMembers } from "@/hooks/useMembers";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, parseISO, addDays } from "date-fns";
 
-// Daily scriptures for the trip
+// Daily scriptures for the trip - imported from devotional CSV
 const dailyScriptures: Record<number, ScriptureData> = {
   1: {
-    reference: "以賽亞書 40:31",
-    theme: "啟程 - 出發的心志",
-    verses: [
-      { number: 31, text: "但那等候耶和華的必重新得力。他們必如鷹展翅上騰；他們奔跑卻不困倦，行走卻不疲乏。" },
-    ],
-    reflection: "願我們帶著信心踏上這趟朝聖之旅，經歷神更新的力量。",
+    reference: "創12:1",
+    theme: "離開，是看見自己的開始",
+    verses: [],
+    place: "機上→伊斯坦堡",
+    reflection: "飛機起飛的那一刻，你離開了熟悉的一切——日常節奏、角色責任、習慣軌道。旅行的意義不只是去哪裡，而是離開之後，你才發現自己一直抓著什麼不放。亞伯拉罕被呼召離開時，目的地是「我要指示你的地方」——連地址都沒有。離開，需要的不是資訊，是信任。",
+    action: "寫下兩句話：「這趟旅程，我最想放下的是＿＿＿」和「我最怕發生的是＿＿＿」。寫完後不修改，收起來。",
+    prayer: "神啊，我帶著期待也帶著不安出發。在三萬英尺的高空，讓我開始卸下平日的面具，進入祢的節奏。",
+    lifeQuestion: "離開日常軌道後，你心裡第一個浮上來的情緒是什麼？它透露了你內心真正的狀態嗎？",
   },
   2: {
-    reference: "馬可福音 1:16-20",
-    theme: "加利利 - 耶穌的呼召",
-    verses: [
-      { number: 16, text: "耶穌順著加利利的海邊走，看見西門和西門的兄弟安得烈在海裡撒網；他們本是打魚的。" },
-      { number: 17, text: "耶穌對他們說：來跟從我，我要叫你們得人如得魚一樣。" },
-    ],
-    reflection: "在加利利海邊，耶穌呼召門徒。今天，祂也在呼召我們。",
+    reference: "彼前2:11",
+    theme: "不舒服的地方，往往是成長的入口",
+    verses: [],
+    place: "伊斯坦堡（接機／自由活動）",
+    reflection: "踏上陌生的土地，語言不通、路不熟、食物不同。這種「不舒服感」其實是好的——它打破你的自動駕駛模式，讓感官重新甦醒。彼得寫信給「分散各處」的信徒，提醒他們本來就是客旅。當我們承認自己不是什麼都懂，反而變得柔軟、開放、謙卑。",
+    action: "今天遇到任何不順——延誤、迷路、溝通不良——練習一句話：「這正在教我什麼？」不急著抱怨，先觀察自己的反應。",
+    prayer: "主啊，讓我在陌生中不急著掌控，而是學會放鬆、信任、接受。讓不舒服成為我柔軟的起點。",
+    lifeQuestion: "你上一次處在完全陌生的環境是什麼時候？那段經驗，改變了你什麼？",
   },
   3: {
-    reference: "詩篇 122:1-4",
-    theme: "耶路撒冷 - 聖城的喜樂",
-    verses: [
-      { number: 1, text: "人對我說：我們往耶和華的殿去，我就歡喜。" },
-      { number: 2, text: "耶路撒冷啊，我們的腳站在你的門內。" },
-      { number: 3, text: "耶路撒冷被建造，如同連絡整齊的一座城。" },
-      { number: 4, text: "眾支派，就是耶和華的支派，上那裡去，按以色列的常例稱讚耶和華的名。" },
-    ],
-    reflection: "想像自己正走向聖殿，心中充滿期待與喜樂。今天我們親身踏足這塊聖地，讓我們的心也像詩人一樣，向神獻上感恩與讚美。",
+    reference: "傳3:11",
+    theme: "壯觀的建築背後，是人心深處對「永恆」的渴望",
+    verses: [],
+    place: "伊斯坦堡（聖索菲亞／藍色清真寺／跑馬場／托普卡匹）",
+    reflection: "聖索菲亞大教堂一千五百年來從教堂變清真寺、變博物館、又變回清真寺。外在形式不斷翻轉，但人心對「比我更大的存在」的渴望從未消失。仰頭看穹頂時，無論你信什麼，那份「被震撼」的感覺是真實的——那就是永恆在你心裡回響。",
+    action: "找一個角落，三分鐘不拍照、不打卡，只是抬頭看、深呼吸，然後問自己：「我心裡最深的渴望是什麼？」",
+    prayer: "造物主啊，千年來人類不斷蓋起壯觀的殿堂尋找祢。此刻，我也站在這裡，帶著我的渴望和疑問。",
+    lifeQuestion: "站在壯觀的古蹟前，那種「被震撼」的感覺從何而來？你覺得那份渴望指向什麼？",
   },
   4: {
-    reference: "路加福音 19:41-44",
-    theme: "橄欖山 - 主的心腸",
-    verses: [
-      { number: 41, text: "耶穌快到耶路撒冷，看見城，就為它哀哭。" },
-      { number: 42, text: "說：巴不得你在這日子知道關係你平安的事；無奈這事現在是隱藏的，叫你的眼看不出來。" },
-    ],
-    reflection: "站在橄欖山上，感受主對這座城市的愛與憐憫。",
+    reference: "雅1:14",
+    theme: "最大的威脅，常是你親手請進來的",
+    verses: [],
+    place: "恰納卡萊／達達尼爾海峽／特洛伊",
+    reflection: "特洛伊人打了十年仗沒有輸，卻被一匹「禮物」毀滅。木馬最可怕的地方不是它的設計，而是有人決定把它拉進城門。我們的生命也一樣——真正的威脅往往不是外來的壓力，而是我們以為無害、甚至以為是安慰的習慣或依賴。",
+    action: "寫下你生命中的一匹「木馬」（手機成癮、討好、比較心、逃避衝突、用忙碌麻痺自己……），然後寫一句：「我看見你了，你不再是我的保護。」",
+    prayer: "主啊，給我誠實面對自己的勇氣。幫助我辨認那些偽裝成安慰的破壞，不再讓它進門。",
+    lifeQuestion: "如果你的生活是一座城，什麼是你明知有風險、卻一直捨不得關門拒絕的「木馬」？",
   },
   5: {
-    reference: "馬太福音 26:36-39",
-    theme: "客西馬尼 - 順服的功課",
-    verses: [
-      { number: 36, text: "耶穌同門徒來到一個地方，名叫客西馬尼，就對他們說：你們坐在這裡，等我到那邊去禱告。" },
-      { number: 39, text: "他就稍往前走，俯伏在地，禱告說：我父啊，倘若可行，求你叫這杯離開我。然而，不要照我的意思，只要照你的意思。" },
-    ],
-    reflection: "在客西馬尼園，學習主完全順服的榜樣。",
+    reference: "詩46:10",
+    theme: "在噪音中刻意安靜，是一種勇敢",
+    verses: [],
+    place: "特羅亞Troas／亞朔Assos",
+    reflection: "特羅亞是保羅跨向歐洲宣教的起點——也是少年猶推古因疲憊睡著而墜樓的地方（徒20:9）。旅程到了中段，興奮感退去，疲憊感上來——這時最容易「靈性墜樓」。但在亞朔，保羅刻意讓同工搭船，自己選擇獨自步行。在最忙的時候爭取安靜，不是浪費時間，是為了聽見最重要的聲音。",
+    action: "今天安排十分鐘「獨行時間」：不說話、不拍照、不看手機，只是走路、呼吸、聽風。把一個重擔在心裡默默交出去。",
+    prayer: "神啊，在所有聲音之下，讓我聽見祢安靜的聲音——或者至少，讓我聽見自己真正的心聲。",
+    lifeQuestion: "你最近一次在完全安靜中待超過十分鐘是什麼時候？那時你腦海裡浮現了什麼？",
   },
 };
 
@@ -78,7 +82,7 @@ export default function Devotional() {
     if (!trip?.startDate) return 1;
     const start = parseISO(trip.startDate);
     const diff = differenceInDays(new Date(), start) + 1;
-    return Math.max(1, Math.min(diff, 10));
+    return Math.max(1, Math.min(diff, 16));
   }, [trip?.startDate]);
 
   // Get today's scripture
@@ -89,7 +93,7 @@ export default function Devotional() {
     if (!trip?.startDate) return [];
     const start = parseISO(trip.startDate);
     
-    return Array.from({ length: 10 }, (_, i) => {
+    return Array.from({ length: 16 }, (_, i) => {
       const day = i + 1;
       const date = addDays(start, i);
       const scripture = dailyScriptures[day] || { theme: `第 ${day} 天` };
@@ -236,7 +240,7 @@ export default function Devotional() {
           <DevotionalProgress
             days={progressDays}
             currentDay={currentDay}
-            totalDays={10}
+            totalDays={16}
           />
         )}
 

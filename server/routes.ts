@@ -1757,6 +1757,7 @@ export function registerRoutes(app: Express) {
           reflection: c.reflection || null,
           action: c.action || null,
           prayer: c.prayer || null,
+          lifeQuestion: c.lifeQuestion || null,
         });
         created.push(course);
       }
