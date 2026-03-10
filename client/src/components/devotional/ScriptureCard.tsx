@@ -12,6 +12,7 @@ export interface ScriptureData {
   place?: string;
   action?: string;
   prayer?: string;
+  lifeQuestion?: string;
 }
 
 interface ScriptureCardProps {

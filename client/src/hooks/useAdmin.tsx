@@ -559,6 +559,7 @@ export interface DevotionalCourse {
   reflection: string | null;
   action: string | null;
   prayer: string | null;
+  lifeQuestion: string | null;
 }
 
 export function useDevotionalCourses(tripId: string | null) {

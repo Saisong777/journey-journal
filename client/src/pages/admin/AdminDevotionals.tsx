@@ -49,6 +49,7 @@ interface DevotionalFormData {
   reflection: string;
   action: string;
   prayer: string;
+  lifeQuestion: string;
 }
 
 const emptyForm: DevotionalFormData = {
@@ -59,6 +60,7 @@ const emptyForm: DevotionalFormData = {
   reflection: "",
   action: "",
   prayer: "",
+  lifeQuestion: "",
 };
 
 export default function AdminDevotionals() {
@@ -113,6 +115,7 @@ export default function AdminDevotionals() {
       reflection: course.reflection || "",
       action: course.action || "",
       prayer: course.prayer || "",
+      lifeQuestion: course.lifeQuestion || "",
     });
     setIsDialogOpen(true);
   };
@@ -143,32 +146,62 @@ export default function AdminDevotionals() {
     const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) return [];
     const results: DevotionalFormData[] = [];
+    // Detect delimiter: tab or comma
+    const headerLine = lines[0];
+    const isTabSeparated = headerLine.includes("\t");
+    const delimiter = isTabSeparated ? "\t" : ",";
+    // Parse header to find column indices
+    const headers = isTabSeparated
+      ? headerLine.split("\t").map(h => h.trim().toLowerCase())
+      : (() => {
+          const h: string[] = [];
+          let cur = "";
+          let inQ = false;
+          for (const ch of headerLine) {
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { h.push(cur.trim().toLowerCase()); cur = ""; }
+            else { cur += ch; }
+          }
+          h.push(cur.trim().toLowerCase());
+          return h;
+        })();
     for (let i = 1; i < lines.length; i++) {
       const fields: string[] = [];
-      let current = "";
-      let inQuotes = false;
-      for (const ch of lines[i]) {
-        if (ch === '"') {
-          inQuotes = !inQuotes;
-        } else if (ch === ',' && !inQuotes) {
-          fields.push(current.trim());
-          current = "";
-        } else {
-          current += ch;
+      if (isTabSeparated) {
+        fields.push(...lines[i].split("\t").map(f => f.trim()));
+      } else {
+        let current = "";
+        let inQuotes = false;
+        for (const ch of lines[i]) {
+          if (ch === '"') {
+            inQuotes = !inQuotes;
+          } else if (ch === ',' && !inQuotes) {
+            fields.push(current.trim());
+            current = "";
+          } else {
+            current += ch;
+          }
         }
+        fields.push(current.trim());
       }
-      fields.push(current.trim());
-      const [day, , place, theme, scripture, meditation, action, prayer] = fields;
+      // Map by header name (supports both old and new CSV formats)
+      const get = (names: string[]) => {
+        const idx = headers.findIndex(h => names.includes(h));
+        return idx >= 0 && idx < fields.length ? fields[idx] : "";
+      };
+      const day = get(["day", "day_no", "dayno"]);
       const dayNo = parseInt(day);
-      if (!dayNo || !theme) continue;
+      const title = get(["theme", "title", "onelinetheme"]);
+      if (!dayNo || !title) continue;
       results.push({
         dayNo,
-        title: theme,
-        place: place || "",
-        scripture: scripture || "",
-        reflection: meditation || "",
-        action: action || "",
-        prayer: prayer || "",
+        title,
+        place: get(["place", "city_area"]),
+        scripture: get(["keyverse", "scripture", "bible_refs"]),
+        reflection: get(["seeandfeel", "reflection", "onsitemeditation"]),
+        action: get(["trythis", "action"]),
+        prayer: get(["quietmoment", "prayer"]),
+        lifeQuestion: get(["lifequestion", "life_question"]),
       });
     }
     return results;
@@ -499,7 +532,7 @@ export default function AdminDevotionals() {
               </div>
 
               <div>
-                <Label htmlFor="prayer">禱告（簡短結尾）</Label>
+                <Label htmlFor="prayer">安靜時刻</Label>
                 <Textarea
                   id="prayer"
                   placeholder="簡短的禱告文..."
@@ -509,6 +542,19 @@ export default function AdminDevotionals() {
                     setFormData({ ...formData, prayer: e.target.value })
                   }
                   data-testid="input-prayer"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lifeQuestion">生命提問</Label>
+                <Textarea
+                  id="lifeQuestion"
+                  placeholder="引導思考的生命提問..."
+                  rows={2}
+                  value={formData.lifeQuestion}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lifeQuestion: e.target.value })
+                  }
+                  data-testid="input-life-question"
                 />
               </div>
             </div>
@@ -553,9 +599,10 @@ export default function AdminDevotionals() {
 
             <div className="space-y-4 py-4">
               <div className="bg-muted/50 rounded-lg p-4 text-caption text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">CSV 欄位格式：</p>
-                <p>Day, Date, Place, OneLineTheme, Scripture, OnSiteMeditation, Action, Prayer</p>
-                <p>第一行為標題列，系統會自動跳過</p>
+                <p className="font-medium text-foreground">CSV 欄位格式（支援逗號或 Tab 分隔）：</p>
+                <p>Day, Date, Place, Theme, KeyVerse, SeeAndFeel, TryThis, QuietMoment, LifeQuestion</p>
+                <p>也支援舊格式：Day, Date, Place, OneLineTheme, Scripture, OnSiteMeditation, Action, Prayer</p>
+                <p>第一行為標題列，系統會自動辨識欄位名稱</p>
               </div>
 
               <div>

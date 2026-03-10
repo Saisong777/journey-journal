@@ -180,6 +180,7 @@ export const devotionalCourses = pgTable("devotional_courses", {
   reflection: text("reflection"),
   action: text("action"),
   prayer: text("prayer"),
+  lifeQuestion: text("life_question"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [

@@ -37,6 +37,7 @@ export interface DevotionalCourseDB {
   reflection: string | null;
   action: string | null;
   prayer: string | null;
+  lifeQuestion: string | null;
 }
 
 export interface BibleLookupResult {
