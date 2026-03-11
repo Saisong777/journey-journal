@@ -278,14 +278,21 @@ export function registerRoutes(app: Express) {
   app.use("/api", extractUser);
 
   // Google OAuth: initiate login
+  // Use HMAC-signed state token instead of session to avoid mobile cookie issues
+  const OAUTH_STATE_SECRET = process.env.SESSION_SECRET || "oauth-state-fallback";
+  function signOAuthState(nonce: string): string {
+    return crypto.createHmac("sha256", OAUTH_STATE_SECRET).update(nonce).digest("hex");
+  }
+
   app.get("/api/login", (req, res) => {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     if (!GOOGLE_CLIENT_ID) {
       return res.status(500).json({ error: "Google OAuth not configured" });
     }
 
-    const state = crypto.randomBytes(16).toString("hex");
-    req.session.oauthState = state;
+    const nonce = crypto.randomBytes(16).toString("hex");
+    const sig = signOAuthState(nonce);
+    const state = `${nonce}.${sig}`;
 
     const APP_URL = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
     const redirectUri = `${APP_URL}/api/auth/google/callback`;
@@ -300,9 +307,7 @@ export function registerRoutes(app: Express) {
       prompt: "select_account",
     });
 
-    req.session.save(() => {
-      res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
   });
 
   // Google OAuth: callback
@@ -316,11 +321,16 @@ export function registerRoutes(app: Express) {
         return res.redirect("/?error=oauth_denied");
       }
 
-      if (!state || state !== req.session.oauthState) {
-        console.error("[google-oauth] state mismatch");
+      // Verify HMAC-signed state (no session dependency)
+      if (!state || !state.includes(".")) {
+        console.error("[google-oauth] state mismatch - invalid format");
         return res.redirect("/?error=oauth_state_mismatch");
       }
-      delete req.session.oauthState;
+      const [nonce, sig] = state.split(".");
+      if (sig !== signOAuthState(nonce)) {
+        console.error("[google-oauth] state mismatch - invalid signature");
+        return res.redirect("/?error=oauth_state_mismatch");
+      }
 
       const redirectUri = `${APP_URL}/api/auth/google/callback`;
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
