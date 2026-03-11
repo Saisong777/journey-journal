@@ -2419,6 +2419,57 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ===== Admin Attractions =====
+  app.get("/api/admin/trips/:tripId/attractions", requireAdmin, async (req, res) => {
+    try {
+      const list = await storage.getAttractionsByTrip(req.params.tripId);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attractions" });
+    }
+  });
+
+  app.patch("/api/admin/attractions/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateAttraction(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Attraction not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update attraction" });
+    }
+  });
+
+  app.delete("/api/admin/attractions/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAttraction(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete attraction" });
+    }
+  });
+
+  // ===== Member Attractions =====
+  app.get("/api/attractions", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) return res.json([]);
+      const list = await storage.getAttractionsByTrip(userRole.tripId);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attractions" });
+    }
+  });
+
+  app.get("/api/attractions/:id", requireAuth, async (req, res) => {
+    try {
+      const attraction = await storage.getAttraction(req.params.id);
+      if (!attraction) return res.status(404).json({ error: "Not found" });
+      res.json(attraction);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attraction" });
+    }
+  });
+
   app.get("/api/admin/trips-bible-library", requireAdmin, async (_req, res) => {
     try {
       const allTrips = await storage.getTrips();
