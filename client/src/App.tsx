@@ -38,6 +38,7 @@ const AdminInvitations = lazy(() => import("./pages/admin/AdminInvitations"));
 const AdminMembers = lazy(() => import("./pages/admin/AdminMembers"));
 const AdminTripNotes = lazy(() => import("./pages/admin/AdminTripNotes"));
 const AdminBibleLibrary = lazy(() => import("./pages/admin/AdminBibleLibrary"));
+const AdminAttractions = lazy(() => import("./pages/admin/AdminAttractions"));
 
 import { AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
@@ -226,6 +227,22 @@ const AnimatedRoutes = () => {
           element={
             <AdminRoute>
               <AdminBibleLibrary />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/attractions"
+          element={
+            <AdminRoute>
+              <AdminAttractions />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/attractions/:tripId"
+          element={
+            <AdminRoute>
+              <AdminAttractions />
             </AdminRoute>
           }
         />

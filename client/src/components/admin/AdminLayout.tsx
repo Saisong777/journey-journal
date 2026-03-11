@@ -25,6 +25,7 @@ const navItems = [
   { path: "/admin/trip-notes", label: "注意事項", icon: FileText },
   { path: "/admin/invitations", label: "邀請碼", icon: Ticket },
   { path: "/admin/members", label: "會員管理", icon: Users },
+  { path: "/admin/attractions", label: "景點管理", icon: Map },
   { path: "/admin/bible-library", label: "聖經資料館", icon: Library },
 ];
 

@@ -644,3 +644,109 @@ export function useDevotionalCourseMutations(tripId: string | null) {
 
   return { createDevotionalCourse, updateDevotionalCourse, deleteDevotionalCourse };
 }
+
+// ===== Attractions =====
+
+export interface AdminAttraction {
+  id: string;
+  tripId: string;
+  dayNo: number;
+  seq: number;
+  nameZh: string;
+  nameEn: string | null;
+  nameAlt: string | null;
+  country: string | null;
+  date: string | null;
+  modernLocation: string | null;
+  ancientToponym: string | null;
+  gps: string | null;
+  openingHours: string | null;
+  admission: string | null;
+  duration: string | null;
+  scriptureRefs: string | null;
+  bibleBooks: string | null;
+  storySummary: string | null;
+  keyFigures: string | null;
+  historicalEra: string | null;
+  theologicalSignificance: string | null;
+  lifeApplication: string | null;
+  discussionQuestions: string | null;
+  archaeologicalFindings: string | null;
+  historicalStrata: string | null;
+  accuracyRating: string | null;
+  keyArtifacts: string | null;
+  tourRoutePosition: string | null;
+  bestTime: string | null;
+  dressCode: string | null;
+  photoRestrictions: string | null;
+  crowdLevels: string | null;
+  safetyNotes: string | null;
+  accessibility: string | null;
+  nearbyDining: string | null;
+  accommodation: string | null;
+  nearbyBiblicalSites: string | null;
+  localProducts: string | null;
+  recommendationScore: string | null;
+  physicalComment: string | null;
+}
+
+export function useAdminAttractions(tripId: string | null) {
+  return useQuery<AdminAttraction[]>({
+    queryKey: ["admin-attractions", tripId],
+    queryFn: async () => {
+      if (!tripId) return [];
+      const response = await fetch(`/api/admin/trips/${tripId}/attractions`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch attractions");
+      return response.json();
+    },
+    enabled: !!tripId,
+  });
+}
+
+export function useAttractionMutations(tripId: string | null) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const updateAttraction = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<AdminAttraction> & { id: string }) => {
+      const response = await fetch(`/api/admin/attractions/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update attraction");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attractions", tripId] });
+      toast({ title: "景點已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteAttraction = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/attractions/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete attraction");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attractions", tripId] });
+      toast({ title: "景點已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { updateAttraction, deleteAttraction };
+}
