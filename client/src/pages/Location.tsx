@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation } from "lucide-react";
+import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation, Compass } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberLocationCard, MemberLocationData } from "@/components/location/MemberLocationCard";
 import { GroupList } from "@/components/location/GroupList";
 import { TeamMap } from "@/components/location/TeamMap";
+import { AttractionsMap, parseGps } from "@/components/attractions/AttractionsMap";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocations, useUpdateLocation } from "@/hooks/useLocations";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { getAuthToken } from "@/lib/queryClient";
 
-type ViewMode = "map" | "list" | "groups";
+type ViewMode = "map" | "list" | "groups" | "attractions";
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -41,6 +44,24 @@ export default function Location() {
   const updateLocation = useUpdateLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const [focusAttractionId, setFocusAttractionId] = useState<string | null>(null);
+
+  const { data: attractionsData = [] } = useQuery<{ id: string; nameZh: string; nameEn: string | null; dayNo: number; gps: string | null; date: string | null }[]>({
+    queryKey: ["/api/attractions"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const response = await fetch("/api/attractions", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+    staleTime: Infinity,
+  });
+
+  const attractionsWithGps = attractionsData.filter((a) => parseGps(a.gps) !== null);
 
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(true);
@@ -241,6 +262,7 @@ export default function Location() {
         <section className="flex gap-3">
           {[
             { key: "map", label: "地圖", icon: MapPin },
+            { key: "attractions", label: "景點", icon: Compass },
             { key: "list", label: "列表", icon: Users },
             { key: "groups", label: "分組", icon: Users },
           ].map((tab) => (
@@ -336,6 +358,53 @@ export default function Location() {
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {viewMode === "attractions" && (
+          <section className="space-y-4">
+            <AttractionsMap
+              attractions={attractionsWithGps}
+              focusId={focusAttractionId}
+              heightClass="h-72"
+              onMarkerClick={(id) => setFocusAttractionId(id)}
+            />
+
+            <h3 className="text-body font-semibold">景點列表 ({attractionsWithGps.length})</h3>
+            <div className="space-y-2">
+              {attractionsWithGps.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setFocusAttractionId(a.id)}
+                  className={cn(
+                    "w-full text-left rounded-lg p-3 transition-all border",
+                    focusAttractionId === a.id
+                      ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 shadow-md"
+                      : "bg-card border-border hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body font-medium truncate">{a.nameZh}</p>
+                      <p className="text-caption text-muted-foreground">
+                        第{a.dayNo}天{a.nameEn ? ` · ${a.nameEn}` : ""}
+                      </p>
+                    </div>
+                    <MapPin className={cn(
+                      "w-4 h-4 flex-shrink-0 ml-2",
+                      focusAttractionId === a.id ? "text-amber-600" : "text-muted-foreground"
+                    )} />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {attractionsWithGps.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Compass className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-body">尚無景點座標資料</p>
+              </div>
+            )}
           </section>
         )}
 

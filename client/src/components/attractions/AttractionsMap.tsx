@@ -26,7 +26,22 @@ const attractionIcon = L.divIcon({
   popupAnchor: [0, -10],
 });
 
-interface AttractionMarker {
+const activeAttractionIcon = L.divIcon({
+  className: "attraction-marker-active",
+  html: `<div style="
+    width: 28px;
+    height: 28px;
+    background: #b45309;
+    border: 4px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(217,119,6,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  "></div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14],
+});
+
+export interface AttractionMarker {
   id: string;
   nameZh: string;
   dayNo: number;
@@ -37,10 +52,14 @@ interface AttractionMarker {
 interface AttractionsMapProps {
   attractions: { id: string; nameZh: string; dayNo: number; gps: string | null }[];
   onMarkerClick?: (id: string) => void;
+  /** When set, the map flies to this attraction and opens its popup */
+  focusId?: string | null;
+  /** Map height class, defaults to h-64 */
+  heightClass?: string;
 }
 
 /** Parse GPS text field like "31.7767, 35.2345" into [lat, lng] */
-function parseGps(gps: string | null): [number, number] | null {
+export function parseGps(gps: string | null): [number, number] | null {
   if (!gps) return null;
   const parts = gps.split(",").map((s) => parseFloat(s.trim()));
   if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
@@ -66,7 +85,28 @@ function FitBounds({ markers }: { markers: AttractionMarker[] }) {
   return null;
 }
 
-export function AttractionsMap({ attractions, onMarkerClick }: AttractionsMapProps) {
+function FlyToMarker({ focusId, markers, markerRefs }: {
+  focusId: string | null;
+  markers: AttractionMarker[];
+  markerRefs: React.MutableRefObject<Record<string, L.Marker>>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focusId) return;
+    const m = markers.find((x) => x.id === focusId);
+    if (!m) return;
+    map.flyTo([m.lat, m.lng], 15, { duration: 0.8 });
+    // Open popup after fly animation
+    setTimeout(() => {
+      markerRefs.current[focusId]?.openPopup();
+    }, 900);
+  }, [focusId, markers, map, markerRefs]);
+
+  return null;
+}
+
+export function AttractionsMap({ attractions, onMarkerClick, focusId, heightClass }: AttractionsMapProps) {
   const markers: AttractionMarker[] = attractions
     .map((a) => {
       const coords = parseGps(a.gps);
@@ -75,12 +115,14 @@ export function AttractionsMap({ attractions, onMarkerClick }: AttractionsMapPro
     })
     .filter((m): m is AttractionMarker => m !== null);
 
+  const markerRefs = useRef<Record<string, L.Marker>>({});
+
   if (markers.length === 0) return null;
 
   const center: [number, number] = [markers[0].lat, markers[0].lng];
 
   return (
-    <div className="w-full h-64 rounded-xl overflow-hidden shadow-card">
+    <div className={`w-full ${heightClass || "h-64"} rounded-xl overflow-hidden shadow-card`}>
       <MapContainer
         center={center}
         zoom={10}
@@ -92,8 +134,14 @@ export function AttractionsMap({ attractions, onMarkerClick }: AttractionsMapPro
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds markers={markers} />
+        <FlyToMarker focusId={focusId || null} markers={markers} markerRefs={markerRefs} />
         {markers.map((m) => (
-          <Marker key={m.id} position={[m.lat, m.lng]} icon={attractionIcon}>
+          <Marker
+            key={m.id}
+            position={[m.lat, m.lng]}
+            icon={focusId === m.id ? activeAttractionIcon : attractionIcon}
+            ref={(ref) => { if (ref) markerRefs.current[m.id] = ref; }}
+          >
             <Popup>
               <div className="text-center">
                 <p className="font-semibold text-sm">{m.nameZh}</p>
