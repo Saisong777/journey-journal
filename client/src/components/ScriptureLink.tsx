@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BookOpen, Copy, Check, Loader2, X } from "lucide-react";
 import { getAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +63,14 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  // Lock body scroll when popup is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [open]);
+
   const handleClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -104,8 +112,9 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
 
       {open && (
         <div
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overscroll-none"
           onClick={() => setOpen(false)}
+          onTouchMove={(e) => e.stopPropagation()}
         >
           <div className="fixed inset-0 bg-black/40" />
           <div
@@ -138,7 +147,7 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto px-4 py-3 space-y-1.5">
+            <div className="overflow-y-auto overscroll-contain px-4 py-3 space-y-1.5">
               {loading ? (
                 <div className="flex items-center gap-2 py-6 justify-center">
                   <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
