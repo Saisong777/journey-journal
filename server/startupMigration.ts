@@ -551,6 +551,7 @@ export async function runStartupMigration() {
     }
 
     await ensureAttractionsTable();
+    await ensureBibleLibraryTables();
 
     console.log("[startup-migration] complete");
   } catch (error) {
@@ -615,5 +616,64 @@ async function ensureAttractionsTable() {
     }
   } catch (e) {
     console.error("[startup-migration] attractions table error:", e);
+  }
+}
+
+async function ensureBibleLibraryTables() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bible_library_modules (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          slug TEXT NOT NULL UNIQUE,
+          title TEXT NOT NULL,
+          description TEXT,
+          icon_name TEXT DEFAULT 'BookOpen',
+          cover_image_url TEXT,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_builtin BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bible_library_items (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          module_id UUID NOT NULL REFERENCES bible_library_modules(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          content TEXT,
+          image_url TEXT,
+          file_url TEXT,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_bible_library_items_module ON bible_library_items(module_id)`);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bible_library_module_trips (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          module_id UUID NOT NULL REFERENCES bible_library_modules(id) ON DELETE CASCADE,
+          trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_bible_module_trips_unique ON bible_library_module_trips(trip_id, module_id)`);
+
+      // Seed built-in Paul Journeys module
+      const existing = await client.query(`SELECT id FROM bible_library_modules WHERE slug = 'paul-journeys'`);
+      if (existing.rows.length === 0) {
+        await client.query(`
+          INSERT INTO bible_library_modules (slug, title, description, icon_name, sort_order, is_builtin)
+          VALUES ('paul-journeys', '保羅行蹤', '探索使徒保羅的四次宣教旅程，包含地點、同伴、事件與相關經文', 'Footprints', 0, true)
+        `);
+      }
+      console.log("[startup-migration] ensured bible library tables");
+    } finally {
+      client.release();
+    }
+  } catch (e) {
+    console.error("[startup-migration] bible library tables error:", e);
   }
 }

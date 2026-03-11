@@ -339,6 +339,43 @@ export const attractions = pgTable("attractions", {
   index("idx_attractions_trip_day").on(table.tripId, table.dayNo),
 ]);
 
+// ===== Bible Library Module System =====
+export const bibleLibraryModules = pgTable("bible_library_modules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  iconName: text("icon_name").default("BookOpen"),
+  coverImageUrl: text("cover_image_url"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isBuiltin: boolean("is_builtin").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const bibleLibraryItems = pgTable("bible_library_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  moduleId: uuid("module_id").references(() => bibleLibraryModules.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  fileUrl: text("file_url"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_bible_library_items_module").on(table.moduleId),
+]);
+
+export const bibleLibraryModuleTrips = pgTable("bible_library_module_trips", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  moduleId: uuid("module_id").references(() => bibleLibraryModules.id, { onDelete: "cascade" }).notNull(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_bible_module_trips_unique").on(table.tripId, table.moduleId),
+]);
+
 export const fileUploads = pgTable("file_uploads", {
   id: uuid("id").defaultRandom().primaryKey(),
   data: bytea("data").notNull(),
@@ -395,3 +432,12 @@ export type PaulJourney = typeof paulJourneys.$inferSelect;
 export type FileUpload = typeof fileUploads.$inferSelect;
 export type Attraction = typeof attractions.$inferSelect;
 export type InsertAttraction = z.infer<typeof insertAttractionSchema>;
+
+export const insertBibleLibraryModuleSchema = createInsertSchema(bibleLibraryModules).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertBibleLibraryItemSchema = createInsertSchema(bibleLibraryItems).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertBibleLibraryModuleTripSchema = createInsertSchema(bibleLibraryModuleTrips).omit({ id: true, createdAt: true });
+export type BibleLibraryModule = typeof bibleLibraryModules.$inferSelect;
+export type BibleLibraryItem = typeof bibleLibraryItems.$inferSelect;
+export type BibleLibraryModuleTrip = typeof bibleLibraryModuleTrips.$inferSelect;
+export type InsertBibleLibraryModule = z.infer<typeof insertBibleLibraryModuleSchema>;
+export type InsertBibleLibraryItem = z.infer<typeof insertBibleLibraryItemSchema>;

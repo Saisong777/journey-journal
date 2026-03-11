@@ -39,6 +39,8 @@ const AdminMembers = lazy(() => import("./pages/admin/AdminMembers"));
 const AdminTripNotes = lazy(() => import("./pages/admin/AdminTripNotes"));
 const AdminBibleLibrary = lazy(() => import("./pages/admin/AdminBibleLibrary"));
 const AdminAttractions = lazy(() => import("./pages/admin/AdminAttractions"));
+const AdminBibleModuleEdit = lazy(() => import("./pages/admin/AdminBibleModuleEdit"));
+const BibleModulePage = lazy(() => import("./pages/BibleModulePage"));
 
 import { AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
@@ -231,6 +233,14 @@ const AnimatedRoutes = () => {
           }
         />
         <Route
+          path="/admin/bible-library/modules/:moduleId"
+          element={
+            <AdminRoute>
+              <AdminBibleModuleEdit />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/admin/attractions"
           element={
             <AdminRoute>
@@ -259,6 +269,14 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <PaulJourneys />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bible-library/modules/:moduleId"
+          element={
+            <ProtectedRoute>
+              <BibleModulePage />
             </ProtectedRoute>
           }
         />

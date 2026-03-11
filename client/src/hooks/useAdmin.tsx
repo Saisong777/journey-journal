@@ -750,3 +750,241 @@ export function useAttractionMutations(tripId: string | null) {
 
   return { updateAttraction, deleteAttraction };
 }
+
+// ===== Bible Library Modules =====
+
+export interface BibleLibraryModuleType {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  iconName: string | null;
+  coverImageUrl: string | null;
+  sortOrder: number;
+  isBuiltin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BibleLibraryItemType {
+  id: string;
+  moduleId: string;
+  title: string;
+  content: string | null;
+  imageUrl: string | null;
+  fileUrl: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useBibleLibraryModules() {
+  return useQuery<BibleLibraryModuleType[]>({
+    queryKey: ["admin-bible-modules"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/bible-library/modules", {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch modules");
+      return response.json();
+    },
+  });
+}
+
+export function useBibleLibraryModuleMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createModule = useMutation({
+    mutationFn: async (data: { slug: string; title: string; description?: string; iconName?: string; coverImageUrl?: string; sortOrder?: number }) => {
+      const response = await fetch("/api/admin/bible-library/modules", {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create module");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-modules"] });
+      toast({ title: "模組已建立" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "建立失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateModule = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<BibleLibraryModuleType> & { id: string }) => {
+      const response = await fetch(`/api/admin/bible-library/modules/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update module");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-modules"] });
+      toast({ title: "模組已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteModule = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/bible-library/modules/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete module");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-modules"] });
+      toast({ title: "模組已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { createModule, updateModule, deleteModule };
+}
+
+export function useBibleLibraryItems(moduleId: string | null) {
+  return useQuery<BibleLibraryItemType[]>({
+    queryKey: ["admin-bible-items", moduleId],
+    queryFn: async () => {
+      if (!moduleId) return [];
+      const response = await fetch(`/api/admin/bible-library/modules/${moduleId}/items`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch items");
+      return response.json();
+    },
+    enabled: !!moduleId,
+  });
+}
+
+export function useBibleLibraryItemMutations(moduleId: string | null) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createItem = useMutation({
+    mutationFn: async (data: { title: string; content?: string; imageUrl?: string; fileUrl?: string; sortOrder?: number }) => {
+      const response = await fetch(`/api/admin/bible-library/modules/${moduleId}/items`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create item");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-items", moduleId] });
+      toast({ title: "項目已建立" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "建立失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateItem = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<BibleLibraryItemType> & { id: string }) => {
+      const response = await fetch(`/api/admin/bible-library/items/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update item");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-items", moduleId] });
+      toast({ title: "項目已更新" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "更新失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteItem = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/bible-library/items/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete item");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bible-items", moduleId] });
+      toast({ title: "項目已刪除" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { createItem, updateItem, deleteItem };
+}
+
+export function useModuleTrips(moduleId: string | null) {
+  return useQuery<{ id: string; moduleId: string; tripId: string }[]>({
+    queryKey: ["admin-module-trips", moduleId],
+    queryFn: async () => {
+      if (!moduleId) return [];
+      const response = await fetch(`/api/admin/bible-library/modules/${moduleId}/trips`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch module trips");
+      return response.json();
+    },
+    enabled: !!moduleId,
+  });
+}
+
+export function useModuleTripMutations(moduleId: string | null) {
+  const queryClient = useQueryClient();
+
+  const assignTrip = useMutation({
+    mutationFn: async (tripId: string) => {
+      const response = await fetch(`/api/admin/bible-library/modules/${moduleId}/trips`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify({ tripId }),
+      });
+      if (!response.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-module-trips", moduleId] });
+    },
+  });
+
+  const unassignTrip = useMutation({
+    mutationFn: async (tripId: string) => {
+      const response = await fetch(`/api/admin/bible-library/modules/${moduleId}/trips/${tripId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-module-trips", moduleId] });
+    },
+  });
+
+  return { assignTrip, unassignTrip };
+}

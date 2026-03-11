@@ -59,6 +59,14 @@ import {
   attractions,
   type Attraction,
   type InsertAttraction,
+  bibleLibraryModules,
+  bibleLibraryItems,
+  bibleLibraryModuleTrips,
+  type BibleLibraryModule,
+  type BibleLibraryItem,
+  type BibleLibraryModuleTrip,
+  type InsertBibleLibraryModule,
+  type InsertBibleLibraryItem,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -178,6 +186,23 @@ export interface IStorage {
   setAppSetting(key: string, value: string): Promise<void>;
   updateTripBibleLibrary(tripId: string, enabled: boolean): Promise<void>;
   getPaulJourneys(): Promise<PaulJourney[]>;
+
+  // Bible Library Modules
+  getBibleLibraryModules(): Promise<BibleLibraryModule[]>;
+  getBibleLibraryModule(id: string): Promise<BibleLibraryModule | undefined>;
+  getBibleLibraryModuleBySlug(slug: string): Promise<BibleLibraryModule | undefined>;
+  createBibleLibraryModule(data: InsertBibleLibraryModule): Promise<BibleLibraryModule>;
+  updateBibleLibraryModule(id: string, data: Partial<InsertBibleLibraryModule>): Promise<BibleLibraryModule | undefined>;
+  deleteBibleLibraryModule(id: string): Promise<void>;
+  getBibleLibraryItems(moduleId: string): Promise<BibleLibraryItem[]>;
+  getBibleLibraryItem(id: string): Promise<BibleLibraryItem | undefined>;
+  createBibleLibraryItem(data: InsertBibleLibraryItem): Promise<BibleLibraryItem>;
+  updateBibleLibraryItem(id: string, data: Partial<InsertBibleLibraryItem>): Promise<BibleLibraryItem | undefined>;
+  deleteBibleLibraryItem(id: string): Promise<void>;
+  getModulesForTrip(tripId: string): Promise<BibleLibraryModule[]>;
+  assignModuleToTrip(moduleId: string, tripId: string): Promise<void>;
+  unassignModuleFromTrip(moduleId: string, tripId: string): Promise<void>;
+  getModuleTrips(moduleId: string): Promise<BibleLibraryModuleTrip[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -870,6 +895,70 @@ export class DatabaseStorage implements IStorage {
 
   async getPaulJourneys(): Promise<PaulJourney[]> {
     return await db.select().from(paulJourneys).orderBy(asc(paulJourneys.journey), asc(paulJourneys.sequence));
+  }
+
+  // ===== Bible Library Modules =====
+  async getBibleLibraryModules(): Promise<BibleLibraryModule[]> {
+    return db.select().from(bibleLibraryModules).orderBy(asc(bibleLibraryModules.sortOrder));
+  }
+  async getBibleLibraryModule(id: string): Promise<BibleLibraryModule | undefined> {
+    const [m] = await db.select().from(bibleLibraryModules).where(eq(bibleLibraryModules.id, id));
+    return m;
+  }
+  async getBibleLibraryModuleBySlug(slug: string): Promise<BibleLibraryModule | undefined> {
+    const [m] = await db.select().from(bibleLibraryModules).where(eq(bibleLibraryModules.slug, slug));
+    return m;
+  }
+  async createBibleLibraryModule(data: InsertBibleLibraryModule): Promise<BibleLibraryModule> {
+    const [m] = await db.insert(bibleLibraryModules).values(data).returning();
+    return m;
+  }
+  async updateBibleLibraryModule(id: string, data: Partial<InsertBibleLibraryModule>): Promise<BibleLibraryModule | undefined> {
+    const [m] = await db.update(bibleLibraryModules).set({ ...data, updatedAt: new Date() }).where(eq(bibleLibraryModules.id, id)).returning();
+    return m;
+  }
+  async deleteBibleLibraryModule(id: string): Promise<void> {
+    await db.delete(bibleLibraryModules).where(eq(bibleLibraryModules.id, id));
+  }
+
+  async getBibleLibraryItems(moduleId: string): Promise<BibleLibraryItem[]> {
+    return db.select().from(bibleLibraryItems).where(eq(bibleLibraryItems.moduleId, moduleId)).orderBy(asc(bibleLibraryItems.sortOrder));
+  }
+  async getBibleLibraryItem(id: string): Promise<BibleLibraryItem | undefined> {
+    const [item] = await db.select().from(bibleLibraryItems).where(eq(bibleLibraryItems.id, id));
+    return item;
+  }
+  async createBibleLibraryItem(data: InsertBibleLibraryItem): Promise<BibleLibraryItem> {
+    const [item] = await db.insert(bibleLibraryItems).values(data).returning();
+    return item;
+  }
+  async updateBibleLibraryItem(id: string, data: Partial<InsertBibleLibraryItem>): Promise<BibleLibraryItem | undefined> {
+    const [item] = await db.update(bibleLibraryItems).set({ ...data, updatedAt: new Date() }).where(eq(bibleLibraryItems.id, id)).returning();
+    return item;
+  }
+  async deleteBibleLibraryItem(id: string): Promise<void> {
+    await db.delete(bibleLibraryItems).where(eq(bibleLibraryItems.id, id));
+  }
+
+  async getModulesForTrip(tripId: string): Promise<BibleLibraryModule[]> {
+    const assignments = await db.select().from(bibleLibraryModuleTrips).where(eq(bibleLibraryModuleTrips.tripId, tripId));
+    if (assignments.length === 0) return [];
+    const moduleIds = assignments.map(a => a.moduleId);
+    return db.select().from(bibleLibraryModules).where(inArray(bibleLibraryModules.id, moduleIds)).orderBy(asc(bibleLibraryModules.sortOrder));
+  }
+  async assignModuleToTrip(moduleId: string, tripId: string): Promise<void> {
+    const existing = await db.select().from(bibleLibraryModuleTrips)
+      .where(and(eq(bibleLibraryModuleTrips.moduleId, moduleId), eq(bibleLibraryModuleTrips.tripId, tripId)));
+    if (existing.length === 0) {
+      await db.insert(bibleLibraryModuleTrips).values({ moduleId, tripId });
+    }
+  }
+  async unassignModuleFromTrip(moduleId: string, tripId: string): Promise<void> {
+    await db.delete(bibleLibraryModuleTrips)
+      .where(and(eq(bibleLibraryModuleTrips.moduleId, moduleId), eq(bibleLibraryModuleTrips.tripId, tripId)));
+  }
+  async getModuleTrips(moduleId: string): Promise<BibleLibraryModuleTrip[]> {
+    return db.select().from(bibleLibraryModuleTrips).where(eq(bibleLibraryModuleTrips.moduleId, moduleId));
   }
 }
 

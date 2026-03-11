@@ -2480,6 +2480,134 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ===== Bible Library Modules (Admin) =====
+  app.get("/api/admin/bible-library/modules", requireAdmin, async (_req, res) => {
+    try {
+      const modules = await storage.getBibleLibraryModules();
+      res.json(modules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch modules" });
+    }
+  });
+
+  app.post("/api/admin/bible-library/modules", requireAdmin, async (req, res) => {
+    try {
+      const module = await storage.createBibleLibraryModule(req.body);
+      res.json(module);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create module" });
+    }
+  });
+
+  app.patch("/api/admin/bible-library/modules/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateBibleLibraryModule(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Module not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update module" });
+    }
+  });
+
+  app.delete("/api/admin/bible-library/modules/:id", requireAdmin, async (req, res) => {
+    try {
+      const module = await storage.getBibleLibraryModule(req.params.id);
+      if (!module) return res.status(404).json({ error: "Module not found" });
+      if (module.isBuiltin) return res.status(400).json({ error: "Cannot delete built-in module" });
+      await storage.deleteBibleLibraryModule(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete module" });
+    }
+  });
+
+  // Module items
+  app.get("/api/admin/bible-library/modules/:moduleId/items", requireAdmin, async (req, res) => {
+    try {
+      const items = await storage.getBibleLibraryItems(req.params.moduleId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch items" });
+    }
+  });
+
+  app.post("/api/admin/bible-library/modules/:moduleId/items", requireAdmin, async (req, res) => {
+    try {
+      const item = await storage.createBibleLibraryItem({ ...req.body, moduleId: req.params.moduleId });
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create item" });
+    }
+  });
+
+  app.patch("/api/admin/bible-library/items/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateBibleLibraryItem(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Item not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update item" });
+    }
+  });
+
+  app.delete("/api/admin/bible-library/items/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteBibleLibraryItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  // Module-trip assignments
+  app.get("/api/admin/bible-library/modules/:moduleId/trips", requireAdmin, async (req, res) => {
+    try {
+      const trips = await storage.getModuleTrips(req.params.moduleId);
+      res.json(trips);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch module trips" });
+    }
+  });
+
+  app.post("/api/admin/bible-library/modules/:moduleId/trips", requireAdmin, async (req, res) => {
+    try {
+      await storage.assignModuleToTrip(req.params.moduleId, req.body.tripId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to assign module to trip" });
+    }
+  });
+
+  app.delete("/api/admin/bible-library/modules/:moduleId/trips/:tripId", requireAdmin, async (req, res) => {
+    try {
+      await storage.unassignModuleFromTrip(req.params.moduleId, req.params.tripId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unassign module from trip" });
+    }
+  });
+
+  // ===== Bible Library Modules (Member) =====
+  app.get("/api/bible-library/modules", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) return res.json([]);
+      const modules = await storage.getModulesForTrip(userRole.tripId);
+      res.json(modules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch modules" });
+    }
+  });
+
+  app.get("/api/bible-library/modules/:moduleId/items", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getBibleLibraryItems(req.params.moduleId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch items" });
+    }
+  });
+
   app.get("/api/admin/trips-bible-library", requireAdmin, async (_req, res) => {
     try {
       const allTrips = await storage.getTrips();
