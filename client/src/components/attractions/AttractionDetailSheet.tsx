@@ -1,149 +1,207 @@
+import { Book, Calendar, Clock, Compass, Footprints, Mountain, Ticket, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ScriptureText } from "@/components/ScriptureLink";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MapPin, Clock, Book, Calendar, Info, Navigation } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
-export interface Attraction {
+export interface AttractionDB {
   id: string;
-  name: string;
-  location: string;
-  imageUrl: string;
-  category: "religious" | "historical" | "natural";
-  visitDuration: string;
-  description: string;
-  history: string;
-  scripture?: string;
-  scriptureReference?: string;
-  visitTips: string[];
-  visitDate?: string;
+  tripId: string;
+  dayNo: number;
+  seq: number;
+  nameZh: string;
+  nameEn: string | null;
+  nameAlt: string | null;
+  country: string | null;
+  date: string | null;
+  modernLocation: string | null;
+  ancientToponym: string | null;
+  gps: string | null;
+  openingHours: string | null;
+  admission: string | null;
+  duration: string | null;
+  scriptureRefs: string | null;
+  bibleBooks: string | null;
+  storySummary: string | null;
+  keyFigures: string | null;
+  historicalEra: string | null;
+  theologicalSignificance: string | null;
+  lifeApplication: string | null;
+  discussionQuestions: string | null;
+  archaeologicalFindings: string | null;
+  historicalStrata: string | null;
+  accuracyRating: string | null;
+  keyArtifacts: string | null;
+  tourRoutePosition: string | null;
+  bestTime: string | null;
+  dressCode: string | null;
+  photoRestrictions: string | null;
+  crowdLevels: string | null;
+  safetyNotes: string | null;
+  accessibility: string | null;
+  nearbyDining: string | null;
+  accommodation: string | null;
+  nearbyBiblicalSites: string | null;
+  localProducts: string | null;
+  recommendationScore: string | null;
+  physicalComment: string | null;
+}
+
+function formatDate(dateStr: string): string {
+  const parts = dateStr.split("/");
+  if (parts.length === 2) return `${parts[0]}月${parts[1]}日`;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function InfoBlock({ title, icon: Icon, children, className }: { title: string; icon: any; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("rounded-lg p-4", className)}>
+      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+        <Icon className="w-4 h-4" />
+        {title}
+      </h4>
+      <div className="text-body leading-relaxed">{children}</div>
+    </div>
+  );
 }
 
 interface AttractionDetailSheetProps {
-  attraction: Attraction | null;
+  attraction: AttractionDB | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function AttractionDetailSheet({
-  attraction,
-  open,
-  onOpenChange,
-}: AttractionDetailSheetProps) {
-  if (!attraction) return null;
-
+export function AttractionDetailSheet({ attraction, open, onOpenChange }: AttractionDetailSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-        <ScrollArea className="h-full pr-4">
-          <SheetHeader className="text-left pb-4">
-            <SheetTitle className="text-display">{attraction.name}</SheetTitle>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span className="text-body">{attraction.location}</span>
-            </div>
-          </SheetHeader>
-
-          <div className="space-y-6 pb-8">
-            {/* Image */}
-            <div className="rounded-xl overflow-hidden">
-              <img
-                src={attraction.imageUrl}
-                alt={attraction.name}
-                className="w-full h-48 object-cover"
-                loading="lazy"
-              />
-            </div>
-
-            {/* Quick Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-muted rounded-lg p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-caption">建議停留</span>
-                </div>
-                <p className="text-body font-medium">{attraction.visitDuration}</p>
+      <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+        {attraction && (
+          <>
+            <SheetHeader className="text-left pb-4 border-b">
+              <SheetTitle className="text-xl">{attraction.nameZh}</SheetTitle>
+              {attraction.nameEn && (
+                <p className="text-sm text-muted-foreground">{attraction.nameEn}</p>
+              )}
+              {attraction.nameAlt && (
+                <p className="text-xs text-muted-foreground/70">{attraction.nameAlt}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  第{attraction.dayNo}天{attraction.date && ` · ${formatDate(attraction.date)}`}
+                </span>
+                {attraction.country && (
+                  <span className="inline-flex items-center gap-1">
+                    <Compass className="w-4 h-4" />
+                    {attraction.country}
+                  </span>
+                )}
               </div>
-              {attraction.visitDate && (
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-caption">參訪日期</span>
+            </SheetHeader>
+
+            <div className="py-4 space-y-4 overflow-y-auto max-h-[calc(85vh-10rem)]">
+              {/* Quick info badges */}
+              <div className="flex flex-wrap gap-2">
+                {attraction.duration && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                    <Clock className="w-3 h-3" /> {attraction.duration}
+                  </span>
+                )}
+                {attraction.admission && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                    <Ticket className="w-3 h-3" /> {attraction.admission}
+                  </span>
+                )}
+                {attraction.openingHours && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                    <Clock className="w-3 h-3" /> {attraction.openingHours.length > 30 ? attraction.openingHours.slice(0, 30) + "…" : attraction.openingHours}
+                  </span>
+                )}
+                {attraction.recommendationScore && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-full">
+                    {attraction.recommendationScore}
+                  </span>
+                )}
+              </div>
+
+              {/* Scripture */}
+              {attraction.scriptureRefs && (
+                <InfoBlock title="相關經文" icon={Book} className="bg-primary/10 text-primary">
+                  <div className="text-foreground flex flex-wrap gap-x-2 gap-y-1">
+                    <ScriptureText text={attraction.scriptureRefs} />
                   </div>
-                  <p className="text-body font-medium">{attraction.visitDate}</p>
+                </InfoBlock>
+              )}
+
+              {/* Story Summary */}
+              {attraction.storySummary && (
+                <InfoBlock title="聖經故事" icon={Book} className="bg-card border border-border">
+                  <p className="text-muted-foreground whitespace-pre-line">{attraction.storySummary}</p>
+                </InfoBlock>
+              )}
+
+              {/* Key Figures */}
+              {attraction.keyFigures && (
+                <InfoBlock title="關鍵人物" icon={Users} className="bg-card border border-border">
+                  <p className="text-muted-foreground">{attraction.keyFigures}</p>
+                </InfoBlock>
+              )}
+
+              {/* Theological Significance */}
+              {attraction.theologicalSignificance && (
+                <InfoBlock title="神學意義" icon={Book} className="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40">
+                  <p className="text-amber-900 dark:text-amber-100 whitespace-pre-line">{attraction.theologicalSignificance}</p>
+                </InfoBlock>
+              )}
+
+              {/* Life Application */}
+              {attraction.lifeApplication && (
+                <InfoBlock title="生活應用" icon={Footprints} className="bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-700/40">
+                  <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-line">{attraction.lifeApplication}</p>
+                </InfoBlock>
+              )}
+
+              {/* Discussion Questions */}
+              {attraction.discussionQuestions && (
+                <InfoBlock title="討論問題" icon={Users} className="bg-card border border-border">
+                  <p className="text-muted-foreground whitespace-pre-line">{attraction.discussionQuestions.replace(/\s*[｜|]\s*/g, "\n")}</p>
+                </InfoBlock>
+              )}
+
+              {/* Archaeological */}
+              {attraction.archaeologicalFindings && (
+                <InfoBlock title="考古發現" icon={Mountain} className="bg-card border border-border">
+                  <p className="text-muted-foreground whitespace-pre-line">{attraction.archaeologicalFindings}</p>
+                </InfoBlock>
+              )}
+
+              {/* Practical info */}
+              {(attraction.dressCode || attraction.safetyNotes || attraction.physicalComment) && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <h4 className="text-sm font-semibold text-foreground">實用資訊</h4>
+                  {attraction.dressCode && (
+                    <p className="text-body text-muted-foreground"><span className="font-medium">服裝要求：</span>{attraction.dressCode}</p>
+                  )}
+                  {attraction.safetyNotes && (
+                    <p className="text-body text-muted-foreground"><span className="font-medium">安全提醒：</span>{attraction.safetyNotes}</p>
+                  )}
+                  {attraction.physicalComment && (
+                    <p className="text-body text-muted-foreground"><span className="font-medium">體力備註：</span>{attraction.physicalComment}</p>
+                  )}
+                  {attraction.modernLocation && (
+                    <p className="text-body text-muted-foreground"><span className="font-medium">位置：</span>{attraction.modernLocation}</p>
+                  )}
                 </div>
               )}
             </div>
-
-            {/* Description */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Info className="w-5 h-5 text-primary" />
-                <h3 className="text-title font-semibold">景點介紹</h3>
-              </div>
-              <p className="text-body text-muted-foreground leading-relaxed">
-                {attraction.description}
-              </p>
-            </section>
-
-            <Separator />
-
-            {/* History */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Book className="w-5 h-5 text-primary" />
-                <h3 className="text-title font-semibold">歷史背景</h3>
-              </div>
-              <p className="text-body text-muted-foreground leading-relaxed">
-                {attraction.history}
-              </p>
-            </section>
-
-            {/* Scripture */}
-            {attraction.scripture && (
-              <>
-                <Separator />
-                <section className="space-y-3">
-                  <h3 className="text-title font-semibold">📖 相關經文</h3>
-                  <div className="bg-primary/5 rounded-xl p-4 border-l-4 border-primary">
-                    <p className="text-body italic leading-relaxed mb-2">
-                      「{attraction.scripture}」
-                    </p>
-                    <p className="text-caption text-muted-foreground text-right">
-                      — {attraction.scriptureReference}
-                    </p>
-                  </div>
-                </section>
-              </>
-            )}
-
-            <Separator />
-
-            {/* Visit Tips */}
-            <section className="space-y-3">
-              <h3 className="text-title font-semibold">💡 參訪須知</h3>
-              <ul className="space-y-2">
-                {attraction.visitTips.map((tip, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-primary mt-1">•</span>
-                    <span className="text-body text-muted-foreground">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {/* Action Button */}
-            <Button className="w-full h-12 text-body" size="lg">
-              <Navigation className="w-5 h-5 mr-2" />
-              導航至此景點
-            </Button>
-          </div>
-        </ScrollArea>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );

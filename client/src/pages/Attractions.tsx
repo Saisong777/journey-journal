@@ -1,64 +1,15 @@
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Calendar, Book, ChevronRight, Clock, Ticket, Users, Footprints, Mountain, Compass } from "lucide-react";
-import { ScriptureText } from "@/components/ScriptureLink";
+import { Search, MapPin, Calendar, Book, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AttractionsMap } from "@/components/attractions/AttractionsMap";
+import { AttractionDetailSheet, type AttractionDB } from "@/components/attractions/AttractionDetailSheet";
 import { useQuery } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-
-interface AttractionDB {
-  id: string;
-  tripId: string;
-  dayNo: number;
-  seq: number;
-  nameZh: string;
-  nameEn: string | null;
-  nameAlt: string | null;
-  country: string | null;
-  date: string | null;
-  modernLocation: string | null;
-  ancientToponym: string | null;
-  gps: string | null;
-  openingHours: string | null;
-  admission: string | null;
-  duration: string | null;
-  scriptureRefs: string | null;
-  bibleBooks: string | null;
-  storySummary: string | null;
-  keyFigures: string | null;
-  historicalEra: string | null;
-  theologicalSignificance: string | null;
-  lifeApplication: string | null;
-  discussionQuestions: string | null;
-  archaeologicalFindings: string | null;
-  historicalStrata: string | null;
-  accuracyRating: string | null;
-  keyArtifacts: string | null;
-  tourRoutePosition: string | null;
-  bestTime: string | null;
-  dressCode: string | null;
-  photoRestrictions: string | null;
-  crowdLevels: string | null;
-  safetyNotes: string | null;
-  accessibility: string | null;
-  nearbyDining: string | null;
-  accommodation: string | null;
-  nearbyBiblicalSites: string | null;
-  localProducts: string | null;
-  recommendationScore: string | null;
-  physicalComment: string | null;
-}
 
 function formatDate(dateStr: string): string {
   const parts = dateStr.split("/");
@@ -66,18 +17,6 @@ function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   return `${date.getMonth() + 1}月${date.getDate()}日`;
-}
-
-function InfoBlock({ title, icon: Icon, children, className }: { title: string; icon: any; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("rounded-lg p-4", className)}>
-      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-        <Icon className="w-4 h-4" />
-        {title}
-      </h4>
-      <div className="text-body leading-relaxed">{children}</div>
-    </div>
-  );
 }
 
 const Attractions = () => {
@@ -275,131 +214,11 @@ const Attractions = () => {
         )}
       </div>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-          {selectedAttraction && (
-            <>
-              <SheetHeader className="text-left pb-4 border-b">
-                <SheetTitle className="text-xl">{selectedAttraction.nameZh}</SheetTitle>
-                {selectedAttraction.nameEn && (
-                  <p className="text-sm text-muted-foreground">{selectedAttraction.nameEn}</p>
-                )}
-                {selectedAttraction.nameAlt && (
-                  <p className="text-xs text-muted-foreground/70">{selectedAttraction.nameAlt}</p>
-                )}
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
-                  <span className="inline-flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    第{selectedAttraction.dayNo}天{selectedAttraction.date && ` · ${formatDate(selectedAttraction.date)}`}
-                  </span>
-                  {selectedAttraction.country && (
-                    <span className="inline-flex items-center gap-1">
-                      <Compass className="w-4 h-4" />
-                      {selectedAttraction.country}
-                    </span>
-                  )}
-                </div>
-              </SheetHeader>
-
-              <div className="py-4 space-y-4 overflow-y-auto max-h-[calc(85vh-10rem)]">
-                {/* Quick info badges */}
-                <div className="flex flex-wrap gap-2">
-                  {selectedAttraction.duration && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
-                      <Clock className="w-3 h-3" /> {selectedAttraction.duration}
-                    </span>
-                  )}
-                  {selectedAttraction.admission && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
-                      <Ticket className="w-3 h-3" /> {selectedAttraction.admission}
-                    </span>
-                  )}
-                  {selectedAttraction.openingHours && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
-                      <Clock className="w-3 h-3" /> {selectedAttraction.openingHours.length > 30 ? selectedAttraction.openingHours.slice(0, 30) + "…" : selectedAttraction.openingHours}
-                    </span>
-                  )}
-                  {selectedAttraction.recommendationScore && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-full">
-                      {selectedAttraction.recommendationScore}
-                    </span>
-                  )}
-                </div>
-
-                {/* Scripture */}
-                {selectedAttraction.scriptureRefs && (
-                  <InfoBlock title="相關經文" icon={Book} className="bg-primary/10 text-primary">
-                    <div className="text-foreground flex flex-wrap gap-x-2 gap-y-1">
-                      <ScriptureText text={selectedAttraction.scriptureRefs} />
-                    </div>
-                  </InfoBlock>
-                )}
-
-                {/* Story Summary */}
-                {selectedAttraction.storySummary && (
-                  <InfoBlock title="聖經故事" icon={Book} className="bg-card border border-border">
-                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.storySummary}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Key Figures */}
-                {selectedAttraction.keyFigures && (
-                  <InfoBlock title="關鍵人物" icon={Users} className="bg-card border border-border">
-                    <p className="text-muted-foreground">{selectedAttraction.keyFigures}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Theological Significance */}
-                {selectedAttraction.theologicalSignificance && (
-                  <InfoBlock title="神學意義" icon={Book} className="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40">
-                    <p className="text-amber-900 dark:text-amber-100 whitespace-pre-line">{selectedAttraction.theologicalSignificance}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Life Application */}
-                {selectedAttraction.lifeApplication && (
-                  <InfoBlock title="生活應用" icon={Footprints} className="bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-700/40">
-                    <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-line">{selectedAttraction.lifeApplication}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Discussion Questions */}
-                {selectedAttraction.discussionQuestions && (
-                  <InfoBlock title="討論問題" icon={Users} className="bg-card border border-border">
-                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.discussionQuestions.replace(/\s*[｜|]\s*/g, "\n")}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Archaeological */}
-                {selectedAttraction.archaeologicalFindings && (
-                  <InfoBlock title="考古發現" icon={Mountain} className="bg-card border border-border">
-                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.archaeologicalFindings}</p>
-                  </InfoBlock>
-                )}
-
-                {/* Practical info */}
-                {(selectedAttraction.dressCode || selectedAttraction.safetyNotes || selectedAttraction.physicalComment) && (
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground">實用資訊</h4>
-                    {selectedAttraction.dressCode && (
-                      <p className="text-body text-muted-foreground"><span className="font-medium">服裝要求：</span>{selectedAttraction.dressCode}</p>
-                    )}
-                    {selectedAttraction.safetyNotes && (
-                      <p className="text-body text-muted-foreground"><span className="font-medium">安全提醒：</span>{selectedAttraction.safetyNotes}</p>
-                    )}
-                    {selectedAttraction.physicalComment && (
-                      <p className="text-body text-muted-foreground"><span className="font-medium">體力備註：</span>{selectedAttraction.physicalComment}</p>
-                    )}
-                    {selectedAttraction.modernLocation && (
-                      <p className="text-body text-muted-foreground"><span className="font-medium">位置：</span>{selectedAttraction.modernLocation}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      <AttractionDetailSheet
+        attraction={selectedAttraction}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </PageLayout>
   );
 };

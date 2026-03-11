@@ -5,6 +5,7 @@ import { MemberLocationCard, MemberLocationData } from "@/components/location/Me
 import { GroupList } from "@/components/location/GroupList";
 import { TeamMap } from "@/components/location/TeamMap";
 import { AttractionsMap, parseGps } from "@/components/attractions/AttractionsMap";
+import { AttractionDetailSheet, type AttractionDB } from "@/components/attractions/AttractionDetailSheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -46,8 +47,10 @@ export default function Location() {
   const { toast } = useToast();
 
   const [focusAttractionId, setFocusAttractionId] = useState<string | null>(null);
+  const [selectedAttraction, setSelectedAttraction] = useState<AttractionDB | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: attractionsData = [] } = useQuery<{ id: string; nameZh: string; nameEn: string | null; dayNo: number; gps: string | null; date: string | null }[]>({
+  const { data: attractionsData = [] } = useQuery<AttractionDB[]>({
     queryKey: ["/api/attractions"],
     queryFn: async () => {
       const token = getAuthToken();
@@ -367,15 +370,17 @@ export default function Location() {
               attractions={attractionsWithGps}
               focusId={focusAttractionId}
               heightClass="h-72"
-              onMarkerClick={(id) => setFocusAttractionId(id)}
+              onMarkerClick={(id) => {
+                const a = attractionsWithGps.find((x) => x.id === id);
+                if (a) { setSelectedAttraction(a); setSheetOpen(true); }
+              }}
             />
 
             <h3 className="text-body font-semibold">景點列表 ({attractionsWithGps.length})</h3>
             <div className="space-y-2">
               {attractionsWithGps.map((a) => (
-                <button
+                <div
                   key={a.id}
-                  onClick={() => setFocusAttractionId(a.id)}
                   className={cn(
                     "w-full text-left rounded-lg p-3 transition-all border",
                     focusAttractionId === a.id
@@ -383,19 +388,30 @@ export default function Location() {
                       : "bg-card border-border hover:bg-muted"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-body font-medium truncate">{a.nameZh}</p>
-                      <p className="text-caption text-muted-foreground">
-                        第{a.dayNo}天{a.nameEn ? ` · ${a.nameEn}` : ""}
-                      </p>
+                  <button
+                    className="w-full text-left"
+                    onClick={() => setFocusAttractionId(a.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body font-medium truncate">{a.nameZh}</p>
+                        <p className="text-caption text-muted-foreground">
+                          第{a.dayNo}天{a.nameEn ? ` · ${a.nameEn}` : ""}
+                        </p>
+                      </div>
+                      <MapPin className={cn(
+                        "w-4 h-4 flex-shrink-0 ml-2",
+                        focusAttractionId === a.id ? "text-amber-600" : "text-muted-foreground"
+                      )} />
                     </div>
-                    <MapPin className={cn(
-                      "w-4 h-4 flex-shrink-0 ml-2",
-                      focusAttractionId === a.id ? "text-amber-600" : "text-muted-foreground"
-                    )} />
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    className="mt-2 text-xs text-amber-700 dark:text-amber-400 font-medium hover:underline"
+                    onClick={() => { setSelectedAttraction(a); setSheetOpen(true); }}
+                  >
+                    查看詳情
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -420,6 +436,12 @@ export default function Location() {
           </section>
         )}
       </div>
+
+      <AttractionDetailSheet
+        attraction={selectedAttraction}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </PageLayout>
   );
 }
