@@ -187,10 +187,6 @@ const fallbackScriptures: Record<number, ScriptureData> = {
 
 type TabType = "morning" | "adventure" | "evening";
 
-const prayerTopics = [
-  "感恩讚美", "認罪悔改", "為自己禱告",
-  "為家人禱告", "為團員禱告", "為世界禱告",
-];
 
 export default function DailyJourney() {
   const [activeTab, setActiveTab] = useState<TabType>("morning");
@@ -199,7 +195,6 @@ export default function DailyJourney() {
   const [viewingEntry, setViewingEntry] = useState<JournalEntryData | null>(null);
 
   const [reflection, setReflection] = useState("");
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [prayerContent, setPrayerContent] = useState("");
 
   const [gratitude, setGratitude] = useState("");
@@ -218,7 +213,6 @@ export default function DailyJourney() {
     setVersesExpanded(false);
     setSelectedVerses(new Set());
     setReflection("");
-    setSelectedTopics([]);
     setPrayerContent("");
     setGratitude("");
     setHighlight("");
@@ -362,12 +356,11 @@ export default function DailyJourney() {
     await saveDevotional.mutateAsync({
       scriptureReference: todayScripture?.reference || "",
       reflection,
-      prayer: [...selectedTopics, prayerContent].filter(Boolean).join("; "),
+      prayer: todayScripture?.prayer || "",
       date: dateStr,
       id: myDevotional?.id,
     });
     setReflection("");
-    setSelectedTopics([]);
     setPrayerContent("");
     setIsEditingDevotional(false);
   };
@@ -375,12 +368,6 @@ export default function DailyJourney() {
   const handleEditDevotional = () => {
     if (myDevotional) {
       setReflection(myDevotional.reflection || "");
-      const existingPrayer = myDevotional.prayer || "";
-      const parts = existingPrayer.split("; ").filter(Boolean);
-      const topics = parts.filter(p => prayerTopics.includes(p));
-      const freeText = parts.filter(p => !prayerTopics.includes(p)).join("; ");
-      setSelectedTopics(topics);
-      setPrayerContent(freeText);
       setIsEditingDevotional(true);
     }
   };
@@ -595,44 +582,11 @@ export default function DailyJourney() {
                         data-testid="input-reflection-nodevotional"
                       />
                     </div>
-                    <div className="space-y-3">
-                      <label className="text-body font-medium">禱告主題</label>
-                      <div className="flex flex-wrap gap-2">
-                        {prayerTopics.map((topic) => (
-                          <button
-                            key={topic}
-                            onClick={() => setSelectedTopics(prev =>
-                              prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-                            )}
-                            className={cn(
-                              "px-3 py-1.5 rounded-full text-caption transition-all touch-target",
-                              selectedTopics.includes(topic)
-                                ? "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200"
-                                : "bg-muted text-foreground hover:bg-muted/80"
-                            )}
-                            data-testid={`topic-nodev-${topic}`}
-                          >
-                            {topic}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-body font-medium">禱告內容</label>
-                      <Textarea
-                        value={prayerContent}
-                        onChange={(e) => setPrayerContent(e.target.value)}
-                        placeholder="親愛的天父，感謝祢..."
-                        className="min-h-[80px] max-h-[200px] text-body resize-none"
-                        data-testid="input-prayer-nodevotional"
-                      />
-                    </div>
                     {isEditingDevotional && (
                       <Button
                         onClick={() => {
                           setIsEditingDevotional(false);
                           setReflection("");
-                          setSelectedTopics([]);
                           setPrayerContent("");
                         }}
                         variant="outline"
@@ -681,12 +635,6 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-4 space-y-3">
-                    {bibleLoading && todayScripture.verses.length === 0 && (
-                      <div className="flex items-center gap-2 text-caption text-amber-600 dark:text-amber-400 p-3">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>載入經文中...</span>
-                      </div>
-                    )}
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button
@@ -819,12 +767,6 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-5 space-y-4">
-                    {bibleLoading && todayScripture.verses.length === 0 && (
-                      <div className="flex items-center gap-2 text-caption text-amber-600 dark:text-amber-400 p-3">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>載入經文中...</span>
-                      </div>
-                    )}
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/40 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button
@@ -939,46 +881,21 @@ export default function DailyJourney() {
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-body font-medium">禱告主題</label>
-                    <div className="flex flex-wrap gap-2">
-                      {prayerTopics.map((topic) => (
-                        <button
-                          key={topic}
-                          onClick={() => setSelectedTopics(prev =>
-                            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-                          )}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-caption transition-all touch-target",
-                            selectedTopics.includes(topic)
-                              ? "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200"
-                              : "bg-muted text-foreground hover:bg-muted/80"
-                          )}
-                          data-testid={`topic-${topic}`}
-                        >
-                          {topic}
-                        </button>
-                      ))}
+                  {todayScripture.prayer && (
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                      <h4 className="text-caption font-semibold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+                        <MessageCircleHeart className="w-3.5 h-3.5" />
+                        今日禱告
+                      </h4>
+                      <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.prayer}</p>
                     </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-body font-medium">禱告內容</label>
-                    <Textarea
-                      value={prayerContent}
-                      onChange={(e) => setPrayerContent(e.target.value)}
-                      placeholder="親愛的天父，感謝祢..."
-                      className="min-h-[80px] max-h-[200px] text-body resize-none"
-                      data-testid="input-prayer"
-                    />
-                  </div>
+                  )}
 
                   {isEditingDevotional && (
                     <Button
                       onClick={() => {
                         setIsEditingDevotional(false);
                         setReflection("");
-                        setSelectedTopics([]);
                         setPrayerContent("");
                       }}
                       variant="outline"
