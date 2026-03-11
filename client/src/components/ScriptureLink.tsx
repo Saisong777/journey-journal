@@ -113,25 +113,25 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
       {open && (
         <div
           className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overscroll-none"
-          onClick={() => setOpen(false)}
-          onTouchMove={(e) => e.stopPropagation()}
+          style={{ touchAction: "none" }}
         >
-          <div className="fixed inset-0 bg-black/40" />
+          <div className="fixed inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div
-            className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
+            className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-amber-600" />
-                <h3 className="font-semibold text-sm">{reference}</h3>
+            {/* Header with close button */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <BookOpen className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <h3 className="font-semibold text-sm truncate">{reference}</h3>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {verses?.verses && verses.verses.length > 0 && (
                   <button
                     onClick={handleCopy}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    className="p-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     title="複製經文"
                   >
                     {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
@@ -139,15 +139,15 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
                 )}
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <X className="w-4 h-4 text-muted-foreground" />
+                  <X className="w-5 h-5 text-foreground" />
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto overscroll-contain px-4 py-3 space-y-1.5">
+            <div className="overflow-y-auto overscroll-contain px-4 py-3 pb-6 space-y-1.5 flex-1">
               {loading ? (
                 <div className="flex items-center gap-2 py-6 justify-center">
                   <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
