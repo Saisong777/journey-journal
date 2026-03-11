@@ -31,7 +31,7 @@ export default function PaulJourneys() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const { toast } = useToast();
 
-  const { data: allJourneys, isLoading } = useQuery<PaulJourney[]>({
+  const { data: allJourneys, isLoading, error } = useQuery<PaulJourney[]>({
     queryKey: ["/api/paul-journeys"],
   });
 
@@ -101,6 +101,11 @@ export default function PaulJourneys() {
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 space-y-2">
+            <p className="text-destructive font-medium">載入失敗</p>
+            <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
           </div>
         ) : (
           <>

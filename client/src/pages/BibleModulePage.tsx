@@ -46,12 +46,12 @@ export default function BibleModulePage() {
         ) : items?.length ? (
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="bg-card rounded-xl border border-border overflow-hidden">
+              <div key={item.id} className="bg-card rounded-xl border border-border">
                 {item.imageUrl && (
                   <img
                     src={transformPhotoUrl(item.imageUrl)}
                     alt={item.title}
-                    className="w-full object-contain"
+                    className="w-full rounded-t-xl"
                     loading="lazy"
                   />
                 )}
