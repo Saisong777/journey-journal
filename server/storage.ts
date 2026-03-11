@@ -56,6 +56,9 @@ import {
   appSettings,
   paulJourneys,
   type PaulJourney,
+  attractions,
+  type Attraction,
+  type InsertAttraction,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -161,6 +164,15 @@ export interface IStorage {
   updateTripInvitation(id: string, invitation: Partial<InsertTripInvitation>): Promise<TripInvitation | undefined>;
   incrementInvitationUsedCount(id: string): Promise<void>;
   deleteTripInvitation(id: string): Promise<void>;
+
+  getAttractionsByTrip(tripId: string): Promise<Attraction[]>;
+  getAttractionsByDay(tripId: string, dayNo: number): Promise<Attraction[]>;
+  getAttraction(id: string): Promise<Attraction | undefined>;
+  createAttraction(data: InsertAttraction): Promise<Attraction>;
+  bulkCreateAttractions(data: InsertAttraction[]): Promise<Attraction[]>;
+  updateAttraction(id: string, data: Partial<InsertAttraction>): Promise<Attraction | undefined>;
+  deleteAttraction(id: string): Promise<void>;
+  deleteAttractionsByTrip(tripId: string): Promise<void>;
 
   getAppSetting(key: string): Promise<string | null>;
   setAppSetting(key: string, value: string): Promise<void>;
@@ -788,6 +800,48 @@ export class DatabaseStorage implements IStorage {
       .from(bibleVerses)
       .orderBy(asc(bibleVerses.bookNumber));
     return results;
+  }
+
+  async getAttractionsByTrip(tripId: string): Promise<Attraction[]> {
+    return db.select().from(attractions).where(eq(attractions.tripId, tripId)).orderBy(asc(attractions.seq));
+  }
+
+  async getAttractionsByDay(tripId: string, dayNo: number): Promise<Attraction[]> {
+    return db.select().from(attractions)
+      .where(and(eq(attractions.tripId, tripId), eq(attractions.dayNo, dayNo)))
+      .orderBy(asc(attractions.seq));
+  }
+
+  async getAttraction(id: string): Promise<Attraction | undefined> {
+    const [row] = await db.select().from(attractions).where(eq(attractions.id, id));
+    return row;
+  }
+
+  async createAttraction(data: InsertAttraction): Promise<Attraction> {
+    const [created] = await db.insert(attractions).values(data).returning();
+    return created;
+  }
+
+  async bulkCreateAttractions(data: InsertAttraction[]): Promise<Attraction[]> {
+    if (data.length === 0) return [];
+    return db.insert(attractions).values(data).returning();
+  }
+
+  async updateAttraction(id: string, data: Partial<InsertAttraction>): Promise<Attraction | undefined> {
+    const [updated] = await db
+      .update(attractions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(attractions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAttraction(id: string): Promise<void> {
+    await db.delete(attractions).where(eq(attractions.id, id));
+  }
+
+  async deleteAttractionsByTrip(tripId: string): Promise<void> {
+    await db.delete(attractions).where(eq(attractions.tripId, tripId));
   }
 
   async getAppSetting(key: string): Promise<string | null> {

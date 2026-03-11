@@ -550,8 +550,70 @@ export async function runStartupMigration() {
       console.error("[startup-migration] life_question column migration error:", e);
     }
 
+    await ensureAttractionsTable();
+
     console.log("[startup-migration] complete");
   } catch (error) {
     console.error("[startup-migration] error:", error);
+  }
+}
+
+async function ensureAttractionsTable() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS attractions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          day_no INTEGER NOT NULL,
+          seq INTEGER NOT NULL,
+          name_zh TEXT NOT NULL,
+          name_en TEXT,
+          name_alt TEXT,
+          country TEXT,
+          date TEXT,
+          modern_location TEXT,
+          ancient_toponym TEXT,
+          gps TEXT,
+          opening_hours TEXT,
+          admission TEXT,
+          duration TEXT,
+          scripture_refs TEXT,
+          bible_books TEXT,
+          story_summary TEXT,
+          key_figures TEXT,
+          historical_era TEXT,
+          theological_significance TEXT,
+          life_application TEXT,
+          discussion_questions TEXT,
+          archaeological_findings TEXT,
+          historical_strata TEXT,
+          accuracy_rating TEXT,
+          key_artifacts TEXT,
+          tour_route_position TEXT,
+          best_time TEXT,
+          dress_code TEXT,
+          photo_restrictions TEXT,
+          crowd_levels TEXT,
+          safety_notes TEXT,
+          accessibility TEXT,
+          nearby_dining TEXT,
+          accommodation TEXT,
+          nearby_biblical_sites TEXT,
+          local_products TEXT,
+          recommendation_score TEXT,
+          physical_comment TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_attractions_trip_day ON attractions(trip_id, day_no)`);
+      console.log("[startup-migration] ensured attractions table");
+    } finally {
+      client.release();
+    }
+  } catch (e) {
+    console.error("[startup-migration] attractions table error:", e);
   }
 }

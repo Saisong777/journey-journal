@@ -292,6 +292,53 @@ export const paulJourneys = pgTable("paul_journeys", {
   index("idx_paul_journeys_sequence").on(table.journey, table.sequence),
 ]);
 
+export const attractions = pgTable("attractions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  dayNo: integer("day_no").notNull(),
+  seq: integer("seq").notNull(),
+  nameZh: text("name_zh").notNull(),
+  nameEn: text("name_en"),
+  nameAlt: text("name_alt"),
+  country: text("country"),
+  date: text("date"),
+  modernLocation: text("modern_location"),
+  ancientToponym: text("ancient_toponym"),
+  gps: text("gps"),
+  openingHours: text("opening_hours"),
+  admission: text("admission"),
+  duration: text("duration"),
+  scriptureRefs: text("scripture_refs"),
+  bibleBooks: text("bible_books"),
+  storySummary: text("story_summary"),
+  keyFigures: text("key_figures"),
+  historicalEra: text("historical_era"),
+  theologicalSignificance: text("theological_significance"),
+  lifeApplication: text("life_application"),
+  discussionQuestions: text("discussion_questions"),
+  archaeologicalFindings: text("archaeological_findings"),
+  historicalStrata: text("historical_strata"),
+  accuracyRating: text("accuracy_rating"),
+  keyArtifacts: text("key_artifacts"),
+  tourRoutePosition: text("tour_route_position"),
+  bestTime: text("best_time"),
+  dressCode: text("dress_code"),
+  photoRestrictions: text("photo_restrictions"),
+  crowdLevels: text("crowd_levels"),
+  safetyNotes: text("safety_notes"),
+  accessibility: text("accessibility"),
+  nearbyDining: text("nearby_dining"),
+  accommodation: text("accommodation"),
+  nearbyBiblicalSites: text("nearby_biblical_sites"),
+  localProducts: text("local_products"),
+  recommendationScore: text("recommendation_score"),
+  physicalComment: text("physical_comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_attractions_trip_day").on(table.tripId, table.dayNo),
+]);
+
 export const fileUploads = pgTable("file_uploads", {
   id: uuid("id").defaultRandom().primaryKey(),
   data: bytea("data").notNull(),
@@ -301,6 +348,7 @@ export const fileUploads = pgTable("file_uploads", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const insertAttractionSchema = createInsertSchema(attractions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
@@ -345,3 +393,5 @@ export type InsertTripNoteAssignment = z.infer<typeof insertTripNoteAssignmentSc
 export type AppSetting = typeof appSettings.$inferSelect;
 export type PaulJourney = typeof paulJourneys.$inferSelect;
 export type FileUpload = typeof fileUploads.$inferSelect;
+export type Attraction = typeof attractions.$inferSelect;
+export type InsertAttraction = z.infer<typeof insertAttractionSchema>;

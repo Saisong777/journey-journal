@@ -1197,6 +1197,120 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ===== Attractions (景點詳情) routes =====
+
+  // Admin: get all attractions for a trip
+  app.get("/api/admin/trips/:tripId/attractions", requireAdmin, async (req, res) => {
+    try {
+      const rows = await storage.getAttractionsByTrip(req.params.tripId);
+      res.json(rows);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get attractions" });
+    }
+  });
+
+  // Admin: bulk import attractions (JSON array)
+  app.post("/api/admin/trips/:tripId/attractions/import", requireAdmin, async (req, res) => {
+    try {
+      const tripId = req.params.tripId;
+      const items: any[] = req.body;
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Body must be a non-empty array" });
+      }
+      // Delete existing attractions for this trip first
+      await storage.deleteAttractionsByTrip(tripId);
+      const data = items.map((item) => ({
+        tripId,
+        dayNo: item.dayNo ?? item.day_no ?? 0,
+        seq: item.seq ?? 0,
+        nameZh: item.nameZh ?? item.name_zh ?? "",
+        nameEn: item.nameEn ?? item.name_en ?? null,
+        nameAlt: item.nameAlt ?? item.name_alt ?? null,
+        country: item.country ?? null,
+        date: item.date ?? null,
+        modernLocation: item.modernLocation ?? item.modern_location ?? null,
+        ancientToponym: item.ancientToponym ?? item.ancient_toponym ?? null,
+        gps: item.gps ?? null,
+        openingHours: item.openingHours ?? item.opening_hours ?? null,
+        admission: item.admission ?? null,
+        duration: item.duration ?? null,
+        scriptureRefs: item.scriptureRefs ?? item.scripture_refs ?? null,
+        bibleBooks: item.bibleBooks ?? item.bible_books ?? null,
+        storySummary: item.storySummary ?? item.story_summary ?? null,
+        keyFigures: item.keyFigures ?? item.key_figures ?? null,
+        historicalEra: item.historicalEra ?? item.historical_era ?? null,
+        theologicalSignificance: item.theologicalSignificance ?? item.theological_significance ?? null,
+        lifeApplication: item.lifeApplication ?? item.life_application ?? null,
+        discussionQuestions: item.discussionQuestions ?? item.discussion_questions ?? null,
+        archaeologicalFindings: item.archaeologicalFindings ?? item.archaeological_findings ?? null,
+        historicalStrata: item.historicalStrata ?? item.historical_strata ?? null,
+        accuracyRating: item.accuracyRating ?? item.accuracy_rating ?? null,
+        keyArtifacts: item.keyArtifacts ?? item.key_artifacts ?? null,
+        tourRoutePosition: item.tourRoutePosition ?? item.tour_route_position ?? null,
+        bestTime: item.bestTime ?? item.best_time ?? null,
+        dressCode: item.dressCode ?? item.dress_code ?? null,
+        photoRestrictions: item.photoRestrictions ?? item.photo_restrictions ?? null,
+        crowdLevels: item.crowdLevels ?? item.crowd_levels ?? null,
+        safetyNotes: item.safetyNotes ?? item.safety_notes ?? null,
+        accessibility: item.accessibility ?? null,
+        nearbyDining: item.nearbyDining ?? item.nearby_dining ?? null,
+        accommodation: item.accommodation ?? null,
+        nearbyBiblicalSites: item.nearbyBiblicalSites ?? item.nearby_biblical_sites ?? null,
+        localProducts: item.localProducts ?? item.local_products ?? null,
+        recommendationScore: item.recommendationScore ?? item.recommendation_score ?? null,
+        physicalComment: item.physicalComment ?? item.physical_comment ?? null,
+      }));
+      const created = await storage.bulkCreateAttractions(data);
+      res.json({ success: true, count: created.length });
+    } catch (error) {
+      console.error("Error importing attractions:", error);
+      res.status(500).json({ error: "Failed to import attractions" });
+    }
+  });
+
+  // Admin: update single attraction
+  app.patch("/api/admin/attractions/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateAttraction(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update attraction" });
+    }
+  });
+
+  // Admin: delete single attraction
+  app.delete("/api/admin/attractions/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAttraction(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete attraction" });
+    }
+  });
+
+  // Member: get all attractions for current trip
+  app.get("/api/attractions", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.json([]);
+      const rows = await storage.getAttractionsByTrip(userRole.tripId);
+      res.json(rows);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get attractions" });
+    }
+  });
+
+  // Member: get single attraction detail
+  app.get("/api/attractions/:id", requireAuth, async (req, res) => {
+    try {
+      const row = await storage.getAttraction(req.params.id);
+      if (!row) return res.status(404).json({ error: "Not found" });
+      res.json(row);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get attraction" });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const allUsers = await storage.getAllUsers();

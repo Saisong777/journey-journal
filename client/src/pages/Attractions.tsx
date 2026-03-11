@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Calendar, Book, ChevronRight } from "lucide-react";
+import { Search, MapPin, Calendar, Book, ChevronRight, Clock, Ticket, Users, Footprints, Mountain, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -15,83 +15,88 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-interface TripDay {
+interface AttractionDB {
   id: string;
   tripId: string;
   dayNo: number;
-  date: string;
-  cityArea: string;
-  title: string;
-  highlights: string;
-  attractions: string | null;
-  bibleRefs: string;
-  breakfast: string;
-  lunch: string;
-  dinner: string;
-  lodging: string;
-  notes: string;
-}
-
-interface Attraction {
-  id: string;
-  name: string;
-  dayNo: number;
-  date: string;
-  cityArea: string;
-  bibleRefs: string;
-  notes: string;
-}
-
-function parseAttractionsFromTripDays(days: TripDay[]): Attraction[] {
-  const attractions: Attraction[] = [];
-  
-  days.forEach(day => {
-    const attractionsStr = day.attractions || "";
-    if (!attractionsStr) return;
-    
-    const attractionsList = attractionsStr.split("/").map(a => a.trim()).filter(Boolean);
-    
-    attractionsList.forEach((attraction, index) => {
-      if (attraction.length > 1) {
-        attractions.push({
-          id: `${day.id}-${index}`,
-          name: attraction,
-          dayNo: day.dayNo,
-          date: day.date,
-          cityArea: day.cityArea || "",
-          bibleRefs: day.bibleRefs || "",
-          notes: day.notes || "",
-        });
-      }
-    });
-  });
-  
-  return attractions;
+  seq: number;
+  nameZh: string;
+  nameEn: string | null;
+  nameAlt: string | null;
+  country: string | null;
+  date: string | null;
+  modernLocation: string | null;
+  ancientToponym: string | null;
+  gps: string | null;
+  openingHours: string | null;
+  admission: string | null;
+  duration: string | null;
+  scriptureRefs: string | null;
+  bibleBooks: string | null;
+  storySummary: string | null;
+  keyFigures: string | null;
+  historicalEra: string | null;
+  theologicalSignificance: string | null;
+  lifeApplication: string | null;
+  discussionQuestions: string | null;
+  archaeologicalFindings: string | null;
+  historicalStrata: string | null;
+  accuracyRating: string | null;
+  keyArtifacts: string | null;
+  tourRoutePosition: string | null;
+  bestTime: string | null;
+  dressCode: string | null;
+  photoRestrictions: string | null;
+  crowdLevels: string | null;
+  safetyNotes: string | null;
+  accessibility: string | null;
+  nearbyDining: string | null;
+  accommodation: string | null;
+  nearbyBiblicalSites: string | null;
+  localProducts: string | null;
+  recommendationScore: string | null;
+  physicalComment: string | null;
 }
 
 function formatDate(dateStr: string): string {
+  const parts = dateStr.split("/");
+  if (parts.length === 2) return `${parts[0]}月${parts[1]}日`;
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
   return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function InfoBlock({ title, icon: Icon, children, className }: { title: string; icon: any; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("rounded-lg p-4", className)}>
+      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+        <Icon className="w-4 h-4" />
+        {title}
+      </h4>
+      <div className="text-body leading-relaxed">{children}</div>
+    </div>
+  );
 }
 
 const Attractions = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
+  const [selectedAttraction, setSelectedAttraction] = useState<AttractionDB | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: tripDays, isLoading } = useQuery<TripDay[]>({
-    queryKey: ["/api/trip-days"],
+  const { data: attractionsData, isLoading } = useQuery<AttractionDB[]>({
+    queryKey: ["/api/attractions"],
     queryFn: async () => {
       const token = getAuthToken();
-      const response = await fetch("/api/trip-days", {
+      const response = await fetch("/api/attractions", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
     enabled: !!user,
+    staleTime: Infinity,
   });
 
   const { data: trip } = useQuery({
@@ -107,21 +112,22 @@ const Attractions = () => {
     enabled: !!user,
   });
 
-  const attractions = tripDays ? parseAttractionsFromTripDays(tripDays) : [];
-  
-  const uniqueDays = tripDays 
-    ? [...new Set(tripDays.map(d => d.dayNo))].sort((a, b) => a - b)
-    : [];
+  const attractions = attractionsData || [];
 
-  const filteredAttractions = attractions.filter((attraction) => {
+  const uniqueDays = [...new Set(attractions.map(a => a.dayNo))].sort((a, b) => a - b);
+
+  const filteredAttractions = attractions.filter((a) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      attraction.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      attraction.cityArea.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDay = selectedDay === null || attraction.dayNo === selectedDay;
+      a.nameZh.toLowerCase().includes(q) ||
+      (a.nameEn || "").toLowerCase().includes(q) ||
+      (a.modernLocation || "").toLowerCase().includes(q) ||
+      (a.ancientToponym || "").toLowerCase().includes(q);
+    const matchesDay = selectedDay === null || a.dayNo === selectedDay;
     return matchesSearch && matchesDay;
   });
 
-  const handleAttractionClick = (attraction: Attraction) => {
+  const handleAttractionClick = (attraction: AttractionDB) => {
     setSelectedAttraction(attraction);
     setSheetOpen(true);
   };
@@ -143,7 +149,7 @@ const Attractions = () => {
     );
   }
 
-  if (!tripDays || tripDays.length === 0) {
+  if (attractions.length === 0) {
     return (
       <PageLayout>
         <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -154,7 +160,7 @@ const Attractions = () => {
             </p>
           </section>
           <div className="text-center py-12 bg-card rounded-lg">
-            <p className="text-body text-muted-foreground">目前沒有行程資料</p>
+            <p className="text-body text-muted-foreground">目前沒有景點資料</p>
           </div>
         </div>
       </PageLayout>
@@ -163,8 +169,7 @@ const Attractions = () => {
 
   return (
     <PageLayout>
-
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="px-4 py-6 pb-20 max-w-lg mx-auto space-y-6 animate-fade-in">
         <section className="space-y-2">
           <h1 className="text-display" data-testid="text-attractions-title">景點資訊</h1>
           <p className="text-body text-muted-foreground">
@@ -215,34 +220,35 @@ const Attractions = () => {
         </div>
 
         <div className="space-y-3">
-          {filteredAttractions.map((attraction) => (
+          {filteredAttractions.map((a) => (
             <button
-              key={attraction.id}
-              onClick={() => handleAttractionClick(attraction)}
+              key={a.id}
+              onClick={() => handleAttractionClick(a)}
               className="w-full bg-card rounded-lg shadow-card p-4 text-left hover:shadow-elevated transition-all active:brightness-95"
-              data-testid={`card-attraction-${attraction.id}`}
+              data-testid={`card-attraction-${a.id}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-body font-semibold text-foreground line-clamp-2">
-                    {attraction.name}
+                    {a.nameZh}
+                    {a.nameEn && <span className="text-muted-foreground font-normal text-caption ml-1.5">{a.nameEn}</span>}
                   </h3>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      第{attraction.dayNo}天 · {formatDate(attraction.date)}
+                      第{a.dayNo}天{a.date && ` · ${formatDate(a.date)}`}
                     </span>
-                    {attraction.cityArea && (
+                    {a.modernLocation && (
                       <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {attraction.cityArea}
+                        <span className="line-clamp-1">{a.modernLocation.length > 20 ? a.modernLocation.slice(0, 20) + "…" : a.modernLocation}</span>
                       </span>
                     )}
                   </div>
-                  {attraction.bibleRefs && (
+                  {a.scriptureRefs && (
                     <div className="flex items-center gap-1 mt-2 text-caption text-primary">
                       <Book className="w-3 h-3" />
-                      <span className="line-clamp-1">{attraction.bibleRefs.split(";")[0]}</span>
+                      <span className="line-clamp-1">{a.scriptureRefs.split(";")[0].split("／")[0]}</span>
                     </div>
                   )}
                 </div>
@@ -254,84 +260,138 @@ const Attractions = () => {
 
         {filteredAttractions.length === 0 && (
           <div className="text-center py-12 bg-card rounded-lg">
-            {selectedDay !== null ? (() => {
-              const dayData = tripDays?.find(d => d.dayNo === selectedDay);
-              return (
-                <div className="space-y-3 px-4">
-                  <MapPin className="w-10 h-10 mx-auto text-muted-foreground/40" />
-                  <p className="text-body font-medium text-muted-foreground">今天沒有安排景點</p>
-                  {dayData && (
-                    <div className="text-caption text-muted-foreground space-y-1">
-                      {dayData.title && <p>{dayData.title}</p>}
-                      {dayData.highlights && <p className="text-primary/70">{dayData.highlights}</p>}
-                    </div>
-                  )}
-                </div>
-              );
-            })() : (
-              <p className="text-body text-muted-foreground">找不到符合條件的景點</p>
-            )}
+            <p className="text-body text-muted-foreground">找不到符合條件的景點</p>
           </div>
         )}
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
           {selectedAttraction && (
             <>
               <SheetHeader className="text-left pb-4 border-b">
-                <SheetTitle className="text-xl">{selectedAttraction.name}</SheetTitle>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <SheetTitle className="text-xl">{selectedAttraction.nameZh}</SheetTitle>
+                {selectedAttraction.nameEn && (
+                  <p className="text-sm text-muted-foreground">{selectedAttraction.nameEn}</p>
+                )}
+                {selectedAttraction.nameAlt && (
+                  <p className="text-xs text-muted-foreground/70">{selectedAttraction.nameAlt}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
                   <span className="inline-flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    第{selectedAttraction.dayNo}天 · {formatDate(selectedAttraction.date)}
+                    第{selectedAttraction.dayNo}天{selectedAttraction.date && ` · ${formatDate(selectedAttraction.date)}`}
                   </span>
-                  {selectedAttraction.cityArea && (
+                  {selectedAttraction.country && (
                     <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      {selectedAttraction.cityArea}
+                      <Compass className="w-4 h-4" />
+                      {selectedAttraction.country}
                     </span>
                   )}
                 </div>
               </SheetHeader>
-              
-              <div className="py-6 space-y-6 overflow-y-auto">
-                {selectedAttraction.bibleRefs && (
-                  <div className="bg-primary/10 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                      <Book className="w-4 h-4" />
-                      相關經文
-                    </h4>
-                    <p className="text-body text-foreground">
-                      {selectedAttraction.bibleRefs.split(";").map((ref, i) => (
+
+              <div className="py-4 space-y-4 overflow-y-auto max-h-[calc(85vh-10rem)]">
+                {/* Quick info badges */}
+                <div className="flex flex-wrap gap-2">
+                  {selectedAttraction.duration && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                      <Clock className="w-3 h-3" /> {selectedAttraction.duration}
+                    </span>
+                  )}
+                  {selectedAttraction.admission && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                      <Ticket className="w-3 h-3" /> {selectedAttraction.admission}
+                    </span>
+                  )}
+                  {selectedAttraction.openingHours && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full">
+                      <Clock className="w-3 h-3" /> {selectedAttraction.openingHours.length > 30 ? selectedAttraction.openingHours.slice(0, 30) + "…" : selectedAttraction.openingHours}
+                    </span>
+                  )}
+                  {selectedAttraction.recommendationScore && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-full">
+                      {selectedAttraction.recommendationScore}
+                    </span>
+                  )}
+                </div>
+
+                {/* Scripture */}
+                {selectedAttraction.scriptureRefs && (
+                  <InfoBlock title="相關經文" icon={Book} className="bg-primary/10 text-primary">
+                    <p className="text-foreground">
+                      {selectedAttraction.scriptureRefs.split(/[;；]/).map((ref, i) => (
                         <span key={i} className="block">{ref.trim()}</span>
                       ))}
                     </p>
-                  </div>
+                  </InfoBlock>
                 )}
 
-                {selectedAttraction.notes && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-2">景點介紹</h4>
-                    <p className="text-body text-muted-foreground leading-relaxed">
-                      {selectedAttraction.notes}
-                    </p>
-                  </div>
+                {/* Story Summary */}
+                {selectedAttraction.storySummary && (
+                  <InfoBlock title="聖經故事" icon={Book} className="bg-card border border-border">
+                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.storySummary}</p>
+                  </InfoBlock>
                 )}
 
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-foreground mb-2">行程安排</h4>
-                  <p className="text-body text-muted-foreground">
-                    此景點安排在第 {selectedAttraction.dayNo} 天（{formatDate(selectedAttraction.date)}）的行程中
-                    {selectedAttraction.cityArea && `，位於${selectedAttraction.cityArea}地區`}。
-                  </p>
-                </div>
+                {/* Key Figures */}
+                {selectedAttraction.keyFigures && (
+                  <InfoBlock title="關鍵人物" icon={Users} className="bg-card border border-border">
+                    <p className="text-muted-foreground">{selectedAttraction.keyFigures}</p>
+                  </InfoBlock>
+                )}
+
+                {/* Theological Significance */}
+                {selectedAttraction.theologicalSignificance && (
+                  <InfoBlock title="神學意義" icon={Book} className="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40">
+                    <p className="text-amber-900 dark:text-amber-100 whitespace-pre-line">{selectedAttraction.theologicalSignificance}</p>
+                  </InfoBlock>
+                )}
+
+                {/* Life Application */}
+                {selectedAttraction.lifeApplication && (
+                  <InfoBlock title="生活應用" icon={Footprints} className="bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-700/40">
+                    <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-line">{selectedAttraction.lifeApplication}</p>
+                  </InfoBlock>
+                )}
+
+                {/* Discussion Questions */}
+                {selectedAttraction.discussionQuestions && (
+                  <InfoBlock title="討論問題" icon={Users} className="bg-card border border-border">
+                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.discussionQuestions.replace(/\s*[｜|]\s*/g, "\n")}</p>
+                  </InfoBlock>
+                )}
+
+                {/* Archaeological */}
+                {selectedAttraction.archaeologicalFindings && (
+                  <InfoBlock title="考古發現" icon={Mountain} className="bg-card border border-border">
+                    <p className="text-muted-foreground whitespace-pre-line">{selectedAttraction.archaeologicalFindings}</p>
+                  </InfoBlock>
+                )}
+
+                {/* Practical info */}
+                {(selectedAttraction.dressCode || selectedAttraction.safetyNotes || selectedAttraction.physicalComment) && (
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground">實用資訊</h4>
+                    {selectedAttraction.dressCode && (
+                      <p className="text-body text-muted-foreground"><span className="font-medium">服裝要求：</span>{selectedAttraction.dressCode}</p>
+                    )}
+                    {selectedAttraction.safetyNotes && (
+                      <p className="text-body text-muted-foreground"><span className="font-medium">安全提醒：</span>{selectedAttraction.safetyNotes}</p>
+                    )}
+                    {selectedAttraction.physicalComment && (
+                      <p className="text-body text-muted-foreground"><span className="font-medium">體力備註：</span>{selectedAttraction.physicalComment}</p>
+                    )}
+                    {selectedAttraction.modernLocation && (
+                      <p className="text-body text-muted-foreground"><span className="font-medium">位置：</span>{selectedAttraction.modernLocation}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
-
     </PageLayout>
   );
 };
