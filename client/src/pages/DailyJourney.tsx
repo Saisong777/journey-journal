@@ -447,7 +447,7 @@ export default function DailyJourney() {
 
   return (
     <PageLayout title="每日旅程">
-      <div className="relative px-4 md:px-8 py-6 pb-32 container max-w-5xl mx-auto space-y-8 animate-fade-in">
+      <div className="relative px-4 md:px-8 py-6 pb-20 container max-w-5xl mx-auto space-y-8 animate-fade-in">
         {/* Date Selector */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">

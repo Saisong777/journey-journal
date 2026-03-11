@@ -111,7 +111,7 @@ const Index = () => {
 
   return (
     <PageLayout showHeader={false}>
-      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-32 md:pb-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-20 md:pb-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
         {tripLoading ? (
           <section className="text-center space-y-3">
             <Skeleton className="h-5 w-32 mx-auto" />
