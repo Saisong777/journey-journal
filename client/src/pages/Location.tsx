@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation, Compass } from "lucide-react";
+import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation, Compass, ChevronDown } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberLocationCard, MemberLocationData } from "@/components/location/MemberLocationCard";
 import { GroupList } from "@/components/location/GroupList";
@@ -49,6 +49,7 @@ export default function Location() {
   const [focusAttractionId, setFocusAttractionId] = useState<string | null>(null);
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionDB | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   const { data: attractionsData = [] } = useQuery<AttractionDB[]>({
     queryKey: ["/api/attractions"],
@@ -376,43 +377,67 @@ export default function Location() {
               }}
             />
 
-            <h3 className="text-body font-semibold">景點列表 ({attractionsWithGps.length})</h3>
             <div className="space-y-2">
-              {attractionsWithGps.map((a) => (
-                <div
-                  key={a.id}
-                  className={cn(
-                    "w-full text-left rounded-lg p-3 transition-all border",
-                    focusAttractionId === a.id
-                      ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 shadow-md"
-                      : "bg-card border-border hover:bg-muted"
-                  )}
-                >
-                  <button
-                    className="w-full text-left"
-                    onClick={() => setFocusAttractionId(a.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-body font-medium truncate">{a.nameZh}</p>
-                        <p className="text-caption text-muted-foreground">
-                          第{a.dayNo}天{a.nameEn ? ` · ${a.nameEn}` : ""}
-                        </p>
-                      </div>
-                      <MapPin className={cn(
-                        "w-4 h-4 flex-shrink-0 ml-2",
-                        focusAttractionId === a.id ? "text-amber-600" : "text-muted-foreground"
-                      )} />
+              {(() => {
+                const days = [...new Set(attractionsWithGps.map((a) => a.dayNo))].sort((a, b) => a - b);
+                return days.map((dayNo) => {
+                  const dayAttractions = attractionsWithGps.filter((a) => a.dayNo === dayNo);
+                  const isExpanded = expandedDays.has(dayNo);
+                  return (
+                    <div key={dayNo} className="rounded-xl border border-border overflow-hidden">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted transition-colors"
+                        onClick={() => {
+                          setExpandedDays((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(dayNo)) next.delete(dayNo);
+                            else next.add(dayNo);
+                            return next;
+                          });
+                        }}
+                      >
+                        <span className="text-body font-semibold">第{dayNo}天</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-caption text-muted-foreground">{dayAttractions.length} 個景點</span>
+                          <ChevronDown className={cn(
+                            "w-4 h-4 text-muted-foreground transition-transform",
+                            isExpanded && "rotate-180"
+                          )} />
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="divide-y divide-border">
+                          {dayAttractions.map((a) => (
+                            <div
+                              key={a.id}
+                              className={cn(
+                                "px-4 py-2.5 flex items-center justify-between gap-2 transition-colors",
+                                focusAttractionId === a.id
+                                  ? "bg-amber-50 dark:bg-amber-900/20"
+                                  : "bg-card"
+                              )}
+                            >
+                              <button
+                                className="min-w-0 flex-1 text-left"
+                                onClick={() => setFocusAttractionId(a.id)}
+                              >
+                                <p className="text-body font-medium truncate">{a.nameZh}</p>
+                                {a.nameEn && <p className="text-caption text-muted-foreground truncate">{a.nameEn}</p>}
+                              </button>
+                              <button
+                                className="text-xs text-amber-700 dark:text-amber-400 font-medium hover:underline flex-shrink-0 min-h-[44px] flex items-center"
+                                onClick={() => { setSelectedAttraction(a); setSheetOpen(true); }}
+                              >
+                                查看詳情
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </button>
-                  <button
-                    className="mt-2 text-xs text-amber-700 dark:text-amber-400 font-medium hover:underline"
-                    onClick={() => { setSelectedAttraction(a); setSheetOpen(true); }}
-                  >
-                    查看詳情
-                  </button>
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
 
             {attractionsWithGps.length === 0 && (
