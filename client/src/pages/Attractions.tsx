@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Calendar, Book, ChevronRight, Clock, Ticket, Users, Footprints, Mountain, Compass } from "lucide-react";
+import { ScriptureText } from "@/components/ScriptureLink";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -319,11 +320,9 @@ const Attractions = () => {
                 {/* Scripture */}
                 {selectedAttraction.scriptureRefs && (
                   <InfoBlock title="相關經文" icon={Book} className="bg-primary/10 text-primary">
-                    <p className="text-foreground">
-                      {selectedAttraction.scriptureRefs.split(/[;；]/).map((ref, i) => (
-                        <span key={i} className="block">{ref.trim()}</span>
-                      ))}
-                    </p>
+                    <div className="text-foreground flex flex-wrap gap-x-2 gap-y-1">
+                      <ScriptureText text={selectedAttraction.scriptureRefs} />
+                    </div>
                   </InfoBlock>
                 )}
 

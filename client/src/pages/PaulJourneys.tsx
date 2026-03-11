@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
@@ -12,10 +12,9 @@ import {
   Copy,
   Check,
   Calendar,
-  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getAuthToken } from "@/lib/queryClient";
+import { ScriptureLink } from "@/components/ScriptureLink";
 import type { PaulJourney } from "@shared/schema";
 
 const JOURNEY_TABS = [
@@ -25,24 +24,9 @@ const JOURNEY_TABS = [
   { key: "羅馬之旅(解送羅馬)", label: "羅馬之旅", short: "羅" },
 ];
 
-interface BibleVerse {
-  number: number;
-  text: string;
-}
-
-interface BibleLookupResult {
-  reference: string;
-  bookName: string;
-  chapter: number;
-  verses: BibleVerse[];
-}
-
 export default function PaulJourneys() {
   const [activeJourney, setActiveJourney] = useState(JOURNEY_TABS[0].key);
   const [expandedStops, setExpandedStops] = useState<Set<number>>(new Set());
-  const [expandedScriptures, setExpandedScriptures] = useState<Set<number>>(new Set());
-  const [verseCache, setVerseCache] = useState<Record<string, BibleLookupResult | null>>({});
-  const [loadingVerses, setLoadingVerses] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -67,51 +51,6 @@ export default function PaulJourneys() {
     } else {
       setExpandedStops(new Set(stops.map((s) => s.id)));
     }
-  };
-
-  const fetchVerses = useCallback(async (ref: string) => {
-    if (verseCache[ref] !== undefined || loadingVerses.has(ref)) return;
-
-    setLoadingVerses((prev) => new Set(prev).add(ref));
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`/api/bible/lookup?ref=${encodeURIComponent(ref)}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setVerseCache((prev) => ({ ...prev, [ref]: data }));
-      } else {
-        setVerseCache((prev) => ({ ...prev, [ref]: null }));
-      }
-    } catch {
-      setVerseCache((prev) => ({ ...prev, [ref]: null }));
-    } finally {
-      setLoadingVerses((prev) => {
-        const next = new Set(prev);
-        next.delete(ref);
-        return next;
-      });
-    }
-  }, [verseCache, loadingVerses]);
-
-  const toggleScripture = (stopId: number, ref: string) => {
-    setExpandedScriptures((prev) => {
-      const next = new Set(prev);
-      if (next.has(stopId)) {
-        next.delete(stopId);
-      } else {
-        next.add(stopId);
-        fetchVerses(ref);
-      }
-      return next;
-    });
-  };
-
-  const copyVerses = (ref: string, verses: BibleVerse[]) => {
-    const text = `${ref}\n${verses.map((v) => `${v.number} ${v.text}`).join("\n")}`;
-    navigator.clipboard.writeText(text);
-    toast({ title: "經文已複製到剪貼簿" });
   };
 
   const copyEvents = (stop: PaulJourney) => {
@@ -144,7 +83,6 @@ export default function PaulJourneys() {
               onClick={() => {
                 setActiveJourney(tab.key);
                 setExpandedStops(new Set());
-                setExpandedScriptures(new Set());
               }}
               className={cn(
                 "px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] min-w-[44px]",
@@ -217,9 +155,6 @@ export default function PaulJourneys() {
 
               {stops.map((stop, idx) => {
                 const isExpanded = expandedStops.has(stop.id);
-                const isScriptureExpanded = expandedScriptures.has(stop.id);
-                const cachedVerses = stop.scripture ? verseCache[stop.scripture] : null;
-                const isVersesLoading = stop.scripture ? loadingVerses.has(stop.scripture) : false;
 
                 return (
                   <div key={stop.id} className="relative pl-12 pb-6" data-testid={`stop-${stop.id}`}>
@@ -300,53 +235,12 @@ export default function PaulJourneys() {
                           )}
 
                           {stop.scripture && (
-                            <div className="space-y-2">
-                              <button
-                                onClick={() => toggleScripture(stop.id, stop.scripture!)}
-                                className="flex items-center gap-2 w-full text-left min-h-[44px]"
-                                data-testid={`button-scripture-${stop.id}`}
-                              >
-                                <BookOpen className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <p className="text-xs text-muted-foreground">經文</p>
-                                  <p className="text-sm text-amber-700 font-medium">{stop.scripture}</p>
-                                </div>
-                                {isScriptureExpanded ? (
-                                  <ChevronUp className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                                ) : (
-                                  <ChevronDown className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                                )}
-                              </button>
-
-                              {isScriptureExpanded && (
-                                <div className="ml-6 bg-amber-50 rounded-lg p-3 space-y-1.5 border border-amber-200/50">
-                                  {isVersesLoading ? (
-                                    <div className="flex items-center gap-2 py-2">
-                                      <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                                      <span className="text-xs text-amber-600">載入經文中...</span>
-                                    </div>
-                                  ) : cachedVerses && cachedVerses.verses.length > 0 ? (
-                                    <>
-                                      {cachedVerses.verses.map((v) => (
-                                        <p key={v.number} className="text-sm text-foreground leading-relaxed">
-                                          <span className="text-xs text-amber-600 font-bold mr-1">{v.number}</span>
-                                          {v.text}
-                                        </p>
-                                      ))}
-                                      <button
-                                        onClick={() => copyVerses(stop.scripture!, cachedVerses.verses)}
-                                        className="flex items-center gap-1 text-xs text-amber-700 mt-2 hover:underline min-h-[44px]"
-                                        data-testid={`button-copy-verses-${stop.id}`}
-                                      >
-                                        <Copy className="w-3 h-3" />
-                                        複製經文
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <p className="text-xs text-muted-foreground py-1">無法載入經文內容</p>
-                                  )}
-                                </div>
-                              )}
+                            <div className="flex items-start gap-2">
+                              <BookOpen className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">經文</p>
+                                <ScriptureLink reference={stop.scripture} className="text-sm text-amber-700 dark:text-amber-400 font-medium hover:underline cursor-pointer inline-flex items-center gap-1" />
+                              </div>
                             </div>
                           )}
 
