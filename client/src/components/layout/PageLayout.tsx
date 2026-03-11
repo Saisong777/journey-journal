@@ -11,6 +11,7 @@ interface PageLayoutProps {
   title?: string;
   showHeader?: boolean;
   showBottomNav?: boolean;
+  showBack?: boolean;
   headerClassName?: string;
 }
 
@@ -19,6 +20,7 @@ export function PageLayout({
   title,
   showHeader = true,
   showBottomNav = true,
+  showBack = false,
   headerClassName,
 }: PageLayoutProps) {
   const { pendingCount } = useOfflineSyncStatus();
@@ -34,7 +36,7 @@ export function PageLayout({
         {/* 手機版 Header (桌面版也可以共用或隱藏) */}
         {showHeader && (
           <div className="md:hidden">
-            <Header title={title} className={headerClassName} />
+            <Header title={title} className={headerClassName} showBack={showBack} />
           </div>
         )}
 

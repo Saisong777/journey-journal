@@ -12,6 +12,7 @@ import {
   Copy,
   Check,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScriptureLink } from "@/components/ScriptureLink";
@@ -74,7 +75,7 @@ export default function PaulJourneys() {
   });
 
   return (
-    <PageLayout title="保羅行蹤">
+    <PageLayout title="保羅行蹤" showBack>
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4 animate-fade-in">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {JOURNEY_TABS.map((tab) => (

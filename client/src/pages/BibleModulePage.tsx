@@ -33,7 +33,7 @@ export default function BibleModulePage() {
   });
 
   return (
-    <PageLayout title={module?.title || "資料"}>
+    <PageLayout title={module?.title || "資料"} showBack>
       <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {module?.description && (
           <p className="text-sm text-muted-foreground">{module.description}</p>
@@ -51,7 +51,7 @@ export default function BibleModulePage() {
                   <img
                     src={transformPhotoUrl(item.imageUrl)}
                     alt={item.title}
-                    className="w-full max-h-64 object-cover"
+                    className="w-full object-contain"
                     loading="lazy"
                   />
                 )}
@@ -65,8 +65,7 @@ export default function BibleModulePage() {
                   {item.fileUrl && (
                     <a
                       href={transformPhotoUrl(item.fileUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      download
                       className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
                     >
                       <FileDown className="w-4 h-4" />
