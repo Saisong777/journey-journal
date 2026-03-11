@@ -356,7 +356,7 @@ export default function DailyJourney() {
     await saveDevotional.mutateAsync({
       scriptureReference: todayScripture?.reference || "",
       reflection,
-      prayer: todayScripture?.prayer || "",
+      prayer: prayerContent || "",
       date: dateStr,
       id: myDevotional?.id,
     });
@@ -368,6 +368,7 @@ export default function DailyJourney() {
   const handleEditDevotional = () => {
     if (myDevotional) {
       setReflection(myDevotional.reflection || "");
+      setPrayerContent(myDevotional.prayer || "");
       setIsEditingDevotional(true);
     }
   };
@@ -881,15 +882,19 @@ export default function DailyJourney() {
                     />
                   </div>
 
-                  {todayScripture.prayer && (
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                      <h4 className="text-caption font-semibold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
-                        <MessageCircleHeart className="w-3.5 h-3.5" />
-                        今日禱告
-                      </h4>
-                      <p className="text-body text-muted-foreground leading-relaxed">{todayScripture.prayer}</p>
-                    </div>
-                  )}
+                  <div className="space-y-3">
+                    <label className="text-body font-medium flex items-center gap-2">
+                      <MessageCircleHeart className="w-5 h-5 text-purple-600" />
+                      今日禱告
+                    </label>
+                    <Textarea
+                      value={prayerContent}
+                      onChange={(e) => setPrayerContent(e.target.value)}
+                      placeholder="親愛的天父，感謝祢..."
+                      className="min-h-[80px] max-h-[200px] text-body resize-none"
+                      data-testid="input-prayer"
+                    />
+                  </div>
 
                   {isEditingDevotional && (
                     <Button
