@@ -944,7 +944,9 @@ export class DatabaseStorage implements IStorage {
     const assignments = await db.select().from(bibleLibraryModuleTrips).where(eq(bibleLibraryModuleTrips.tripId, tripId));
     if (assignments.length === 0) return [];
     const moduleIds = assignments.map(a => a.moduleId);
-    return db.select().from(bibleLibraryModules).where(inArray(bibleLibraryModules.id, moduleIds)).orderBy(asc(bibleLibraryModules.sortOrder));
+    return db.select().from(bibleLibraryModules)
+      .where(and(inArray(bibleLibraryModules.id, moduleIds), eq(bibleLibraryModules.visible, true)))
+      .orderBy(asc(bibleLibraryModules.sortOrder));
   }
   async assignModuleToTrip(moduleId: string, tripId: string): Promise<void> {
     const existing = await db.select().from(bibleLibraryModuleTrips)

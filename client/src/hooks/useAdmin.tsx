@@ -762,6 +762,7 @@ export interface BibleLibraryModuleType {
   coverImageUrl: string | null;
   sortOrder: number;
   isBuiltin: boolean;
+  visible: boolean;
   createdAt: string;
   updatedAt: string;
 }

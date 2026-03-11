@@ -171,7 +171,12 @@ export default function AdminBibleLibrary() {
                       <p className="text-xs text-muted-foreground truncate">{mod.slug} {mod.description ? `· ${mod.description}` : ""}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 items-center flex-shrink-0">
+                    <Switch
+                      checked={mod.visible}
+                      onCheckedChange={(checked) => updateModule.mutate({ id: mod.id, visible: checked })}
+                      disabled={updateModule.isPending}
+                    />
                     <Button variant="outline" size="sm" onClick={() => setAssigningModule(mod)}>
                       <Map className="w-3.5 h-3.5 mr-1" /> 行程
                     </Button>

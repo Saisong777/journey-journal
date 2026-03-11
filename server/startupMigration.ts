@@ -661,6 +661,9 @@ async function ensureBibleLibraryTables() {
       `);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_bible_module_trips_unique ON bible_library_module_trips(trip_id, module_id)`);
 
+      // Add visible column if not exists
+      await client.query(`ALTER TABLE bible_library_modules ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT true`);
+
       // Seed built-in Paul Journeys module
       const existing = await client.query(`SELECT id FROM bible_library_modules WHERE slug = 'paul-journeys'`);
       if (existing.rows.length === 0) {

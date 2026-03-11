@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { UppyFile } from "@uppy/core";
 import { compressImage } from "@/lib/photoUtils";
+import { getAuthToken } from "@/lib/queryClient";
 
 interface UploadMetadata {
   name: string;
@@ -63,11 +64,16 @@ export function useUpload(options: UseUploadOptions = {}) {
    */
   const requestUploadUrl = useCallback(
     async (file: File): Promise<UploadResponse> => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
       const response = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           name: file.name,
           size: file.size,

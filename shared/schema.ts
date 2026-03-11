@@ -349,6 +349,7 @@ export const bibleLibraryModules = pgTable("bible_library_modules", {
   coverImageUrl: text("cover_image_url"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isBuiltin: boolean("is_builtin").default(false).notNull(),
+  visible: boolean("visible").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
