@@ -544,7 +544,7 @@ export default function DailyJourney() {
         {/* Morning Devotion Tab */}
         {activeTab === "morning" && (
           <section className="space-y-5 animate-fade-in min-h-[200px]">
-            {(devotionalLoading || bibleLoading) ? (
+            {devotionalLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
@@ -681,6 +681,12 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-4 space-y-3">
+                    {bibleLoading && todayScripture.verses.length === 0 && (
+                      <div className="flex items-center gap-2 text-caption text-amber-600 dark:text-amber-400 p-3">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>載入經文中...</span>
+                      </div>
+                    )}
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/60 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button
@@ -813,6 +819,12 @@ export default function DailyJourney() {
                     )}
                   </div>
                   <div className="p-5 space-y-4">
+                    {bibleLoading && todayScripture.verses.length === 0 && (
+                      <div className="flex items-center gap-2 text-caption text-amber-600 dark:text-amber-400 p-3">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>載入經文中...</span>
+                      </div>
+                    )}
                     {todayScripture.verses.length > 0 && (
                       <div className="bg-amber-50/40 dark:bg-amber-900/10 rounded-lg overflow-hidden">
                         <button

@@ -50,6 +50,7 @@ export interface BibleLookupResult {
 export function useTripDevotionalCourses() {
   return useQuery<DevotionalCourseDB[]>({
     queryKey: ["/api/trips/current/devotional-courses"],
+    staleTime: Infinity,
   });
 }
 
