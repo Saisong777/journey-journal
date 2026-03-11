@@ -207,8 +207,8 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-          <SheetHeader className="pb-4">
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl flex flex-col">
+          <SheetHeader className="pb-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <SheetTitle className="text-title">
                 {isEditing ? "編輯日誌" : "日誌詳情"}
@@ -227,7 +227,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
             <SheetDescription className="sr-only">查看或編輯日誌內容</SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-6 overflow-y-auto max-h-[calc(85vh-180px)] pb-4">
+          <div className="space-y-6 overflow-y-auto flex-1 pb-4">
             {isEditing ? (
               <div className="space-y-3">
                 <label className="text-body font-medium flex items-center gap-2">
@@ -352,7 +352,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
             )}
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
+          <div className="flex-shrink-0 p-4 bg-card border-t border-border">
             {isEditing ? (
               <div className="flex gap-3">
                 <Button

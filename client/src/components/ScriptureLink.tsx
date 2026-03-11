@@ -104,12 +104,12 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
           onClick={() => setOpen(false)}
         >
           <div className="fixed inset-0 bg-black/40" />
           <div
-            className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[70vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
+            className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

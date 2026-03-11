@@ -43,14 +43,14 @@ export function PageLayout({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="flex-1 overflow-y-auto overscroll-none scroll-smooth"
+          className={`flex-1 overflow-y-auto overscroll-none scroll-smooth ${showBottomNav ? "pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0" : ""}`}
         >
           {children}
         </motion.main>
 
         {/* 手機版底部導覽列 */}
         {showBottomNav && (
-          <div className="md:hidden mt-auto">
+          <div className="md:hidden">
             <BottomNav />
           </div>
         )}

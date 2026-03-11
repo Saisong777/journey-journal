@@ -182,12 +182,12 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-        <SheetHeader className="pb-4">
+      <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl flex flex-col">
+        <SheetHeader className="pb-4 flex-shrink-0">
           <SheetTitle className="text-title text-center">新增日誌</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pb-4">
+        <div className="space-y-6 overflow-y-auto flex-1 pb-4">
           {/* Location Selection - Optional */}
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
@@ -310,7 +310,7 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
         </div>
 
         {/* Save Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
+        <div className="flex-shrink-0 p-4 bg-card border-t border-border">
           <Button
             onClick={handleSave}
             disabled={!isValid || isSaving}
