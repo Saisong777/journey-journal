@@ -5,6 +5,7 @@ import { Search, MapPin, Calendar, Book, ChevronRight, Clock, Ticket, Users, Foo
 import { ScriptureText } from "@/components/ScriptureLink";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AttractionsMap } from "@/components/attractions/AttractionsMap";
 import { useQuery } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -215,6 +216,14 @@ const Attractions = () => {
             </Button>
           ))}
         </div>
+
+        <AttractionsMap
+          attractions={filteredAttractions}
+          onMarkerClick={(id) => {
+            const a = filteredAttractions.find((x) => x.id === id);
+            if (a) handleAttractionClick(a);
+          }}
+        />
 
         <div className="flex items-center justify-between text-body text-muted-foreground">
           <span>共 {filteredAttractions.length} 個景點</span>

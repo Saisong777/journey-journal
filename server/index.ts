@@ -22,7 +22,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://pub-0fc802c0fcb848d2ab54cc1b598cd4b6.r2.dev"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://pub-0fc802c0fcb848d2ab54cc1b598cd4b6.r2.dev", "https://cdnjs.cloudflare.com"],
       connectSrc: ["'self'", "https://accounts.google.com", "https://*.tile.openstreetmap.org"],
       frameSrc: ["'self'", "https://accounts.google.com"],
     },
