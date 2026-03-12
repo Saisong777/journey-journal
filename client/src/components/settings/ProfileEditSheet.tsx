@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Camera, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { useUpload } from "@/hooks/use-upload";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 import {
   Sheet,
   SheetContent,
@@ -20,6 +22,7 @@ export interface ProfileData {
   emergencyPhone: string;
   dietaryRestrictions: string;
   medicalNotes: string;
+  avatarUrl?: string | null;
 }
 
 interface ProfileEditSheetProps {
@@ -45,7 +48,18 @@ export function ProfileEditSheet({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { uploadFile, isUploading: isUploadingAvatar } = useUpload({
+    onSuccess: (response) => {
+      const url = transformPhotoUrl(response.objectPath);
+      setFormData((prev) => ({ ...prev, avatarUrl: url }));
+      toast({ title: "頭像已更新", description: "記得點擊「儲存變更」保存" });
+    },
+    onError: () => {
+      toast({ title: "上傳失敗", variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     if (open) {
@@ -100,15 +114,36 @@ export function ProfileEditSheet({
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden shadow-card">
-                <span className="text-display text-muted-foreground">
-                  {formData.name.charAt(0)}
-                </span>
+                {formData.avatarUrl ? (
+                  <img src={formData.avatarUrl} alt="頭像" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-display text-muted-foreground">
+                    {formData.name.charAt(0)}
+                  </span>
+                )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file);
+                  e.target.value = "";
+                }}
+              />
               <button
                 data-testid="button-change-avatar"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-warm flex items-center justify-center shadow-card"
               >
-                <Camera className="w-4 h-4 text-primary-foreground" />
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-primary-foreground" />
+                )}
               </button>
             </div>
           </div>

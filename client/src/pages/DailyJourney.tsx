@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
   Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil, MapPin, HandHeart, MessageCircleHeart,
@@ -191,6 +191,7 @@ type TabType = "morning" | "adventure" | "evening";
 export default function DailyJourney() {
   const [activeTab, setActiveTab] = useState<TabType>("morning");
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const dateScrollRef = useRef<HTMLDivElement>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewingEntry, setViewingEntry] = useState<JournalEntryData | null>(null);
 
@@ -331,6 +332,16 @@ export default function DailyJourney() {
   const selectedDayIndex = days.findIndex(
     (d) => format(d.fullDate, "yyyy-MM-dd") === dateStr
   );
+
+  // Scroll selected date into center
+  useEffect(() => {
+    if (selectedDayIndex < 0 || !dateScrollRef.current) return;
+    const container = dateScrollRef.current;
+    const child = container.children[selectedDayIndex] as HTMLElement;
+    if (!child) return;
+    const scrollLeft = child.offsetLeft - container.offsetWidth / 2 + child.offsetWidth / 2;
+    container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+  }, [selectedDayIndex]);
 
   const morningCompleted = !!myDevotional?.reflection;
   const adventureCompleted = (entries || []).length > 0;
@@ -479,7 +490,7 @@ export default function DailyJourney() {
             </div>
           </div>
 
-          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
+          <div ref={dateScrollRef} className="flex flex-nowrap gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
             {days.map((day, index) => (
               <button
                 key={index}

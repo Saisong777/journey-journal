@@ -46,6 +46,7 @@ function dbToProfileData(dbProfile: any, fallbackEmail?: string, fallbackName?: 
     emergencyPhone: dbProfile?.emergencyContactPhone || "",
     dietaryRestrictions: dbProfile?.dietaryRestrictions || "",
     medicalNotes: dbProfile?.medicalNotes || "",
+    avatarUrl: dbProfile?.avatarUrl || null,
   };
 }
 
@@ -54,6 +55,7 @@ function profileDataToDb(profile: ProfileData) {
     name: profile.name,
     phone: profile.phone,
     email: profile.email,
+    avatarUrl: profile.avatarUrl || null,
     emergencyContactName: profile.emergencyContact,
     emergencyContactPhone: profile.emergencyPhone,
     dietaryRestrictions: profile.dietaryRestrictions,
@@ -239,9 +241,13 @@ export default function Settings() {
           className="bg-card rounded-lg shadow-card p-5 flex items-center gap-4 cursor-pointer hover:shadow-elevated transition-all active:brightness-95"
         >
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-            <span className="text-title text-muted-foreground">
-              {profile.name.charAt(0)}
-            </span>
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="頭像" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-title text-muted-foreground">
+                {profile.name.charAt(0)}
+              </span>
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-title">{profile.name}</h2>
