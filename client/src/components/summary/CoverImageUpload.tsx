@@ -9,13 +9,11 @@ import { cn } from "@/lib/utils";
 interface CoverImageUploadProps {
   currentImage: string;
   onImageChange: (url: string) => void;
-  tripId?: string;
 }
 
 export function CoverImageUpload({
   currentImage,
   onImageChange,
-  tripId,
 }: CoverImageUploadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,11 +51,9 @@ export function CoverImageUpload({
         throw new Error("Upload failed");
       }
 
-      if (tripId) {
-        await apiRequest("PATCH", `/api/trips/${tripId}/cover-image`, {
-          coverImageUrl: result.objectPath,
-        });
-      }
+      await apiRequest("PATCH", `/api/my-summary-cover`, {
+        summaryCoverUrl: result.objectPath,
+      });
 
       onImageChange(result.objectPath);
       toast({

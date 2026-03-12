@@ -2,11 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
-  MapPin,
   Info,
   Wrench,
   Users,
-  FileText,
   Library,
 } from "lucide-react";
 import { FeatureCard } from "@/components/ui/FeatureCard";
@@ -21,18 +19,6 @@ const baseFeatures = [
     title: "每日旅程",
     description: "靈修、日誌、感恩",
     path: "/daily-journey",
-  },
-  {
-    icon: MapPin,
-    title: "定位分享",
-    description: "即時查看團員位置",
-    path: "/location",
-  },
-  {
-    icon: FileText,
-    title: "旅遊簡表",
-    description: "行程總覽與精選回顧",
-    path: "/summary",
   },
   {
     icon: Info,

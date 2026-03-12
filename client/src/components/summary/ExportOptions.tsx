@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Image, Share2, Download, Loader2 } from "lucide-react";
+import { FileText, Image, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -222,26 +222,6 @@ export function ExportOptions() {
     }
   };
 
-  const handleShare = async () => {
-    const tripTitle = trip?.title || "平安同行";
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${tripTitle} 回憶錄`,
-          text: `與您分享我的${tripTitle}回憶`,
-          url: window.location.href,
-        });
-      } catch {
-      }
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "已複製連結",
-        description: "回憶錄連結已複製到剪貼簿",
-      });
-    }
-  };
-
   const anyExporting = exportingPdf || exportingPhotos || exportingFull;
 
   return (
@@ -281,17 +261,6 @@ export function ExportOptions() {
           </div>
         </Card>
       </div>
-
-      <Button
-        variant="outline"
-        className="w-full h-12"
-        onClick={handleShare}
-        disabled={anyExporting}
-        data-testid="button-share"
-      >
-        <Share2 className="w-5 h-5 mr-2" />
-        分享回憶錄
-      </Button>
 
       <Button
         className="w-full h-12"

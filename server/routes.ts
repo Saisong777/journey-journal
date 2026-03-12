@@ -769,6 +769,40 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Per-user summary cover image
+  app.get("/api/my-summary-cover", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole) {
+        return res.json({ summaryCoverUrl: null });
+      }
+      res.json({ summaryCoverUrl: userRole.summaryCoverUrl || null });
+    } catch (error) {
+      console.error("Failed to get summary cover:", error);
+      res.status(500).json({ error: "Failed to get summary cover" });
+    }
+  });
+
+  app.patch("/api/my-summary-cover", requireAuth, async (req, res) => {
+    try {
+      const { summaryCoverUrl } = req.body;
+      if (!summaryCoverUrl || typeof summaryCoverUrl !== "string") {
+        return res.status(400).json({ error: "summaryCoverUrl is required" });
+      }
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole) {
+        return res.status(404).json({ error: "User role not found" });
+      }
+      const updated = await storage.updateUserRoleSummaryCover(userRole.id, summaryCoverUrl);
+      // Invalidate cache
+      userRoleCache.delete(req.userId!);
+      res.json({ success: true, summaryCoverUrl: updated?.summaryCoverUrl || null });
+    } catch (error) {
+      console.error("Failed to update summary cover:", error);
+      res.status(500).json({ error: "Failed to update summary cover" });
+    }
+  });
+
   app.get("/api/weather", requireAuth, async (req, res) => {
     try {
       const userRole = await getCachedUserRole(req.userId!);

@@ -1,4 +1,4 @@
-import { Home, Compass, MapPin, Users, Settings } from "lucide-react";
+import { Home, Compass, Map, Users, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -10,8 +10,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: "首頁", path: "/" },
+  { icon: Map, label: "地圖", path: "/location" },
   { icon: Compass, label: "旅程", path: "/daily-journey" },
-  { icon: MapPin, label: "定位", path: "/location" },
   { icon: Users, label: "團員", path: "/members" },
   { icon: Settings, label: "設定", path: "/settings" },
 ];

@@ -9,7 +9,6 @@ interface TripOverviewProps {
   duration: number;
   memberCount: number;
   coverImage: string;
-  tripId?: string;
   editable?: boolean;
   onCoverChange?: (url: string) => void;
 }
@@ -21,7 +20,6 @@ export function TripOverview({
   duration,
   memberCount,
   coverImage,
-  tripId,
   editable = true,
   onCoverChange,
 }: TripOverviewProps) {
@@ -33,7 +31,6 @@ export function TripOverview({
         <CoverImageUpload
           currentImage={coverImage}
           onImageChange={(url) => onCoverChange?.(url)}
-          tripId={tripId}
         />
       ) : (
         <div className="relative h-56 rounded-2xl overflow-hidden">

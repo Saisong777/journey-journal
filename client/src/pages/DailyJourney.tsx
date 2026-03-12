@@ -237,8 +237,10 @@ export default function DailyJourney() {
 
   const currentDay = useMemo(() => {
     if (!trip?.startDate) return 0;
-    const start = parseISO(trip.startDate);
-    return differenceInDays(selectedDate, start) + 1;
+    // Use local midnight (not UTC) to avoid timezone offset issues
+    const start = new Date(trip.startDate + 'T00:00:00');
+    const selected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    return differenceInDays(selected, start) + 1;
   }, [trip?.startDate, selectedDate]);
 
   const { data: devotionalCourses } = useTripDevotionalCourses();

@@ -14,6 +14,7 @@ import { useJournalEntries, useDeleteJournalEntry, useUpdateJournalEntry } from 
 import { useDeleteDevotionalEntry } from "@/hooks/useDevotional";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
@@ -27,6 +28,10 @@ const TripSummary = () => {
   const { data: photos, isLoading: photosLoading } = useTripPhotos();
   const { data: highlights, isLoading: highlightsLoading } = useTripHighlights();
   const { data: journals, isLoading: journalsLoading } = useJournalEntries();
+
+  const { data: myCover } = useQuery<{ summaryCoverUrl: string | null }>({
+    queryKey: ["/api/my-summary-cover"],
+  });
 
   const deleteJournal = useDeleteJournalEntry();
   const updateJournal = useUpdateJournalEntry();
@@ -66,8 +71,11 @@ const TripSummary = () => {
       ? calculateTripDuration(trip.startDate, trip.endDate)
       : 0,
     memberCount: stats?.memberCount || 0,
-    coverImage: trip?.coverImageUrl ? transformPhotoUrl(trip.coverImageUrl) : defaultCoverImage,
-    tripId: trip?.id,
+    coverImage: myCover?.summaryCoverUrl
+      ? transformPhotoUrl(myCover.summaryCoverUrl)
+      : trip?.coverImageUrl
+        ? transformPhotoUrl(trip.coverImageUrl)
+        : defaultCoverImage,
   };
 
   // Build photo data
@@ -90,7 +98,7 @@ const TripSummary = () => {
   }));
 
   const handleCoverChange = () => {
-    queryClient.invalidateQueries({ queryKey: ["trip"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/my-summary-cover"] });
   };
 
   // --- Highlight handlers ---

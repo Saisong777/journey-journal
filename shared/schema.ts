@@ -104,6 +104,7 @@ export const userRoles = pgTable("user_roles", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   role: appRoleEnum("role").default("member").notNull(),
   tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }),
+  summaryCoverUrl: text("summary_cover_url"),
 }, (table) => [
   index("idx_user_roles_user_id").on(table.userId),
   index("idx_user_roles_trip_id").on(table.tripId),
