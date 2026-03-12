@@ -58,7 +58,7 @@ export default function Auth() {
           title: "登入失敗",
           description: data.error === "Invalid credentials"
             ? "電子郵件或密碼錯誤"
-            : data.error,
+            : (data.error || "電子郵件或密碼錯誤"),
           variant: "destructive",
         });
       } else {

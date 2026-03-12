@@ -478,9 +478,12 @@ export function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
+      if (!user.password) {
+        return res.status(401).json({ error: "此帳號尚未設定密碼，請使用 Google 登入或重設密碼" });
+      }
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "帳號或密碼錯誤" });
       }
 
       // User must use invitation code to join a trip - no auto-assignment

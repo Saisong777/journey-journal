@@ -303,7 +303,7 @@ export default function Settings() {
         ))}
 
         {/* Admin Access */}
-        {isAdmin && (
+        {isAdmin?.isAdmin && (
           <section>
             <Link
               to="/admin"
