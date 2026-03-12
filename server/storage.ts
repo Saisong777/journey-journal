@@ -124,7 +124,7 @@ export interface IStorage {
   deleteJournalPhoto(id: string): Promise<void>;
   getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]>;
 
-  getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]>;
+  getDevotionalEntries(tripId: string, userId: string, date?: string): Promise<DevotionalEntry[]>;
   getDevotionalEntry(id: string): Promise<DevotionalEntry | undefined>;
   createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry>;
   updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined>;
@@ -148,6 +148,7 @@ export interface IStorage {
   getBibleBooks(): Promise<{ bookName: string; bookNumber: number }[]>;
 
   getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined>;
+  getAllEveningReflections(userId: string, tripId: string): Promise<EveningReflection[]>;
   saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection>;
 
   getPlatformRole(userId: string): Promise<PlatformRole | undefined>;
@@ -505,8 +506,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(journalPhotos).where(eq(journalPhotos.journalEntryId, journalEntryId));
   }
 
-  async getDevotionalEntries(tripId: string, date?: string): Promise<DevotionalEntry[]> {
-    const conditions = [eq(devotionalEntries.tripId, tripId)];
+  async getDevotionalEntries(tripId: string, userId: string, date?: string): Promise<DevotionalEntry[]> {
+    const conditions = [eq(devotionalEntries.tripId, tripId), eq(devotionalEntries.userId, userId)];
     if (date) {
       conditions.push(eq(devotionalEntries.entryDate, date));
     }
@@ -740,6 +741,12 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return reflection;
+  }
+
+  async getAllEveningReflections(userId: string, tripId: string): Promise<EveningReflection[]> {
+    return db.select().from(eveningReflections)
+      .where(and(eq(eveningReflections.userId, userId), eq(eveningReflections.tripId, tripId)))
+      .orderBy(eveningReflections.entryDate);
   }
 
   async saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection> {

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Star, Heart, BookOpen, Trash2, Pencil } from "lucide-react";
+import { Star, Heart, BookOpen, Trash2, Pencil, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export interface Highlight {
   id: string;
@@ -51,66 +53,31 @@ const typeConfig = {
 export function HighlightMoments({ highlights, onEdit, onDelete }: HighlightMomentsProps) {
   const [deleteTarget, setDeleteTarget] = useState<Highlight | null>(null);
 
+  // Group by date
+  const dateGroups = new Map<string, Highlight[]>();
+  for (const h of highlights) {
+    const key = h.date || "未知日期";
+    const group = dateGroups.get(key) || [];
+    group.push(h);
+    dateGroups.set(key, group);
+  }
+
+  const sortedDates = Array.from(dateGroups.keys());
+
   return (
     <section className="space-y-4">
-      <h3 className="text-title font-semibold">✨ 精彩時刻</h3>
+      <h3 className="text-title font-semibold">精彩時刻</h3>
 
       <div className="space-y-3">
-        {highlights.map((highlight) => {
-          const config = typeConfig[highlight.type];
-          const Icon = config.icon;
-
-          return (
-            <Card key={highlight.id} className={`p-4 ${config.bgColor} border-none`}>
-              <div className="flex gap-4">
-                <div className={`w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center flex-shrink-0 ${config.iconColor}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-caption font-medium text-muted-foreground">
-                        {config.label}
-                      </span>
-                      <span className="text-caption text-muted-foreground">·</span>
-                      <span className="text-caption text-muted-foreground">
-                        {highlight.date}
-                      </span>
-                    </div>
-                    {(onEdit || onDelete) && (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {onEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => onEdit(highlight)}
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          </Button>
-                        )}
-                        {onDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setDeleteTarget(highlight)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <h4 className="text-body font-semibold mb-1">{highlight.title}</h4>
-                  <p className="text-caption text-muted-foreground leading-relaxed">
-                    {highlight.description}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+        {sortedDates.map((date) => (
+          <DateGroup
+            key={date}
+            date={date}
+            highlights={dateGroups.get(date)!}
+            onEdit={onEdit}
+            onDelete={(h) => setDeleteTarget(h)}
+          />
+        ))}
       </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
@@ -138,5 +105,73 @@ export function HighlightMoments({ highlights, onEdit, onDelete }: HighlightMome
         </AlertDialogContent>
       </AlertDialog>
     </section>
+  );
+}
+
+function DateGroup({
+  date,
+  highlights,
+  onEdit,
+  onDelete,
+}: {
+  date: string;
+  highlights: Highlight[];
+  onEdit?: (h: Highlight) => void;
+  onDelete?: (h: Highlight) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <button className="flex items-center justify-between w-full px-3 py-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+          <span className="text-caption font-semibold">{date}（{highlights.length} 項）</span>
+          <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-2 pt-2">
+          {highlights.map((highlight) => {
+            const config = typeConfig[highlight.type];
+            const Icon = config.icon;
+
+            return (
+              <Card key={highlight.id} className={`p-4 ${config.bgColor} border-none`}>
+                <div className="flex gap-4">
+                  <div className={`w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center flex-shrink-0 ${config.iconColor}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-caption font-medium text-muted-foreground">
+                        {config.label}
+                      </span>
+                      {(onEdit || onDelete) && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {onEdit && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(highlight)}>
+                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(highlight)}>
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="text-body font-semibold mb-1">{highlight.title}</h4>
+                    <p className="text-caption text-muted-foreground leading-relaxed">
+                      {highlight.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

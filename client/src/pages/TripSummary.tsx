@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { TripOverview } from "@/components/summary/TripOverview";
-import { DailyItinerary, DaySchedule } from "@/components/summary/DailyItinerary";
 import { PhotoGallery, Photo } from "@/components/summary/PhotoGallery";
 import { HighlightMoments, Highlight } from "@/components/summary/HighlightMoments";
+import { DevotionalSummary } from "@/components/summary/DevotionalSummary";
+import { JournalWithPhotos } from "@/components/summary/JournalWithPhotos";
 import { ExportOptions } from "@/components/summary/ExportOptions";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTrip } from "@/hooks/useTrip";
 import { useTripStats, useTripPhotos, useTripHighlights, formatTripDateRange, calculateTripDuration } from "@/hooks/useTripSummary";
 import { useJournalEntries, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
-import { useDeleteDevotionalEntry } from "@/hooks/useDevotional";
+import { useDevotionalEntries, useDeleteDevotionalEntry } from "@/hooks/useDevotional";
+import { useAllEveningReflections } from "@/hooks/useEveningReflection";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +30,8 @@ const TripSummary = () => {
   const { data: photos, isLoading: photosLoading } = useTripPhotos();
   const { data: highlights, isLoading: highlightsLoading } = useTripHighlights();
   const { data: journals, isLoading: journalsLoading } = useJournalEntries();
+  const { data: devotionals, isLoading: devotionalsLoading } = useDevotionalEntries();
+  const { data: allEveningReflections, isLoading: eveningLoading } = useAllEveningReflections();
 
   const { data: myCover } = useQuery<{ summaryCoverUrl: string | null }>({
     queryKey: ["/api/my-summary-cover"],
@@ -36,29 +40,6 @@ const TripSummary = () => {
   const deleteJournal = useDeleteJournalEntry();
   const updateJournal = useUpdateJournalEntry();
   const deleteDevotional = useDeleteDevotionalEntry();
-
-  // Build schedule data from journals
-  const scheduleData: DaySchedule[] = (journals || []).filter(j => j.entryDate).map((journal, index) => ({
-    day: index + 1,
-    date: format(parseISO(journal.entryDate), "M月d日（EEEE）", { locale: zhTW }),
-    title: journal.title,
-    locations: journal.location ? [journal.location] : [],
-    highlights: journal.content || "",
-    completed: true,
-    journalId: journal.id,
-  }));
-
-  // Fallback schedule if no journals
-  const defaultSchedule: DaySchedule[] = [
-    {
-      day: 1,
-      date: "尚未開始",
-      title: "開始您的旅程",
-      locations: [],
-      highlights: "開始記錄您的平安同行，每一天的經歷都將成為珍貴的回憶。",
-      completed: false,
-    },
-  ];
 
   // Build trip data from database or fallback
   const tripData = {
@@ -103,7 +84,6 @@ const TripSummary = () => {
 
   // --- Highlight handlers ---
   const handleHighlightEdit = (highlight: Highlight) => {
-    // Navigate to the appropriate edit page based on type
     if (highlight.type === "spiritual") {
       navigate("/devotional");
     } else {
@@ -119,21 +99,9 @@ const TripSummary = () => {
     }
   };
 
-  // --- Itinerary handlers ---
-  const handleItineraryEdit = (day: DaySchedule) => {
-    navigate("/journal");
-  };
-
-  const handleItineraryDelete = (day: DaySchedule) => {
-    if (day.journalId) {
-      deleteJournal.mutate(day.journalId);
-    }
-  };
-
   // --- Photo handlers ---
   const handlePhotoDelete = (photo: Photo) => {
     if (!photo.journalEntryId) return;
-    // Find the journal entry and remove just this photo
     const journal = journals?.find(j => j.id === photo.journalEntryId);
     if (!journal) return;
     const remainingPhotos = (journal.photos || [])
@@ -159,11 +127,12 @@ const TripSummary = () => {
         </section>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-12 gap-1">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-overview">總覽</TabsTrigger>
-            <TabsTrigger value="itinerary" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-itinerary">行程</TabsTrigger>
-            <TabsTrigger value="photos" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-photos">照片</TabsTrigger>
-            <TabsTrigger value="export" className="text-xs sm:text-sm px-1 min-h-[44px]" data-testid="tab-export">匯出</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 h-12 gap-0.5">
+            <TabsTrigger value="overview" className="text-xs px-0.5 min-h-[44px]" data-testid="tab-overview">總覽</TabsTrigger>
+            <TabsTrigger value="devotional" className="text-xs px-0.5 min-h-[44px]" data-testid="tab-devotional">靈修</TabsTrigger>
+            <TabsTrigger value="journal" className="text-xs px-0.5 min-h-[44px]" data-testid="tab-journal">日誌</TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs px-0.5 min-h-[44px]" data-testid="tab-photos">照片</TabsTrigger>
+            <TabsTrigger value="export" className="text-xs px-0.5 min-h-[44px]" data-testid="tab-export">匯出</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
@@ -205,7 +174,22 @@ const TripSummary = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="itinerary" className="mt-6">
+          <TabsContent value="devotional" className="mt-6">
+            {devotionalsLoading || eveningLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
+              </div>
+            ) : (
+              <DevotionalSummary
+                devotionals={devotionals || []}
+                eveningReflections={allEveningReflections || []}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="journal" className="mt-6">
             {journalsLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-6 w-32" />
@@ -213,10 +197,10 @@ const TripSummary = () => {
                 <Skeleton className="h-32" />
               </div>
             ) : (
-              <DailyItinerary
-                schedule={scheduleData.length > 0 ? scheduleData : defaultSchedule}
-                onEdit={handleItineraryEdit}
-                onDelete={handleItineraryDelete}
+              <JournalWithPhotos
+                journals={journals || []}
+                onEdit={() => navigate("/daily-journey")}
+                onDelete={(journal) => deleteJournal.mutate(journal.id)}
               />
             )}
           </TabsContent>

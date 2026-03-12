@@ -1005,7 +1005,7 @@ export function registerRoutes(app: Express) {
         return res.json([]);
       }
       const date = req.query.date as string | undefined;
-      const entries = await storage.getDevotionalEntries(userRole.tripId, date);
+      const entries = await storage.getDevotionalEntries(userRole.tripId, req.userId!, date);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ error: "Failed to get devotional entries" });
@@ -1095,6 +1095,20 @@ export function registerRoutes(app: Express) {
       res.json(reflection || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to get evening reflection" });
+    }
+  });
+
+  app.get("/api/evening-reflections/all", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole || !userRole.tripId) {
+        return res.json([]);
+      }
+      const reflections = await storage.getAllEveningReflections(req.userId!, userRole.tripId);
+      res.json(reflections);
+    } catch (error) {
+      console.error("Failed to get all evening reflections:", error);
+      res.status(500).json({ error: "Failed to get evening reflections" });
     }
   });
 

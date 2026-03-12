@@ -46,6 +46,25 @@ export function useEveningReflection(date: string) {
   });
 }
 
+export function useAllEveningReflections() {
+  const { data: trip } = useTrip();
+
+  return useQuery({
+    queryKey: ["evening-reflections-all", trip?.id],
+    queryFn: async () => {
+      const response = await fetch("/api/evening-reflections/all", {
+        credentials: "include",
+        headers: getHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch all evening reflections");
+      }
+      return response.json() as Promise<EveningReflectionDB[]>;
+    },
+    enabled: !!trip?.id,
+  });
+}
+
 export function useSaveEveningReflection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

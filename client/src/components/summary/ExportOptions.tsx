@@ -6,12 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useTrip } from "@/hooks/useTrip";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useDevotionalEntries } from "@/hooks/useDevotional";
-import { useEveningReflection } from "@/hooks/useEveningReflection";
+import { useAllEveningReflections } from "@/hooks/useEveningReflection";
 import { useTripPhotos } from "@/hooks/useTripSummary";
 import { format, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
-function generateTextSummary(trip: any, journals: any[], devotionals: any[]): string {
+function generateTextSummary(trip: any, journals: any[], devotionals: any[], eveningReflections: any[]): string {
   const lines: string[] = [];
   lines.push(`═══════════════════════════════════`);
   lines.push(`  ${trip?.title || "平安同行"} — 旅程回憶錄`);
@@ -34,6 +34,20 @@ function generateTextSummary(trip: any, journals: any[], devotionals: any[]): st
       if (d.scriptureReference) lines.push(`📖 經文：${d.scriptureReference}`);
       if (d.reflection) lines.push(`💭 心得：${d.reflection}`);
       if (d.prayer) lines.push(`🙏 禱告：${d.prayer}`);
+    }
+    lines.push("");
+  }
+
+  if (eveningReflections && eveningReflections.length > 0) {
+    lines.push(`───────────────────────────────────`);
+    lines.push(`  夜間感恩 (${eveningReflections.length} 篇)`);
+    lines.push(`───────────────────────────────────`);
+    for (const r of eveningReflections) {
+      lines.push("");
+      lines.push(`📅 ${r.entryDate || "未知日期"}`);
+      if (r.gratitude) lines.push(`🙏 感恩：${r.gratitude}`);
+      if (r.highlight) lines.push(`✨ 亮點：${r.highlight}`);
+      if (r.prayerForTomorrow) lines.push(`🌙 明日禱告：${r.prayerForTomorrow}`);
     }
     lines.push("");
   }
@@ -81,6 +95,7 @@ export function ExportOptions() {
   const { data: journals } = useJournalEntries();
   const { data: devotionals } = useDevotionalEntries();
   const { data: photos } = useTripPhotos();
+  const { data: eveningReflections } = useAllEveningReflections();
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingPhotos, setExportingPhotos] = useState(false);
   const [exportingFull, setExportingFull] = useState(false);
@@ -88,7 +103,7 @@ export function ExportOptions() {
   const handleExportPdf = () => {
     setExportingPdf(true);
     try {
-      const content = generateTextSummary(trip, journals || [], devotionals || []);
+      const content = generateTextSummary(trip, journals || [], devotionals || [], eveningReflections || []);
       const tripTitle = trip?.title || "平安同行";
       downloadTextFile(content, `${tripTitle}_回憶錄.txt`);
       toast({
@@ -177,7 +192,7 @@ export function ExportOptions() {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
 
-      const content = generateTextSummary(trip, journals || [], devotionals || []);
+      const content = generateTextSummary(trip, journals || [], devotionals || [], eveningReflections || []);
       const BOM = "\uFEFF";
       zip.file("回憶錄.txt", BOM + content);
 
@@ -240,7 +255,7 @@ export function ExportOptions() {
             </div>
             <div>
               <p className="text-body font-medium">文字記錄</p>
-              <p className="text-caption text-muted-foreground">靈修 + 日誌</p>
+              <p className="text-caption text-muted-foreground">靈修 + 感恩 + 日誌</p>
             </div>
           </div>
         </Card>
