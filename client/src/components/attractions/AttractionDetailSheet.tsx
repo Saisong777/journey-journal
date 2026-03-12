@@ -1,4 +1,5 @@
 import { Book, Calendar, Clock, Compass, Footprints, Mountain, Ticket, Users } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { ScriptureText } from "@/components/ScriptureLink";
 import {
@@ -57,6 +58,29 @@ function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function MarkdownContent({ text, className }: { text: string; className?: string }) {
+  return (
+    <ReactMarkdown
+      className={cn("prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+        li: ({ children }) => <li className="text-sm">{children}</li>,
+        h1: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
+        h2: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
+        h3: ({ children }) => <h4 className="text-sm font-bold mt-2 mb-1">{children}</h4>,
+        h4: ({ children }) => <h4 className="text-sm font-semibold mt-2 mb-1">{children}</h4>,
+        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 border-amber-400 pl-3 italic my-2">{children}</blockquote>,
+        hr: () => <hr className="my-3 border-border" />,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 function InfoBlock({ title, icon: Icon, children, className }: { title: string; icon: any; children: React.ReactNode; className?: string }) {
@@ -142,42 +166,42 @@ export function AttractionDetailSheet({ attraction, open, onOpenChange }: Attrac
               {/* Story Summary */}
               {attraction.storySummary && (
                 <InfoBlock title="聖經故事" icon={Book} className="bg-card border border-border">
-                  <p className="text-muted-foreground whitespace-pre-line">{attraction.storySummary}</p>
+                  <MarkdownContent text={attraction.storySummary} className="text-muted-foreground" />
                 </InfoBlock>
               )}
 
               {/* Key Figures */}
               {attraction.keyFigures && (
                 <InfoBlock title="關鍵人物" icon={Users} className="bg-card border border-border">
-                  <p className="text-muted-foreground">{attraction.keyFigures}</p>
+                  <MarkdownContent text={attraction.keyFigures} className="text-muted-foreground" />
                 </InfoBlock>
               )}
 
               {/* Theological Significance */}
               {attraction.theologicalSignificance && (
                 <InfoBlock title="神學意義" icon={Book} className="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/40">
-                  <p className="text-amber-900 dark:text-amber-100 whitespace-pre-line">{attraction.theologicalSignificance}</p>
+                  <MarkdownContent text={attraction.theologicalSignificance} className="text-amber-900 dark:text-amber-100" />
                 </InfoBlock>
               )}
 
               {/* Life Application */}
               {attraction.lifeApplication && (
                 <InfoBlock title="生活應用" icon={Footprints} className="bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-700/40">
-                  <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-line">{attraction.lifeApplication}</p>
+                  <MarkdownContent text={attraction.lifeApplication} className="text-emerald-900 dark:text-emerald-100" />
                 </InfoBlock>
               )}
 
               {/* Discussion Questions */}
               {attraction.discussionQuestions && (
                 <InfoBlock title="討論問題" icon={Users} className="bg-card border border-border">
-                  <p className="text-muted-foreground whitespace-pre-line">{attraction.discussionQuestions.replace(/\s*[｜|]\s*/g, "\n")}</p>
+                  <MarkdownContent text={attraction.discussionQuestions.replace(/\s*[｜|]\s*/g, "\n")} className="text-muted-foreground" />
                 </InfoBlock>
               )}
 
               {/* Archaeological */}
               {attraction.archaeologicalFindings && (
                 <InfoBlock title="考古發現" icon={Mountain} className="bg-card border border-border">
-                  <p className="text-muted-foreground whitespace-pre-line">{attraction.archaeologicalFindings}</p>
+                  <MarkdownContent text={attraction.archaeologicalFindings} className="text-muted-foreground" />
                 </InfoBlock>
               )}
 
