@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { BookOpen, Copy, Check, Loader2, X } from "lucide-react";
 import { getAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -110,9 +111,9 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
         <span>{reference}</span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overscroll-none"
+          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center overscroll-none"
           style={{ touchAction: "none" }}
         >
           <div className="fixed inset-0 bg-black/40" onClick={() => setOpen(false)} />
@@ -169,7 +170,8 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
