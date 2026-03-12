@@ -5,6 +5,7 @@ import { MemberCard, MemberData } from "@/components/members/MemberCard";
 import { MemberDetailSheet } from "@/components/members/MemberDetailSheet";
 import { Input } from "@/components/ui/input";
 import { useMembers } from "@/hooks/useMembers";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "leader" | "guide";
@@ -22,7 +23,7 @@ export default function Members() {
     return (membersData || []).map((member) => ({
       id: member.id,
       name: member.name,
-      avatar: member.avatarUrl || undefined,
+      avatar: member.avatarUrl ? transformPhotoUrl(member.avatarUrl) : undefined,
       role: (member.role === "admin" ? "guide" : member.role) as MemberData["role"],
       group: member.group?.name || "未分組",
       phone: member.phone || "",

@@ -52,8 +52,7 @@ export function ProfileEditSheet({
   const { toast } = useToast();
   const { uploadFile, isUploading: isUploadingAvatar } = useUpload({
     onSuccess: (response) => {
-      const url = transformPhotoUrl(response.objectPath);
-      setFormData((prev) => ({ ...prev, avatarUrl: url }));
+      setFormData((prev) => ({ ...prev, avatarUrl: response.objectPath }));
       toast({ title: "頭像已更新", description: "記得點擊「儲存變更」保存" });
     },
     onError: () => {
@@ -115,7 +114,7 @@ export function ProfileEditSheet({
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden shadow-card">
                 {formData.avatarUrl ? (
-                  <img src={formData.avatarUrl} alt="頭像" className="w-full h-full object-cover" />
+                  <img src={transformPhotoUrl(formData.avatarUrl)} alt="頭像" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-display text-muted-foreground">
                     {formData.name.charAt(0)}

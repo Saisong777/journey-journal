@@ -4,6 +4,7 @@ import { Map, Users, Layers, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 
 export default function AdminDashboard() {
   const { data: trips } = useAllTrips();
@@ -114,7 +115,7 @@ export default function AdminDashboard() {
                     <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center overflow-hidden">
                       {profile.avatarUrl ? (
                         <img
-                          src={profile.avatarUrl}
+                          src={transformPhotoUrl(profile.avatarUrl)}
                           alt={profile.name}
                           className="w-full h-full object-cover"
                           loading="lazy"

@@ -23,6 +23,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 
 interface SettingItem {
   icon: typeof User;
@@ -42,7 +43,7 @@ function dbToProfileData(dbProfile: any, fallbackEmail?: string, fallbackName?: 
     emergencyPhone: dbProfile?.emergencyContactPhone || "",
     dietaryRestrictions: dbProfile?.dietaryRestrictions || "",
     medicalNotes: dbProfile?.medicalNotes || "",
-    avatarUrl: dbProfile?.avatarUrl || null,
+    avatarUrl: dbProfile?.avatarUrl ? transformPhotoUrl(dbProfile.avatarUrl) : null,
   };
 }
 
@@ -309,7 +310,7 @@ export default function Settings() {
         {/* App Info */}
         <section className="text-center py-4">
           <p className="text-caption text-muted-foreground">平安同行 v1.0.0</p>
-          <p className="text-caption text-muted-foreground">© 2024 All rights reserved</p>
+          <p className="text-caption text-muted-foreground">2026 © Sai. All Glory to God.</p>
         </section>
       </div>
 

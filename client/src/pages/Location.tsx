@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocations, useUpdateLocation } from "@/hooks/useLocations";
+import { transformPhotoUrl } from "@/lib/photoUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -100,6 +101,7 @@ export default function Location() {
   const membersWithLocation: MemberLocationData[] = locations.map((loc) => ({
     id: loc.id,
     name: loc.profile?.name || "未知成員",
+    avatar: loc.profile?.avatarUrl ? transformPhotoUrl(loc.profile.avatarUrl) : undefined,
     location: `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`,
     lastUpdate: formatTimeAgo(loc.updatedAt),
     distance: "",
