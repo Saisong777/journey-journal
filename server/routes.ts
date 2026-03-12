@@ -58,7 +58,7 @@ const updateProfileSchema = z.object({
   name: z.string().max(100).optional(),
   phone: z.string().max(30).optional(),
   email: z.string().email().optional(),
-  avatarUrl: z.string().url().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
   emergencyContactName: z.string().max(100).optional(),
   emergencyContactPhone: z.string().max(30).optional(),
   dietaryRestrictions: z.string().max(500).optional(),
