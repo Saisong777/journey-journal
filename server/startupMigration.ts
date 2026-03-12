@@ -688,8 +688,10 @@ async function ensureBibleLibraryTables() {
           VALUES ('paul-journeys', '保羅行蹤', '探索使徒保羅的四次宣教旅程，包含地點、同伴、事件與相關經文', 'Footprints', 0, true)
         `);
       }
-      // Rename「深度研究」→「相關資料」
+      // Rename「深度研究」→「相關資料」in modules, items title, and items content
       await client.query(`UPDATE bible_library_modules SET title = '相關資料' WHERE title = '深度研究'`);
+      await client.query(`UPDATE bible_library_items SET title = REPLACE(title, '深度研究', '相關資料') WHERE title LIKE '%深度研究%'`);
+      await client.query(`UPDATE bible_library_items SET content = REPLACE(content, '深度研究', '相關資料') WHERE content LIKE '%深度研究%'`);
 
       console.log("[startup-migration] ensured bible library tables");
     } finally {
