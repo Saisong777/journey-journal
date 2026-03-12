@@ -570,7 +570,7 @@ export function registerRoutes(app: Express) {
       const profile = await storage.getProfile(user.id);
       const memberName = profile?.name || user.firstName || user.email;
 
-      await resend.emails.send({
+      const { data: emailData, error: sendError } = await resend.emails.send({
         from: fromEmail || "Trip Companion <onboarding@resend.dev>",
         to: user.email,
         subject: "重設密碼 - 與神同行",
@@ -619,7 +619,11 @@ export function registerRoutes(app: Express) {
 </html>`,
       });
 
-      console.log(`[forgot-password] reset email sent to ${user.email}`);
+      if (sendError) {
+        console.error(`[forgot-password] send error for ${user.email}:`, sendError);
+      } else {
+        console.log(`[forgot-password] reset email sent to ${user.email}, id: ${emailData?.id}`);
+      }
       res.json({ success: true });
     } catch (error) {
       console.error("[forgot-password] error:", error);
@@ -2350,13 +2354,19 @@ export function registerRoutes(app: Express) {
 </html>`;
 
         try {
-          await resend.emails.send({
+          const { data, error: sendError } = await resend.emails.send({
             from: fromEmail || "Trip Companion <onboarding@resend.dev>",
             to: user.email,
             subject: `🌟 歡迎加入 ${trip.title} - 行前通知`,
             html: htmlContent,
           });
-          sentResults.push({ email: user.email, status: "sent" });
+          if (sendError) {
+            console.error(`[send-notification] failed for ${user.email}:`, sendError);
+            sentResults.push({ email: user.email, status: "error: " + sendError.message });
+          } else {
+            console.log(`[send-notification] sent to ${user.email}, id: ${data?.id}`);
+            sentResults.push({ email: user.email, status: "sent" });
+          }
         } catch (emailErr: any) {
           console.error(`[send-notification] failed for ${user.email}:`, emailErr);
           sentResults.push({ email: user.email, status: "error: " + emailErr.message });

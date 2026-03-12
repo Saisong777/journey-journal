@@ -328,7 +328,12 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
     },
     onSuccess: (data) => {
       const sentCount = data.results.filter((r: any) => r.status === "sent").length;
-      toast({ title: "通知已發送", description: `成功寄送 ${sentCount} 封行前通知` });
+      const errorResults = data.results.filter((r: any) => r.status !== "sent");
+      if (errorResults.length > 0) {
+        toast({ title: "部分發送失敗", description: `成功 ${sentCount} 封，失敗 ${errorResults.length} 封：${errorResults[0].status}`, variant: "destructive" });
+      } else {
+        toast({ title: "通知已發送", description: `成功寄送 ${sentCount} 封行前通知` });
+      }
       setShowNotifyDialog(false);
       setSelectedMembers(new Set());
     },

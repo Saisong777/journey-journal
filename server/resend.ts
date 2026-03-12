@@ -6,7 +6,7 @@ export async function getResendClient() {
     throw new Error('RESEND_API_KEY environment variable is not set');
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@yourdomain.com';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Trip Companion <onboarding@resend.dev>';
 
   return {
     client: new Resend(apiKey),
