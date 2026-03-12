@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { transformPhotoUrl } from "@/lib/photoUtils";
-import { Loader2, FileDown, Image } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 
 interface ModuleItem {
   id: string;
@@ -58,9 +59,24 @@ export default function BibleModulePage() {
                 <div className="p-4 space-y-2">
                   <h3 className="text-body font-semibold">{item.title}</h3>
                   {item.content && (
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    <ReactMarkdown
+                      className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="text-sm">{children}</li>,
+                        h1: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1 text-foreground">{children}</h3>,
+                        h2: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1 text-foreground">{children}</h3>,
+                        h3: ({ children }) => <h4 className="text-sm font-bold mt-2 mb-1 text-foreground">{children}</h4>,
+                        h4: ({ children }) => <h4 className="text-sm font-semibold mt-2 mb-1 text-foreground">{children}</h4>,
+                        strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                        blockquote: ({ children }) => <blockquote className="border-l-2 border-amber-400 pl-3 italic my-2">{children}</blockquote>,
+                        hr: () => <hr className="my-3 border-border" />,
+                      }}
+                    >
                       {item.content}
-                    </div>
+                    </ReactMarkdown>
                   )}
                   {item.fileUrl && (
                     <a
