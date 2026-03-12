@@ -2622,4 +2622,60 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch trips" });
     }
   });
+
+  // Exchange rates API with server-side caching (30 min)
+  let rateCache: { rates: Record<string, number>; timestamp: number } | null = null;
+  const RATE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+  app.get("/api/exchange-rates", requireAuth, async (_req, res) => {
+    try {
+      // Return cached if fresh
+      if (rateCache && Date.now() - rateCache.timestamp < RATE_CACHE_TTL) {
+        return res.json({
+          rates: rateCache.rates,
+          updatedAt: new Date(rateCache.timestamp).toISOString(),
+        });
+      }
+
+      // Fetch fresh rates (base: TWD)
+      const response = await fetch("https://open.er-api.com/v6/latest/TWD");
+      if (!response.ok) {
+        // If fetch fails but cache exists, return stale cache
+        if (rateCache) {
+          return res.json({
+            rates: rateCache.rates,
+            updatedAt: new Date(rateCache.timestamp).toISOString(),
+            stale: true,
+          });
+        }
+        throw new Error(`Exchange rate API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.result !== "success" || !data.rates) {
+        throw new Error("Invalid exchange rate response");
+      }
+
+      rateCache = { rates: data.rates, timestamp: Date.now() };
+
+      res.json({
+        rates: data.rates,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+      // Fallback hardcoded rates if API is unavailable
+      const fallbackRates: Record<string, number> = {
+        TWD: 1, USD: 0.031, ILS: 0.115, JOD: 0.022, EUR: 0.029,
+        TRY: 1.17, GBP: 0.025, JPY: 4.69, KRW: 44.5, CNY: 0.225,
+        HKD: 0.243, SGD: 0.042, THB: 1.08, AUD: 0.048, CAD: 0.044,
+        CHF: 0.027, EGP: 1.56, MYR: 0.138,
+      };
+      res.json({
+        rates: fallbackRates,
+        updatedAt: null,
+        fallback: true,
+      });
+    }
+  });
 }
