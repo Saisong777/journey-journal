@@ -279,11 +279,13 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
     queryFn: async () => {
       const token = getAuthToken();
       const response = await fetch(`/api/admin/trips/${tripId}/members`, {
+        credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
+    enabled: !!tripId,
   });
 
   const { data: tripInvitations } = useQuery({
@@ -291,11 +293,13 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
     queryFn: async () => {
       const token = getAuthToken();
       const response = await fetch(`/api/admin/trips/${tripId}/invitations`, {
+        credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
+    enabled: !!tripId,
   });
 
   const importMutation = useMutation({

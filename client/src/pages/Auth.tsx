@@ -160,10 +160,29 @@ export default function Auth() {
       return;
     }
 
-    toast({
-      title: "功能開發中",
-      description: "密碼重設功能即將推出",
-    });
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "發送失敗");
+      }
+
+      setResetSent(true);
+    } catch (error: any) {
+      toast({
+        title: "發送失敗",
+        description: error.message || "請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (view === "forgot-password") {

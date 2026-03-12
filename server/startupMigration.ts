@@ -550,6 +550,19 @@ export async function runStartupMigration() {
       console.error("[startup-migration] life_question column migration error:", e);
     }
 
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ`);
+        console.log("[startup-migration] ensured reset_token columns on users");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] reset_token column migration error:", e);
+    }
+
     await ensureAttractionsTable();
     await ensureBibleLibraryTables();
 

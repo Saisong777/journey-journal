@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,12 @@ import { Loader2, Lock, CheckCircle } from "lucide-react";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isInvalid, setIsInvalid] = useState(!token);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -36,11 +39,57 @@ export default function ResetPassword() {
       return;
     }
 
-    toast({
-      title: "功能開發中",
-      description: "密碼重設功能即將推出",
-    });
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "重設失敗");
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      if (error.message?.includes("失效") || error.message?.includes("無效")) {
+        setIsInvalid(true);
+      }
+      toast({
+        title: "重設失敗",
+        description: error.message || "請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isInvalid) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+              <Lock className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-semibold">連結已失效</h3>
+            <p className="text-muted-foreground">
+              此密碼重設連結已失效或無效。請重新申請密碼重設。
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => navigate("/auth")}
+            >
+              返回登入
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (

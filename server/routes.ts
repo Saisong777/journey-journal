@@ -539,6 +539,126 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Forgot password — send reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body as { email: string };
+      if (!email) {
+        return res.status(400).json({ error: "請輸入電子郵件" });
+      }
+
+      // Always return success to prevent email enumeration
+      const user = await storage.getUserByEmail(email.trim().toLowerCase());
+      if (!user) {
+        return res.json({ success: true });
+      }
+
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.updateUser(user.id, { resetToken, resetTokenExpiry } as any);
+
+      const appUrl = process.env.APP_URL
+        || (process.env.REPLIT_DOMAINS
+          ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+          : `${req.protocol}://${req.get("host")}`);
+      const resetUrl = `${appUrl}/auth/reset-password?token=${resetToken}`;
+
+      const { getResendClient } = await import("./resend");
+      const { client: resend, fromEmail } = await getResendClient();
+
+      const profile = await storage.getProfile(user.id);
+      const memberName = profile?.name || user.firstName || user.email;
+
+      await resend.emails.send({
+        from: fromEmail || "Trip Companion <onboarding@resend.dev>",
+        to: user.email,
+        subject: "重設密碼 - 與神同行",
+        html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fef7ed; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 30px; }
+    .header { text-align: center; padding: 30px 0; }
+    .logo { width: 80px; height: 80px; border-radius: 50%; background: #d97706; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold; }
+    .title { font-size: 24px; color: #92400e; margin: 15px 0 5px; }
+    .subtitle { color: #b45309; font-size: 14px; }
+    .card { background: white; border-radius: 12px; padding: 30px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .greeting { font-size: 18px; color: #1f2937; margin-bottom: 15px; }
+    .btn { display: inline-block; background: #d97706; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; font-size: 16px; }
+    .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">T</div>
+      <div class="title">與神同行</div>
+      <div class="subtitle">Walking in His Love</div>
+    </div>
+    <div class="card">
+      <div class="greeting">親愛的 ${memberName}，您好！</div>
+      <p style="color: #4b5563; line-height: 1.6;">
+        我們收到了您的密碼重設請求。請點擊下方按鈕來設定新密碼：
+      </p>
+      <div style="text-align: center;">
+        <a href="${resetUrl}" class="btn" style="color: white;">重設密碼</a>
+      </div>
+      <p style="color: #9ca3af; font-size: 13px; margin-top: 20px; line-height: 1.5;">
+        此連結將在 1 小時後失效。<br>
+        如果您沒有要求重設密碼，請忽略這封郵件。
+      </p>
+    </div>
+    <div class="footer">
+      <p>享受一段與神同行的旅程！</p>
+    </div>
+  </div>
+</body>
+</html>`,
+      });
+
+      console.log(`[forgot-password] reset email sent to ${user.email}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[forgot-password] error:", error);
+      res.status(500).json({ error: "發送重設郵件失敗，請稍後再試" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body as { token: string; password: string };
+      if (!token || !password) {
+        return res.status(400).json({ error: "缺少必要參數" });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+      }
+
+      const user = await storage.getUserByResetToken(token);
+      if (!user || !user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
+        return res.status(400).json({ error: "重設連結已失效或無效，請重新申請" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        tempPassword: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+      } as any);
+
+      console.log(`[reset-password] password reset for ${user.email}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[reset-password] error:", error);
+      res.status(500).json({ error: "密碼重設失敗，請稍後再試" });
+    }
+  });
+
   app.get("/api/auth/needs-profile-setup", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser(req.userId!);
