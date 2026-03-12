@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index, serial, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, timestamp, doublePrecision, pgEnum, integer, boolean, varchar, jsonb, index, uniqueIndex, serial, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -81,7 +81,9 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_users_reset_token").on(table.resetToken),
+]);
 
 export const profiles = pgTable("profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -225,6 +227,7 @@ export const eveningReflections = pgTable("evening_reflections", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("idx_evening_reflections_user_trip").on(table.userId, table.tripId),
+  uniqueIndex("idx_evening_reflections_user_trip_date").on(table.userId, table.tripId, table.entryDate),
 ]);
 
 export const authTokens = pgTable("auth_tokens", {

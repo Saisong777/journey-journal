@@ -648,20 +648,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setPlatformRole(userId: string, role: string, permissions: Record<string, boolean> | null, assignedBy: string): Promise<PlatformRole> {
-    const existing = await this.getPlatformRole(userId);
-    if (existing) {
-      const [updated] = await db
-        .update(platformRoles)
-        .set({ role: role as any, permissions, assignedBy, updatedAt: new Date() })
-        .where(eq(platformRoles.userId, userId))
-        .returning();
-      return updated;
-    }
-    const [created] = await db
+    const [result] = await db
       .insert(platformRoles)
       .values({ userId, role: role as any, permissions, assignedBy })
+      .onConflictDoUpdate({
+        target: platformRoles.userId,
+        set: { role: role as any, permissions, assignedBy, updatedAt: new Date() },
+      })
       .returning();
-    return created;
+    return result;
   }
 
   async deletePlatformRole(userId: string): Promise<void> {
@@ -750,17 +745,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection> {
-    const existing = await this.getEveningReflection(data.userId, data.tripId, data.entryDate!);
-    if (existing) {
-      const [updated] = await db
-        .update(eveningReflections)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(eveningReflections.id, existing.id))
-        .returning();
-      return updated;
-    }
-    const [created] = await db.insert(eveningReflections).values(data).returning();
-    return created;
+    const [result] = await db
+      .insert(eveningReflections)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [eveningReflections.userId, eveningReflections.tripId, eveningReflections.entryDate],
+        set: {
+          gratitude: data.gratitude,
+          highlight: data.highlight,
+          prayerForTomorrow: data.prayerForTomorrow,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
   }
   async getAllTripNotes(): Promise<TripNote[]> {
     return db.select().from(tripNotes).orderBy(desc(tripNotes.createdAt));

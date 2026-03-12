@@ -30,10 +30,10 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       toast({
         title: "密碼太短",
-        description: "密碼至少需要 6 個字元",
+        description: "密碼至少需要 8 個字元",
         variant: "destructive",
       });
       return;
@@ -145,7 +145,7 @@ export default function ResetPassword() {
                   <Input
                     id="new-password"
                     type="password"
-                    placeholder="至少 6 個字元"
+                    placeholder="至少 8 個字元"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 h-12"

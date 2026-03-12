@@ -77,8 +77,8 @@ export function ProfileEditSheet({
       toast({ title: "請填寫密碼欄位", variant: "destructive" });
       return;
     }
-    if (newPassword.length < 6) {
-      toast({ title: "密碼至少需要 6 個字元", variant: "destructive" });
+    if (newPassword.length < 8) {
+      toast({ title: "密碼至少需要 8 個字元", variant: "destructive" });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -250,7 +250,7 @@ export function ProfileEditSheet({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="h-12 text-body pr-12"
-                    placeholder="至少 6 個字元"
+                    placeholder="至少 8 個字元"
                   />
                   <button
                     type="button"

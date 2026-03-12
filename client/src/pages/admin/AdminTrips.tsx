@@ -70,7 +70,7 @@ interface TripMember {
   userId: string;
   name: string;
   email: string;
-  tempPassword: string;
+  hasOwnPassword: boolean;
   role: string;
   roleId: string | null;
   phone: string;
@@ -526,7 +526,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
                 </TableHead>
                 <TableHead>姓名</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>臨時密碼</TableHead>
+                <TableHead>密碼狀態</TableHead>
                 <TableHead>角色</TableHead>
                 <TableHead className="w-20">操作</TableHead>
               </TableRow>
@@ -543,7 +543,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
                   <TableCell className="font-medium">{member.name || "-"}</TableCell>
                   <TableCell className="text-caption">{member.email}</TableCell>
                   <TableCell>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{member.tempPassword || "-"}</code>
+                    <span className={`text-xs ${member.hasOwnPassword ? "text-green-600" : "text-amber-600"}`}>{member.hasOwnPassword ? "已設定" : "未設定"}</span>
                   </TableCell>
                   <TableCell>
                     <Badge className={roleColors[member.role] || roleColors.member}>

@@ -57,7 +57,6 @@ interface PlatformUser {
   email: string;
   name: string;
   phone: string;
-  tempPassword: string;
   tripCount: number;
   trips: UserTrip[];
   hasOwnPassword: boolean;

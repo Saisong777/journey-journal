@@ -641,8 +641,8 @@ export function registerRoutes(app: Express) {
       if (!token || !password) {
         return res.status(400).json({ error: "缺少必要參數" });
       }
-      if (password.length < 6) {
-        return res.status(400).json({ error: "密碼至少需要 6 個字元" });
+      if (password.length < 8) {
+        return res.status(400).json({ error: "密碼至少需要 8 個字元" });
       }
 
       const user = await storage.getUserByResetToken(token);
@@ -1550,7 +1550,6 @@ export function registerRoutes(app: Express) {
           email: u.email,
           name: profile?.name || u.firstName || "",
           phone: profile?.phone || "",
-          tempPassword: u.tempPassword || "",
           tripCount: userTripsMap.get(u.id)?.length || 0,
           trips: userTripsMap.get(u.id) || [],
           hasOwnPassword: !u.tempPassword,
@@ -2470,7 +2469,7 @@ export function registerRoutes(app: Express) {
           userId: u.id,
           name: profile?.name || u.firstName || "",
           email: u.email,
-          tempPassword: u.tempPassword || "",
+          hasOwnPassword: !u.tempPassword,
           role: role?.role || "member",
           roleId: role?.id || null,
           phone: profile?.phone || "",

@@ -95,10 +95,10 @@ export default function Auth() {
       return;
     }
 
-    if (signupPassword.length < 6) {
+    if (signupPassword.length < 8) {
       toast({
         title: "密碼太短",
-        description: "密碼至少需要 6 個字元",
+        description: "密碼至少需要 8 個字元",
         variant: "destructive",
       });
       return;
@@ -454,7 +454,7 @@ export default function Auth() {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="至少 6 個字元"
+                        placeholder="至少 8 個字元"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         className="pl-10 h-12"
