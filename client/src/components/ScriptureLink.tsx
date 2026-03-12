@@ -113,14 +113,18 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center overscroll-none"
-          style={{ touchAction: "none" }}
+          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center"
         >
-          <div className="fixed inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+            onTouchEnd={(e) => { e.preventDefault(); setOpen(false); }}
+          />
           <div
             className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
             onClick={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Header with close button */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
