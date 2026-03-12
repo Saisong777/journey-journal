@@ -113,19 +113,18 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[2000]"
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
         >
-          <div
-            className="fixed inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-            onTouchEnd={(e) => { e.preventDefault(); setOpen(false); }}
-          />
-          <div
-            className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-            onClick={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
+          <div className="fixed inset-0 bg-black/40" onPointerDown={() => setOpen(false)} />
+          <div className="fixed inset-0 flex items-end sm:items-center justify-center pointer-events-none">
+            <div
+              className="pointer-events-auto relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col shadow-xl animate-in slide-in-from-bottom-4 duration-200"
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
             {/* Header with close button */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
               <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -172,6 +171,7 @@ export function ScriptureLink({ reference, className }: { reference: string; cla
               ) : (
                 <p className="text-sm text-muted-foreground py-6 text-center">無法載入經文內容</p>
               )}
+            </div>
             </div>
           </div>
         </div>,
