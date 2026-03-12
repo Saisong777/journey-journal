@@ -75,7 +75,7 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   getUsersByIds(ids: string[]): Promise<User[]>;
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(opts?: { limit?: number; offset?: number }): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
@@ -121,7 +121,9 @@ export interface IStorage {
   deleteJournalEntry(id: string): Promise<void>;
 
   createJournalPhoto(photo: InsertJournalPhoto): Promise<JournalPhoto>;
+  createJournalPhotos(photos: InsertJournalPhoto[]): Promise<JournalPhoto[]>;
   deleteJournalPhoto(id: string): Promise<void>;
+  deleteJournalPhotosByIds(ids: string[]): Promise<void>;
   getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]>;
 
   getDevotionalEntries(tripId: string, userId: string, date?: string): Promise<DevotionalEntry[]>;
@@ -140,6 +142,7 @@ export interface IStorage {
   getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]>;
   getDevotionalCourse(id: string): Promise<DevotionalCourse | undefined>;
   createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse>;
+  createDevotionalCourses(courses: InsertDevotionalCourse[]): Promise<DevotionalCourse[]>;
   updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined>;
   deleteDevotionalCourse(id: string): Promise<void>;
   deleteDevotionalCoursesByTrip(tripId: string): Promise<void>;
@@ -235,8 +238,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(inArray(users.id, ids));
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users).orderBy(desc(users.createdAt));
+  async getAllUsers(opts?: { limit?: number; offset?: number }): Promise<User[]> {
+    let query = db.select().from(users).orderBy(desc(users.createdAt)).$dynamic();
+    if (opts?.limit) query = query.limit(opts.limit);
+    if (opts?.offset) query = query.offset(opts.offset);
+    return query;
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -502,6 +508,11 @@ export class DatabaseStorage implements IStorage {
     await db.delete(journalPhotos).where(eq(journalPhotos.id, id));
   }
 
+  async deleteJournalPhotosByIds(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await db.delete(journalPhotos).where(inArray(journalPhotos.id, ids));
+  }
+
   async getJournalPhotos(journalEntryId: string): Promise<JournalPhoto[]> {
     return db.select().from(journalPhotos).where(eq(journalPhotos.journalEntryId, journalEntryId));
   }
@@ -583,9 +594,11 @@ export class DatabaseStorage implements IStorage {
 
   async getLocationsByTrip(tripId: string): Promise<(UserLocation & { profile?: Profile })[]> {
     const locations = await db.select().from(userLocations).where(eq(userLocations.tripId, tripId));
-    const profilesList = await this.getAllProfiles();
+    if (locations.length === 0) return [];
+    const userIds = locations.map((loc) => loc.userId);
+    const profilesList = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
     const profileMap = new Map(profilesList.map((p) => [p.userId, p]));
-    
+
     return locations.map((loc) => ({
       ...loc,
       profile: profileMap.get(loc.userId),
@@ -593,22 +606,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserLocation(userId: string, tripId: string, latitude: number, longitude: number): Promise<UserLocation> {
-    const existing = await this.getUserLocation(userId);
-    
-    if (existing) {
-      const [updated] = await db
-        .update(userLocations)
-        .set({ latitude, longitude, updatedAt: new Date() })
-        .where(eq(userLocations.userId, userId))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db
-        .insert(userLocations)
-        .values({ userId, tripId, latitude, longitude })
-        .returning();
-      return created;
-    }
+    const [result] = await db
+      .insert(userLocations)
+      .values({ userId, tripId, latitude, longitude })
+      .onConflictDoUpdate({
+        target: userLocations.userId,
+        set: { latitude, longitude, tripId, updatedAt: new Date() },
+      })
+      .returning();
+    return result;
   }
 
   async getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]> {
@@ -623,6 +629,11 @@ export class DatabaseStorage implements IStorage {
   async createDevotionalCourse(course: InsertDevotionalCourse): Promise<DevotionalCourse> {
     const [created] = await db.insert(devotionalCourses).values(course).returning();
     return created;
+  }
+
+  async createDevotionalCourses(courses: InsertDevotionalCourse[]): Promise<DevotionalCourse[]> {
+    if (courses.length === 0) return [];
+    return db.insert(devotionalCourses).values(courses).returning();
   }
 
   async updateDevotionalCourse(id: string, course: Partial<InsertDevotionalCourse>): Promise<DevotionalCourse | undefined> {

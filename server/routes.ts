@@ -955,20 +955,18 @@ export function registerRoutes(app: Express) {
         const newPaths = newPhotos.map(p => p.photoUrl);
 
         const toDelete = existingPhotos.filter(p => !newPaths.includes(p.photoUrl));
-        for (const photo of toDelete) {
-          await storage.deleteJournalPhoto(photo.id);
-        }
-
         const toAdd = newPhotos.filter(p => !existingPaths.includes(p.photoUrl));
-        for (const photo of toAdd) {
-          await storage.createJournalPhoto({
+
+        await Promise.all([
+          storage.deleteJournalPhotosByIds(toDelete.map(p => p.id)),
+          storage.createJournalPhotos(toAdd.map(photo => ({
             journalEntryId: req.params.id,
             photoUrl: photo.photoUrl,
             caption: null,
             latitude: photo.latitude ?? null,
             longitude: photo.longitude ?? null,
-          });
-        }
+          }))),
+        ]);
       }
 
       res.json(entry);
@@ -1518,7 +1516,9 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      const allUsers = await storage.getAllUsers();
+      const limit = Math.min(parseInt(req.query.limit as string) || 200, 500);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const allUsers = await storage.getAllUsers({ limit, offset });
       const allProfiles = await storage.getAllProfiles();
       const allRoles = await storage.getAllUserRoles();
       const allPlatformRoles = await storage.getAllPlatformRoles();
@@ -2064,9 +2064,8 @@ export function registerRoutes(app: Express) {
       if (mode === "replace") {
         await storage.deleteDevotionalCoursesByTrip(req.params.tripId);
       }
-      const created = [];
-      for (const c of courses) {
-        const course = await storage.createDevotionalCourse({
+      const created = await storage.createDevotionalCourses(
+        courses.map((c: any) => ({
           tripId: req.params.tripId,
           dayNo: c.dayNo || null,
           title: c.title,
@@ -2076,9 +2075,8 @@ export function registerRoutes(app: Express) {
           action: c.action || null,
           prayer: c.prayer || null,
           lifeQuestion: c.lifeQuestion || null,
-        });
-        created.push(course);
-      }
+        }))
+      );
       res.json({ imported: created.length, courses: created });
     } catch (error) {
       console.error("Failed to import devotional courses:", error);
