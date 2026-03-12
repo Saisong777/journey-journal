@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { queryClient } from "@/lib/queryClient";
@@ -290,6 +291,7 @@ const AnimatedRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
     <AuthProvider>
       <OfflineSyncProvider>
         <TooltipProvider>
@@ -301,6 +303,7 @@ const App = () => (
         </TooltipProvider>
       </OfflineSyncProvider>
     </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

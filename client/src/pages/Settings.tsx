@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -77,7 +78,7 @@ export default function Settings() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (isSetupMode && !profileLoading) {
@@ -160,8 +161,8 @@ export default function Settings() {
           label: "深色模式",
           description: "減少眼睛疲勞",
           action: "toggle" as const,
-          value: darkMode,
-          onClick: () => setDarkMode(!darkMode),
+          value: isDark,
+          onClick: toggleTheme,
         },
       ],
     },
