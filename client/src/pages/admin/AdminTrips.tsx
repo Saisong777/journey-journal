@@ -957,7 +957,7 @@ export default function AdminTrips() {
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="例：2025 聖地朝聖之旅"
+                    placeholder="例：2025 聖地平安同行"
                   />
                 </div>
                 <div className="space-y-2">

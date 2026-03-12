@@ -23,7 +23,7 @@ export function SidebarNav() {
     return (
         <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card/80 backdrop-blur-md shadow-elevated z-10">
             <div className="p-6">
-                <h1 className="text-title font-semibold text-primary">朝聖之旅</h1>
+                <h1 className="text-title font-semibold text-primary">平安同行</h1>
             </div>
             <nav className="flex-1 px-4 space-y-2">
                 {navItems.map((item) => {

@@ -97,7 +97,7 @@ const Attractions = () => {
           <section className="space-y-2">
             <h1 className="text-display">景點資訊</h1>
             <p className="text-body text-muted-foreground">
-              探索朝聖之旅的歷史與故事
+              探索平安同行的歷史與故事
             </p>
           </section>
           <div className="text-center py-12 bg-card rounded-lg">
@@ -114,7 +114,7 @@ const Attractions = () => {
         <section className="space-y-2">
           <h1 className="text-display" data-testid="text-attractions-title">景點資訊</h1>
           <p className="text-body text-muted-foreground">
-            {trip?.title || "探索朝聖之旅的歷史與故事"}
+            {trip?.title || "探索平安同行的歷史與故事"}
           </p>
         </section>
 

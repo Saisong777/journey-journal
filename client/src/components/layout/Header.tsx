@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  title = "朝聖之旅",
+  title = "平安同行",
   className,
   showBack = false,
 }: HeaderProps) {

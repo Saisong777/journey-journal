@@ -8,7 +8,7 @@ import path from "path";
 const ADMIN_EMAIL = "saisong@gmail.com";
 
 const TRIP_DATA = {
-  title: "2026 土耳其希臘朝聖之旅",
+  title: "2026 土耳其希臘平安同行",
   destination: "土耳其 · 希臘",
   startDate: "2026-03-13",
   endDate: "2026-03-28",
@@ -30,7 +30,7 @@ const TRIP_DAYS_DATA = [
   { dayNo: 13, date: "2026-03-25", cityArea: "腓立比 Philippi", title: "耶孫的家 / 暗妃波里 / 腓立比", highlights: "耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉)", attractions: "米特歐拉 / 耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉)", bibleRefs: "徒16:11; 徒17:1-10; 腓立比書", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Grecotel Astir Palace", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "腓立比是保羅在歐洲傳福音的第一個城市" },
   { dayNo: 14, date: "2026-03-26", cityArea: "塔克辛廣場 Taksim", title: "返回伊斯坦堡 / 自由購物", highlights: "希臘土耳其邊界 / 塔克辛廣場自由活動", attractions: "德爾非 / 塔克辛廣場自由活動", bibleRefs: null, breakfast: "飯店", lunch: "當地特色", dinner: "X", lodging: "Hilton Istanbul Bomonti", lodgingLevel: "5星", transport: null, freeTimeFlag: true, shoppingFlag: true, mustKnow: null, notes: "塔克辛廣場與獨立大街是土耳其時尚購物天堂" },
   { dayNo: 15, date: "2026-03-27", cityArea: "伊斯坦堡", title: "返程航班", highlights: "悠閒早餐後前往機場 / 返程航班", attractions: null, bibleRefs: null, breakfast: "飯店", lunch: "機上", dinner: "機上", lodging: "機上", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "帶著滿滿的故事踏上回家的路" },
-  { dayNo: 16, date: "2026-03-28", cityArea: "溫暖的家", title: "抵達溫暖的家", highlights: "返抵國門，結束朝聖之旅", attractions: null, bibleRefs: "太18:22", breakfast: "機上", lunch: "X", dinner: "X", lodging: "溫暖的家", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "腳掌所踏之地都要成為祝福" },
+  { dayNo: 16, date: "2026-03-28", cityArea: "溫暖的家", title: "抵達溫暖的家", highlights: "返抵國門，結束平安同行", attractions: null, bibleRefs: "太18:22", breakfast: "機上", lunch: "X", dinner: "X", lodging: "溫暖的家", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "腳掌所踏之地都要成為祝福" },
 ];
 
 const DEVOTIONAL_COURSE = {
@@ -688,6 +688,9 @@ async function ensureBibleLibraryTables() {
           VALUES ('paul-journeys', '保羅行蹤', '探索使徒保羅的四次宣教旅程，包含地點、同伴、事件與相關經文', 'Footprints', 0, true)
         `);
       }
+      // Rename「深度研究」→「相關資料」
+      await client.query(`UPDATE bible_library_modules SET title = '相關資料' WHERE title = '深度研究'`);
+
       console.log("[startup-migration] ensured bible library tables");
     } finally {
       client.release();

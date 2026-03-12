@@ -41,14 +41,14 @@ const TripSummary = () => {
       date: "尚未開始",
       title: "開始您的旅程",
       locations: [],
-      highlights: "開始記錄您的朝聖之旅，每一天的經歷都將成為珍貴的回憶。",
+      highlights: "開始記錄您的平安同行，每一天的經歷都將成為珍貴的回憶。",
       completed: false,
     },
   ];
 
   // Build trip data from database or fallback
   const tripData = {
-    title: trip?.title || "朝聖之旅",
+    title: trip?.title || "平安同行",
     destination: trip?.destination || "目的地",
     dateRange: trip?.startDate && trip?.endDate
       ? formatTripDateRange(trip.startDate, trip.endDate)
@@ -92,7 +92,7 @@ const TripSummary = () => {
         <section className="text-center space-y-2">
           <h1 className="text-display">旅程回憶錄</h1>
           <p className="text-body text-muted-foreground">
-            珍藏這趟朝聖之旅的美好記憶
+            珍藏這趟平安同行的美好記憶
           </p>
         </section>
 

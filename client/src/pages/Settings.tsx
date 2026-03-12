@@ -328,7 +328,7 @@ export default function Settings() {
 
         {/* App Info */}
         <section className="text-center py-4">
-          <p className="text-caption text-muted-foreground">朝聖之旅 v1.0.0</p>
+          <p className="text-caption text-muted-foreground">平安同行 v1.0.0</p>
           <p className="text-caption text-muted-foreground">© 2024 All rights reserved</p>
         </section>
       </div>

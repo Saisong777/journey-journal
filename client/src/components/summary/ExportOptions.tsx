@@ -14,7 +14,7 @@ import { zhTW } from "date-fns/locale";
 function generateTextSummary(trip: any, journals: any[], devotionals: any[]): string {
   const lines: string[] = [];
   lines.push(`═══════════════════════════════════`);
-  lines.push(`  ${trip?.title || "朝聖之旅"} — 旅程回憶錄`);
+  lines.push(`  ${trip?.title || "平安同行"} — 旅程回憶錄`);
   lines.push(`═══════════════════════════════════`);
   lines.push("");
 
@@ -89,7 +89,7 @@ export function ExportOptions() {
     setExportingPdf(true);
     try {
       const content = generateTextSummary(trip, journals || [], devotionals || []);
-      const tripTitle = trip?.title || "朝聖之旅";
+      const tripTitle = trip?.title || "平安同行";
       downloadTextFile(content, `${tripTitle}_回憶錄.txt`);
       toast({
         title: "匯出成功",
@@ -146,7 +146,7 @@ export function ExportOptions() {
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      const tripTitle = trip?.title || "朝聖之旅";
+      const tripTitle = trip?.title || "平安同行";
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
@@ -197,7 +197,7 @@ export function ExportOptions() {
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      const tripTitle = trip?.title || "朝聖之旅";
+      const tripTitle = trip?.title || "平安同行";
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
@@ -223,7 +223,7 @@ export function ExportOptions() {
   };
 
   const handleShare = async () => {
-    const tripTitle = trip?.title || "朝聖之旅";
+    const tripTitle = trip?.title || "平安同行";
     if (navigator.share) {
       try {
         await navigator.share({

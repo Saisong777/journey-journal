@@ -162,7 +162,7 @@ const Index = () => {
         ) : (
           <section className="text-center space-y-2">
             <p className="text-muted-foreground text-body">{getGreeting()}，{userName}</p>
-            <h1 className="text-display text-foreground">朝聖之旅</h1>
+            <h1 className="text-display text-foreground">平安同行</h1>
             <p className="text-body-lg text-muted-foreground">
               尚未加入任何旅程
             </p>
