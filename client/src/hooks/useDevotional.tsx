@@ -188,3 +188,28 @@ export function useSaveDevotional() {
     },
   });
 }
+
+export function useDeleteDevotionalEntry() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      const response = await fetch(`/api/devotional-entries/${entryId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete devotional entry");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devotional-entries"] });
+      toast({ title: "成功", description: "靈修記錄已刪除" });
+    },
+    onError: () => {
+      toast({ title: "錯誤", description: "刪除靈修記錄時發生錯誤", variant: "destructive" });
+    },
+  });
+}

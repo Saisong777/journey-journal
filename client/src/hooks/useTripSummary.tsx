@@ -20,6 +20,7 @@ export interface PhotoItem {
   caption: string;
   date: string;
   location: string;
+  journalEntryId: string;
 }
 
 export function useTripStats() {
@@ -57,7 +58,8 @@ export function useTripPhotos() {
             url: transformPhotoUrl(photo.photoUrl),
             caption: photo.caption || entry.title,
             date: entry.entryDate ? format(parseISO(entry.entryDate), "M月d日", { locale: zhTW }) : "",
-            location: entry.location || "未知地點",
+            location: entry.location || "",
+            journalEntryId: entry.id,
           });
         }
       }

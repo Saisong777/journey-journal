@@ -127,6 +127,7 @@ export interface IStorage {
   getDevotionalEntry(id: string): Promise<DevotionalEntry | undefined>;
   createDevotionalEntry(entry: InsertDevotionalEntry): Promise<DevotionalEntry>;
   updateDevotionalEntry(id: string, entry: Partial<InsertDevotionalEntry>): Promise<DevotionalEntry | undefined>;
+  deleteDevotionalEntry(id: string): Promise<void>;
 
   getAttractionFavorites(userId: string): Promise<AttractionFavorite[]>;
   addAttractionFavorite(fav: InsertAttractionFavorite): Promise<AttractionFavorite>;
@@ -521,6 +522,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(devotionalEntries.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteDevotionalEntry(id: string): Promise<void> {
+    await db.delete(devotionalEntries).where(eq(devotionalEntries.id, id));
   }
 
   async getAttractionFavorites(userId: string): Promise<AttractionFavorite[]> {

@@ -1030,6 +1030,26 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/devotional-entries/:id", requireAuth, async (req, res) => {
+    try {
+      const existing = await storage.getDevotionalEntry(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Devotional entry not found" });
+      }
+      if (existing.userId !== req.userId) {
+        const isAdmin = await storage.hasAdminAccess(req.userId!);
+        if (!isAdmin) {
+          return res.status(403).json({ error: "You can only delete your own entries" });
+        }
+      }
+      await storage.deleteDevotionalEntry(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete devotional entry:", error);
+      res.status(500).json({ error: "Failed to delete devotional entry" });
+    }
+  });
+
   app.get("/api/evening-reflections", requireAuth, async (req, res) => {
     try {
       const userRole = await getCachedUserRole(req.userId!);

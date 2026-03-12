@@ -1,15 +1,17 @@
+import { useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { TripOverview } from "@/components/summary/TripOverview";
-import { DailyItinerary } from "@/components/summary/DailyItinerary";
-import { PhotoGallery } from "@/components/summary/PhotoGallery";
-import { HighlightMoments } from "@/components/summary/HighlightMoments";
+import { DailyItinerary, DaySchedule } from "@/components/summary/DailyItinerary";
+import { PhotoGallery, Photo } from "@/components/summary/PhotoGallery";
+import { HighlightMoments, Highlight } from "@/components/summary/HighlightMoments";
 import { ExportOptions } from "@/components/summary/ExportOptions";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrip } from "@/hooks/useTrip";
 import { useTripStats, useTripPhotos, useTripHighlights, formatTripDateRange, calculateTripDuration } from "@/hooks/useTripSummary";
-import { useJournalEntries } from "@/hooks/useJournalEntries";
+import { useJournalEntries, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
+import { useDeleteDevotionalEntry } from "@/hooks/useDevotional";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { queryClient } from "@/lib/queryClient";
 import { format, parseISO } from "date-fns";
@@ -19,23 +21,30 @@ import { zhTW } from "date-fns/locale";
 const defaultCoverImage = "https://images.unsplash.com/photo-1547036346-0e63c72f8a4d?w=800&auto=format&fit=crop";
 
 const TripSummary = () => {
+  const navigate = useNavigate();
   const { data: trip, isLoading: tripLoading } = useTrip();
   const { data: stats, isLoading: statsLoading } = useTripStats();
   const { data: photos, isLoading: photosLoading } = useTripPhotos();
   const { data: highlights, isLoading: highlightsLoading } = useTripHighlights();
   const { data: journals, isLoading: journalsLoading } = useJournalEntries();
+
+  const deleteJournal = useDeleteJournalEntry();
+  const updateJournal = useUpdateJournalEntry();
+  const deleteDevotional = useDeleteDevotionalEntry();
+
   // Build schedule data from journals
-  const scheduleData = (journals || []).filter(j => j.entryDate).map((journal, index) => ({
+  const scheduleData: DaySchedule[] = (journals || []).filter(j => j.entryDate).map((journal, index) => ({
     day: index + 1,
     date: format(parseISO(journal.entryDate), "M月d日（EEEE）", { locale: zhTW }),
     title: journal.title,
     locations: journal.location ? [journal.location] : [],
     highlights: journal.content || "",
     completed: true,
+    journalId: journal.id,
   }));
 
   // Fallback schedule if no journals
-  const defaultSchedule = [
+  const defaultSchedule: DaySchedule[] = [
     {
       day: 1,
       date: "尚未開始",
@@ -62,16 +71,17 @@ const TripSummary = () => {
   };
 
   // Build photo data
-  const photoData = (photos || []).map(photo => ({
+  const photoData: Photo[] = (photos || []).map(photo => ({
     id: photo.id,
     url: photo.url,
     caption: photo.caption,
     date: photo.date,
     location: photo.location,
+    journalEntryId: photo.journalEntryId,
   }));
 
   // Build highlight data
-  const highlightData = (highlights || []).map(h => ({
+  const highlightData: Highlight[] = (highlights || []).map(h => ({
     id: h.id,
     type: h.type,
     title: h.title,
@@ -79,8 +89,52 @@ const TripSummary = () => {
     date: h.date,
   }));
 
-  const handleCoverChange = (url: string) => {
+  const handleCoverChange = () => {
     queryClient.invalidateQueries({ queryKey: ["trip"] });
+  };
+
+  // --- Highlight handlers ---
+  const handleHighlightEdit = (highlight: Highlight) => {
+    // Navigate to the appropriate edit page based on type
+    if (highlight.type === "spiritual") {
+      navigate("/devotional");
+    } else {
+      navigate("/journal");
+    }
+  };
+
+  const handleHighlightDelete = (highlight: Highlight) => {
+    if (highlight.type === "spiritual") {
+      deleteDevotional.mutate(highlight.id);
+    } else {
+      deleteJournal.mutate(highlight.id);
+    }
+  };
+
+  // --- Itinerary handlers ---
+  const handleItineraryEdit = (day: DaySchedule) => {
+    navigate("/journal");
+  };
+
+  const handleItineraryDelete = (day: DaySchedule) => {
+    if (day.journalId) {
+      deleteJournal.mutate(day.journalId);
+    }
+  };
+
+  // --- Photo handlers ---
+  const handlePhotoDelete = (photo: Photo) => {
+    if (!photo.journalEntryId) return;
+    // Find the journal entry and remove just this photo
+    const journal = journals?.find(j => j.id === photo.journalEntryId);
+    if (!journal) return;
+    const remainingPhotos = (journal.photos || [])
+      .filter(p => p.id !== photo.id)
+      .map(p => ({ photoUrl: p.photoUrl, latitude: p.latitude, longitude: p.longitude }));
+    updateJournal.mutate({
+      id: journal.id,
+      photos: remainingPhotos as any,
+    });
   };
 
   const isLoading = tripLoading || statsLoading;
@@ -130,7 +184,11 @@ const TripSummary = () => {
                 <Skeleton className="h-24" />
               </div>
             ) : highlightData.length > 0 ? (
-              <HighlightMoments highlights={highlightData} />
+              <HighlightMoments
+                highlights={highlightData}
+                onEdit={handleHighlightEdit}
+                onDelete={handleHighlightDelete}
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>尚無精彩時刻</p>
@@ -147,7 +205,11 @@ const TripSummary = () => {
                 <Skeleton className="h-32" />
               </div>
             ) : (
-              <DailyItinerary schedule={scheduleData.length > 0 ? scheduleData : defaultSchedule} />
+              <DailyItinerary
+                schedule={scheduleData.length > 0 ? scheduleData : defaultSchedule}
+                onEdit={handleItineraryEdit}
+                onDelete={handleItineraryDelete}
+              />
             )}
           </TabsContent>
 
@@ -159,7 +221,10 @@ const TripSummary = () => {
                 ))}
               </div>
             ) : photoData.length > 0 ? (
-              <PhotoGallery photos={photoData} />
+              <PhotoGallery
+                photos={photoData}
+                onDelete={handlePhotoDelete}
+              />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <p>尚無照片</p>
