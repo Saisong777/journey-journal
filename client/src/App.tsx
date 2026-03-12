@@ -41,6 +41,8 @@ const AdminTripNotes = lazy(() => import("./pages/admin/AdminTripNotes"));
 const AdminBibleLibrary = lazy(() => import("./pages/admin/AdminBibleLibrary"));
 const AdminAttractions = lazy(() => import("./pages/admin/AdminAttractions"));
 const AdminBibleModuleEdit = lazy(() => import("./pages/admin/AdminBibleModuleEdit"));
+const AdminHelpGuide = lazy(() => import("./pages/admin/AdminHelpGuide"));
+const HelpGuide = lazy(() => import("./pages/HelpGuide"));
 const BibleModulePage = lazy(() => import("./pages/BibleModulePage"));
 
 import { AnimatePresence } from "framer-motion";
@@ -255,6 +257,22 @@ const AnimatedRoutes = () => {
             <AdminRoute>
               <AdminAttractions />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/help-guide"
+          element={
+            <AdminRoute>
+              <AdminHelpGuide />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <ProtectedRoute>
+              <HelpGuide />
+            </ProtectedRoute>
           }
         />
         <Route

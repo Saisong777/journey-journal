@@ -5,15 +5,11 @@ import {
   User,
   ChevronRight,
   Bell,
-  Globe,
   Moon,
   MapPin,
   Shield,
-  HelpCircle,
   LogOut,
-  FileText,
   Share2,
-  MessageSquare,
   Info,
   Settings2,
   Sparkles,
@@ -153,12 +149,6 @@ export default function Settings() {
       title: "應用設定",
       items: [
         {
-          icon: Globe,
-          label: "語言",
-          description: "繁體中文",
-          action: "navigate" as const,
-        },
-        {
           icon: Moon,
           label: "深色模式",
           description: "減少眼睛疲勞",
@@ -172,13 +162,6 @@ export default function Settings() {
       title: "旅程資料",
       items: [
         {
-          icon: FileText,
-          label: "我的日誌",
-          description: "查看所有旅途記錄",
-          action: "navigate" as const,
-          onClick: () => navigate("/journal"),
-        },
-        {
           icon: Share2,
           label: "匯出旅遊簡表",
           description: "產生精美的旅遊回憶錄",
@@ -190,18 +173,6 @@ export default function Settings() {
     {
       title: "其他",
       items: [
-        {
-          icon: HelpCircle,
-          label: "使用說明",
-          description: "了解如何使用此應用",
-          action: "navigate" as const,
-        },
-        {
-          icon: MessageSquare,
-          label: "意見回饋",
-          description: "告訴我們你的想法",
-          action: "navigate" as const,
-        },
         {
           icon: Shield,
           label: "隱私權政策",

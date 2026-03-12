@@ -2497,6 +2497,26 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Help content
+  app.get("/api/app-settings/help-content", requireAuth, async (_req, res) => {
+    try {
+      const content = await storage.getAppSetting("help_content");
+      res.json({ content: content || "" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch help content" });
+    }
+  });
+
+  app.patch("/api/admin/app-settings/help-content", requireAdmin, async (req, res) => {
+    try {
+      const { content } = req.body;
+      await storage.setAppSetting("help_content", content || "");
+      res.json({ content });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update help content" });
+    }
+  });
+
   app.get("/api/admin/app-settings/bible-library", requireAdmin, async (_req, res) => {
     try {
       const setting = await storage.getAppSetting("bible_library_enabled");
