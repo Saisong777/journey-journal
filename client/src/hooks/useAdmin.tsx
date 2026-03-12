@@ -762,6 +762,7 @@ export interface BibleLibraryModuleType {
   coverImageUrl: string | null;
   sortOrder: number;
   isBuiltin: boolean;
+  moduleType: string;
   visible: boolean;
   createdAt: string;
   updatedAt: string;
@@ -798,7 +799,7 @@ export function useBibleLibraryModuleMutations() {
   const { toast } = useToast();
 
   const createModule = useMutation({
-    mutationFn: async (data: { slug: string; title: string; description?: string; iconName?: string; coverImageUrl?: string; sortOrder?: number }) => {
+    mutationFn: async (data: { slug: string; title: string; description?: string; iconName?: string; coverImageUrl?: string; sortOrder?: number; moduleType?: string }) => {
       const response = await fetch("/api/admin/bible-library/modules", {
         method: "POST",
         headers: getAuthHeadersWithJson(),

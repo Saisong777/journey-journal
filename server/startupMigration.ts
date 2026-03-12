@@ -664,6 +664,9 @@ async function ensureBibleLibraryTables() {
       // Add visible column if not exists
       await client.query(`ALTER TABLE bible_library_modules ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT true`);
 
+      // Add module_type column if not exists
+      await client.query(`ALTER TABLE bible_library_modules ADD COLUMN IF NOT EXISTS module_type TEXT NOT NULL DEFAULT 'standard'`);
+
       // Seed built-in Paul Journeys module
       const existing = await client.query(`SELECT id FROM bible_library_modules WHERE slug = 'paul-journeys'`);
       if (existing.rows.length === 0) {

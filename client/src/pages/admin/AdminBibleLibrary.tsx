@@ -25,7 +25,7 @@ import {
   type BibleLibraryModuleType,
 } from "@/hooks/useAdmin";
 import {
-  Library, Globe, Map, Loader2, Plus, Pencil, Trash2, BookOpen, Lock, FileText, Check,
+  Library, Globe, Map, Loader2, Plus, Pencil, Trash2, BookOpen, Lock, FileText, Check, FolderOpen,
 } from "lucide-react";
 
 export default function AdminBibleLibrary() {
@@ -69,14 +69,14 @@ export default function AdminBibleLibrary() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingModule, setEditingModule] = useState<BibleLibraryModuleType | null>(null);
-  const [form, setForm] = useState({ slug: "", title: "", description: "", iconName: "BookOpen" });
+  const [form, setForm] = useState({ slug: "", title: "", description: "", iconName: "BookOpen", moduleType: "standard" as string });
   const [assigningModule, setAssigningModule] = useState<BibleLibraryModuleType | null>(null);
 
   const isSuperAdmin = adminInfo?.isSuperAdmin ?? false;
 
   const handleCreate = () => {
     createModule.mutate(form, {
-      onSuccess: () => { setShowCreate(false); setForm({ slug: "", title: "", description: "", iconName: "BookOpen" }); },
+      onSuccess: () => { setShowCreate(false); setForm({ slug: "", title: "", description: "", iconName: "BookOpen", moduleType: "standard" }); },
     });
   };
 
@@ -153,7 +153,7 @@ export default function AdminBibleLibrary() {
               <BookOpen className="w-5 h-5 text-primary" />
               <h3 className="text-lg font-medium">模組管理</h3>
             </div>
-            <Button size="sm" onClick={() => { setForm({ slug: "", title: "", description: "", iconName: "BookOpen" }); setShowCreate(true); }}>
+            <Button size="sm" onClick={() => { setForm({ slug: "", title: "", description: "", iconName: "BookOpen", moduleType: "standard" }); setShowCreate(true); }}>
               <Plus className="w-4 h-4 mr-1" /> 新增模組
             </Button>
           </div>
@@ -167,7 +167,12 @@ export default function AdminBibleLibrary() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {mod.isBuiltin && <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{mod.title}</p>
+                      <p className="font-medium truncate">
+                        {mod.title}
+                        {mod.moduleType === "document-library" && (
+                          <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">文件庫</span>
+                        )}
+                      </p>
                       <p className="text-xs text-muted-foreground truncate">{mod.slug} {mod.description ? `· ${mod.description}` : ""}</p>
                     </div>
                   </div>
@@ -220,6 +225,33 @@ export default function AdminBibleLibrary() {
         <DialogContent>
           <DialogHeader><DialogTitle>新增模組</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <div>
+              <Label>模組類型</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, moduleType: "standard", iconName: "BookOpen" }))}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors text-left ${form.moduleType === "standard" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
+                >
+                  <BookOpen className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">一般模組</p>
+                    <p className="text-xs text-muted-foreground">內容展開顯示</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, moduleType: "document-library", iconName: "FolderOpen" }))}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors text-left ${form.moduleType === "document-library" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
+                >
+                  <FolderOpen className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">文件資料庫</p>
+                    <p className="text-xs text-muted-foreground">列表點選閱讀</p>
+                  </div>
+                </button>
+              </div>
+            </div>
             <div>
               <Label>名稱</Label>
               <Input value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} placeholder="例：十二使徒" className="mt-1" />

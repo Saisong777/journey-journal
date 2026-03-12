@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,11 @@ import {
   type BibleLibraryItemType,
 } from "@/hooks/useAdmin";
 import { useUpload } from "@/hooks/use-upload";
+import { useToast } from "@/hooks/use-toast";
+import { getAuthToken } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { transformPhotoUrl } from "@/lib/photoUtils";
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Image, FileUp } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Image, FileUp, Upload } from "lucide-react";
 
 export default function AdminBibleModuleEdit() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -34,6 +37,53 @@ export default function AdminBibleModuleEdit() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<BibleLibraryItemType | null>(null);
   const [form, setForm] = useState({ title: "", content: "", imageUrl: "", fileUrl: "", sortOrder: 0 });
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const mdInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const isDocumentLibrary = module?.moduleType === "document-library";
+
+  const handleBatchImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !moduleId) return;
+
+    setImporting(true);
+    setImportProgress({ current: 0, total: files.length });
+    const token = getAuthToken();
+    let imported = 0;
+    const baseOrder = items?.length || 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const title = file.name.replace(/\.(md|txt)$/i, "");
+      const content = await file.text();
+
+      try {
+        await fetch(`/api/admin/bible-library/modules/${moduleId}/items`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ title, content, sortOrder: baseOrder + i }),
+        });
+        imported++;
+      } catch {
+        // skip failed
+      }
+      setImportProgress({ current: i + 1, total: files.length });
+    }
+
+    setImporting(false);
+    queryClient.invalidateQueries({ queryKey: [`admin-bible-items-${moduleId}`] });
+    toast({ title: `已匯入 ${imported} / ${files.length} 個檔案` });
+
+    // Reset file input
+    if (mdInputRef.current) mdInputRef.current.value = "";
+  }, [moduleId, items, queryClient, toast]);
 
   const openCreate = () => {
     setEditingItem(null);
@@ -102,9 +152,30 @@ export default function AdminBibleModuleEdit() {
             </Button>
             <h2 className="text-lg font-semibold">{module?.title || "模組內容"}</h2>
           </div>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" /> 新增項目
-          </Button>
+          <div className="flex gap-2">
+            {isDocumentLibrary && (
+              <>
+                <input
+                  ref={mdInputRef}
+                  type="file"
+                  multiple
+                  accept=".md,.txt"
+                  className="hidden"
+                  onChange={handleBatchImport}
+                />
+                <Button size="sm" variant="outline" onClick={() => mdInputRef.current?.click()} disabled={importing}>
+                  {importing ? (
+                    <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> {importProgress.current}/{importProgress.total}</>
+                  ) : (
+                    <><Upload className="w-4 h-4 mr-1" /> 批次匯入 .md</>
+                  )}
+                </Button>
+              </>
+            )}
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-1" /> 新增項目
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
