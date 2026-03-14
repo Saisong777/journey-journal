@@ -2009,8 +2009,8 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Debug: force re-migrate devotional courses
-  app.post("/api/debug/devotional-force-migrate", async (_req, res) => {
+  // Debug: force re-migrate devotional courses (GET for easy browser access)
+  app.get("/api/debug/devotional-force-migrate", async (_req, res) => {
     try {
       const { pool } = await import("./db");
       const { DEVOTIONAL_COURSES_DATA } = await import("./startupMigration");
