@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Clear stale SW api-cache on load (one-time cleanup for v2 migration)
+if ("caches" in window) {
+  caches.delete("api-cache").catch(() => {});
+}
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
