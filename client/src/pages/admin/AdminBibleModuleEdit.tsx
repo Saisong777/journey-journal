@@ -49,14 +49,30 @@ export default function AdminBibleModuleEdit() {
     const files = e.target.files;
     if (!files || files.length === 0 || !moduleId) return;
 
+    // Build set of existing titles to skip duplicates
+    const existingTitles = new Set((items || []).map(item => item.title));
+
+    const filesToImport = Array.from(files).filter(file => {
+      const title = file.name.replace(/\.(md|txt)$/i, "");
+      return !existingTitles.has(title);
+    });
+
+    const skipped = files.length - filesToImport.length;
+
+    if (filesToImport.length === 0) {
+      toast({ title: `所有 ${files.length} 個檔案皆已存在，無需匯入` });
+      if (mdInputRef.current) mdInputRef.current.value = "";
+      return;
+    }
+
     setImporting(true);
-    setImportProgress({ current: 0, total: files.length });
+    setImportProgress({ current: 0, total: filesToImport.length });
     const token = getAuthToken();
     let imported = 0;
     const baseOrder = items?.length || 0;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < filesToImport.length; i++) {
+      const file = filesToImport[i];
       const title = file.name.replace(/\.(md|txt)$/i, "");
       const content = await file.text();
 
@@ -74,12 +90,15 @@ export default function AdminBibleModuleEdit() {
       } catch {
         // skip failed
       }
-      setImportProgress({ current: i + 1, total: files.length });
+      setImportProgress({ current: i + 1, total: filesToImport.length });
     }
 
     setImporting(false);
     queryClient.invalidateQueries({ queryKey: [`admin-bible-items-${moduleId}`] });
-    toast({ title: `已匯入 ${imported} / ${files.length} 個檔案` });
+    const msg = skipped > 0
+      ? `已匯入 ${imported} 個新檔案，跳過 ${skipped} 個已存在的檔案`
+      : `已匯入 ${imported} / ${filesToImport.length} 個檔案`;
+    toast({ title: msg });
 
     // Reset file input
     if (mdInputRef.current) mdInputRef.current.value = "";
