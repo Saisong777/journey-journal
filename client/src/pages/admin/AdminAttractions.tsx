@@ -107,7 +107,11 @@ function parseCsv(text: string): Record<string, string>[] {
   const headers = rows[0];
   return rows.slice(1).map(values => {
     const row: Record<string, string> = {};
-    headers.forEach((h, i) => { row[h] = values[i] || ""; });
+    headers.forEach((h, i) => { row[h] = (values[i] || "").trim(); });
+    // Normalize day_no: "Day 2" / "Day2" / "D2" → "2"
+    if (row.day_no) {
+      row.day_no = row.day_no.replace(/^(Day\s*|D)/i, "").trim();
+    }
     return row;
   });
 }
