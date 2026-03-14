@@ -60,9 +60,9 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/api/uploads/direct/")) {
     return next();
   }
-  express.json({ limit: "1mb" })(req, res, next);
+  express.json({ limit: "10mb" })(req, res, next);
 });
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
 app.use((req, res, next) => {
   const start = Date.now();
