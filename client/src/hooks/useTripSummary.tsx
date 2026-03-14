@@ -83,6 +83,7 @@ export function useTripHighlights() {
         title: string;
         description: string;
         date: string;
+        entryDate?: string;
       }> = [];
 
       for (const d of devotionalEntries?.slice(0, 5) || []) {
@@ -93,6 +94,7 @@ export function useTripHighlights() {
             title: d.scriptureReference,
             description: d.reflection,
             date: d.entryDate ? format(parseISO(d.entryDate), "M月d日", { locale: zhTW }) : "",
+            entryDate: d.entryDate,
           });
         }
       }
@@ -105,9 +107,13 @@ export function useTripHighlights() {
             title: j.title,
             description: j.content,
             date: j.entryDate ? format(parseISO(j.entryDate), "M月d日", { locale: zhTW }) : "",
+            entryDate: j.entryDate,
           });
         }
       }
+
+      // Sort chronologically (earliest first)
+      highlights.sort((a, b) => (a.entryDate || "").localeCompare(b.entryDate || ""));
 
       return highlights.slice(0, 6);
     },

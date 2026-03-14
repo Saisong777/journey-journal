@@ -21,6 +21,7 @@ export interface Highlight {
   title: string;
   description: string;
   date: string;
+  entryDate?: string; // raw yyyy-MM-dd for navigation
 }
 
 interface HighlightMomentsProps {
@@ -53,31 +54,34 @@ const typeConfig = {
 export function HighlightMoments({ highlights, onEdit, onDelete }: HighlightMomentsProps) {
   const [deleteTarget, setDeleteTarget] = useState<Highlight | null>(null);
 
-  // Group by date
-  const dateGroups = new Map<string, Highlight[]>();
+  // Group by entryDate (raw) for correct sorting, display formatted date
+  const dateGroups = new Map<string, { display: string; items: Highlight[] }>();
   for (const h of highlights) {
-    const key = h.date || "未知日期";
-    const group = dateGroups.get(key) || [];
-    group.push(h);
-    dateGroups.set(key, group);
+    const key = h.entryDate || h.date || "未知日期";
+    const existing = dateGroups.get(key) || { display: h.date || "未知日期", items: [] };
+    existing.items.push(h);
+    dateGroups.set(key, existing);
   }
 
-  const sortedDates = Array.from(dateGroups.keys());
+  const sortedDates = Array.from(dateGroups.keys()).sort();
 
   return (
     <section className="space-y-4">
       <h3 className="text-title font-semibold">精彩時刻</h3>
 
       <div className="space-y-3">
-        {sortedDates.map((date) => (
-          <DateGroup
-            key={date}
-            date={date}
-            highlights={dateGroups.get(date)!}
-            onEdit={onEdit}
-            onDelete={(h) => setDeleteTarget(h)}
-          />
-        ))}
+        {sortedDates.map((key) => {
+          const group = dateGroups.get(key)!;
+          return (
+            <DateGroup
+              key={key}
+              date={group.display}
+              highlights={group.items}
+              onEdit={onEdit}
+              onDelete={(h) => setDeleteTarget(h)}
+            />
+          );
+        })}
       </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>

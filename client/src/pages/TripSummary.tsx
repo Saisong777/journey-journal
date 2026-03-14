@@ -92,9 +92,9 @@ const TripSummary = () => {
   // --- Highlight handlers ---
   const handleHighlightEdit = (highlight: Highlight) => {
     if (highlight.type === "spiritual") {
-      navigate("/devotional");
+      navigate("/daily-journey", { state: { date: highlight.entryDate } });
     } else {
-      navigate("/journal");
+      navigate("/daily-journey", { state: { date: highlight.entryDate } });
     }
   };
 

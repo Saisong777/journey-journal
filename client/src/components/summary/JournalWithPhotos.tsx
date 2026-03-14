@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { MapPin, Trash2, Pencil, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { MapPin, Trash2, Pencil, ChevronLeft, ChevronRight, X, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { format, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import type { JournalEntryDB } from "@/hooks/useJournalEntries";
 
 interface JournalWithPhotosProps {
@@ -53,75 +55,27 @@ export function JournalWithPhotos({ journals, onEdit, onDelete }: JournalWithPho
     );
   }
 
+  // Group journals by entryDate, sorted chronologically (earliest first)
+  const dateGroups = new Map<string, JournalEntryDB[]>();
+  for (const j of journals.filter(j => j.entryDate)) {
+    const group = dateGroups.get(j.entryDate) || [];
+    group.push(j);
+    dateGroups.set(j.entryDate, group);
+  }
+  const sortedDates = Array.from(dateGroups.keys()).sort();
+
   return (
-    <section className="space-y-4">
-      {journals.filter(j => j.entryDate).map((journal) => {
-        const formattedDate = format(parseISO(journal.entryDate), "M月d日（EEEE）", { locale: zhTW });
-        const photos: FlatPhoto[] = (journal.photos || []).map(p => ({
-          url: transformPhotoUrl(p.photoUrl),
-          caption: p.caption,
-          journalTitle: journal.title,
-        }));
-
-        return (
-          <Card key={journal.id} className="p-4">
-            <div className="space-y-3">
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-caption text-muted-foreground">{formattedDate}</p>
-                  <h4 className="text-body font-semibold">{journal.title}</h4>
-                  {journal.location && (
-                    <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
-                      <MapPin className="w-3 h-3" />
-                      <span>{journal.location}</span>
-                    </div>
-                  )}
-                </div>
-                {(onEdit || onDelete) && (
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {onEdit && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(journal)}>
-                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(journal)}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Content */}
-              {journal.content && (
-                <p className="text-caption text-muted-foreground leading-relaxed">{journal.content}</p>
-              )}
-
-              {/* Photo thumbnails */}
-              {photos.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {photos.map((photo, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => openLightbox(photos, idx)}
-                      className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden"
-                    >
-                      <img
-                        src={photo.url}
-                        alt={photo.caption || ""}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
-        );
-      })}
+    <section className="space-y-3">
+      {sortedDates.map((date) => (
+        <DayGroup
+          key={date}
+          date={date}
+          journals={dateGroups.get(date)!}
+          onEdit={onEdit}
+          onDelete={(j) => setDeleteTarget(j)}
+          openLightbox={openLightbox}
+        />
+      ))}
 
       {/* Lightbox */}
       <Dialog open={lightboxIndex !== null} onOpenChange={() => setLightboxIndex(null)}>
@@ -198,5 +152,99 @@ export function JournalWithPhotos({ journals, onEdit, onDelete }: JournalWithPho
         </AlertContent>
       </AlertDialog>
     </section>
+  );
+}
+
+function DayGroup({
+  date,
+  journals,
+  onEdit,
+  onDelete,
+  openLightbox,
+}: {
+  date: string;
+  journals: JournalEntryDB[];
+  onEdit?: (journal: JournalEntryDB) => void;
+  onDelete?: (journal: JournalEntryDB) => void;
+  openLightbox: (photos: FlatPhoto[], index: number) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const formattedDate = format(parseISO(date), "M月d日（EEEE）", { locale: zhTW });
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <button className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+          <span className="text-body font-semibold">{formattedDate}（{journals.length} 篇）</span>
+          <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-3 pt-3">
+          {journals.map((journal) => {
+            const photos: FlatPhoto[] = (journal.photos || []).map(p => ({
+              url: transformPhotoUrl(p.photoUrl),
+              caption: p.caption,
+              journalTitle: journal.title,
+            }));
+
+            return (
+              <Card key={journal.id} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-body font-semibold">{journal.title}</h4>
+                      {journal.location && (
+                        <div className="flex items-center gap-1 text-caption text-muted-foreground mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          <span>{journal.location}</span>
+                        </div>
+                      )}
+                    </div>
+                    {(onEdit || onDelete) && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {onEdit && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(journal)}>
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(journal)}>
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {journal.content && (
+                    <p className="text-caption text-muted-foreground leading-relaxed">{journal.content}</p>
+                  )}
+
+                  {photos.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {photos.map((photo, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => openLightbox(photos, idx)}
+                          className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden"
+                        >
+                          <img
+                            src={photo.url}
+                            alt={photo.caption || ""}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
