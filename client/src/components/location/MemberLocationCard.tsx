@@ -10,6 +10,7 @@ export interface MemberLocationData {
   distance?: string;
   status: "online" | "offline" | "moving";
   group?: string;
+  groupId?: string;
   latitude?: number;
   longitude?: number;
 }

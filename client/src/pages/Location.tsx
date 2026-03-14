@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation, Compass, ChevronDown } from "lucide-react";
+import { Users, MapPin, Search, RefreshCw, AlertTriangle, Navigation, Compass, ChevronDown, ArrowLeft } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberLocationCard, MemberLocationData } from "@/components/location/MemberLocationCard";
 import { GroupList } from "@/components/location/GroupList";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocations, useUpdateLocation } from "@/hooks/useLocations";
+import { useMembers } from "@/hooks/useMembers";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -43,9 +44,11 @@ export default function Location() {
   const autoLocatedRef = useRef(false);
 
   const { data: locations = [], refetch, isLoading } = useLocations();
+  const { data: allMembers = [] } = useMembers();
   const updateLocation = useUpdateLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   const [focusAttractionId, setFocusAttractionId] = useState<string | null>(null);
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionDB | null>(null);
@@ -98,18 +101,26 @@ export default function Location() {
     );
   }, []);
 
-  const membersWithLocation: MemberLocationData[] = locations.map((loc) => ({
-    id: loc.id,
-    name: loc.profile?.name || "未知成員",
-    avatar: loc.profile?.avatarUrl ? transformPhotoUrl(loc.profile.avatarUrl) : undefined,
-    location: `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`,
-    lastUpdate: formatTimeAgo(loc.updatedAt),
-    distance: "",
-    status: isOnline(loc.updatedAt) ? "online" : "offline",
-    group: undefined,
-    latitude: loc.latitude,
-    longitude: loc.longitude,
-  }));
+  // Build a map of userId -> location data
+  const locationByUserId = new Map(locations.map((loc) => [loc.userId, loc]));
+
+  // Merge all members with location data; members without location show as "未分享"
+  const membersWithLocation: MemberLocationData[] = allMembers.map((member) => {
+    const loc = locationByUserId.get(member.userId);
+    return {
+      id: member.userId,
+      name: member.name || "未知成員",
+      avatar: member.avatarUrl ? transformPhotoUrl(member.avatarUrl) : undefined,
+      location: loc ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : "未分享位置",
+      lastUpdate: loc ? formatTimeAgo(loc.updatedAt) : "—",
+      distance: "",
+      status: loc ? (isOnline(loc.updatedAt) ? "online" as const : "offline" as const) : "offline" as const,
+      group: member.group?.name,
+      groupId: member.groupId || undefined,
+      latitude: loc?.latitude,
+      longitude: loc?.longitude,
+    };
+  });
 
   function isOnline(updatedAt: string): boolean {
     const date = new Date(updatedAt);
@@ -328,8 +339,8 @@ export default function Location() {
 
             {filteredMembers.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-body font-semibold">團員位置</h3>
-                {filteredMembers.slice(0, 5).map((member) => (
+                <h3 className="text-body font-semibold">團員位置 ({filteredMembers.length})</h3>
+                {filteredMembers.map((member) => (
                   <MemberLocationCard key={member.id} member={member} />
                 ))}
               </div>
@@ -453,13 +464,44 @@ export default function Location() {
 
         {viewMode === "groups" && (
           <section className="space-y-4">
-            <div className="bg-primary/10 rounded-lg p-4">
-              <h3 className="text-body font-semibold text-primary mb-1">小組分享系統</h3>
-              <p className="text-caption text-muted-foreground">
-                點擊小組可查看該組成員位置，方便分組行動時互相聯繫
-              </p>
-            </div>
-            <GroupList />
+            {selectedGroupId ? (() => {
+              const groupMembers = membersWithLocation.filter((m) => m.groupId === selectedGroupId);
+              const groupName = groupMembers[0]?.group || "小組";
+              return (
+                <>
+                  <button
+                    onClick={() => setSelectedGroupId(null)}
+                    className="flex items-center gap-2 text-primary font-medium text-body hover:underline"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    返回分組列表
+                  </button>
+                  <h3 className="text-title font-semibold">{groupName} ({groupMembers.length} 人)</h3>
+                  {groupMembers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-body">此小組尚無成員</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {groupMembers.map((member) => (
+                        <MemberLocationCard key={member.id} member={member} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })() : (
+              <>
+                <div className="bg-primary/10 rounded-lg p-4">
+                  <h3 className="text-body font-semibold text-primary mb-1">小組分享系統</h3>
+                  <p className="text-caption text-muted-foreground">
+                    點擊小組可查看該組成員位置，方便分組行動時互相聯繫
+                  </p>
+                </div>
+                <GroupList onSelectGroup={(groupId) => setSelectedGroupId(groupId)} />
+              </>
+            )}
           </section>
         )}
       </div>
