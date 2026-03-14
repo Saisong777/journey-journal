@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { Camera, Save, Loader2, Lock, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import {
@@ -8,16 +8,31 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
+export interface FamilyMember {
+  relationship: "spouse" | "child" | "relative";
+  name: string;
+}
+
 export interface ProfileData {
   name: string;
   phone: string;
   email: string;
+  birthday: string;
+  gender: string;
+  familyMembers: FamilyMember[];
   emergencyContact: string;
   emergencyPhone: string;
   dietaryRestrictions: string;
@@ -184,6 +199,115 @@ export function ProfileEditSheet({
                 type="email"
               />
             </div>
+
+            <div className="space-y-2">
+              <label className="text-caption text-muted-foreground">生日</label>
+              <Input
+                data-testid="input-profile-birthday"
+                value={formData.birthday}
+                onChange={(e) => handleChange("birthday", e.target.value)}
+                className="h-12 text-body"
+                type="date"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-caption text-muted-foreground">性別</label>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => handleChange("gender", value)}
+              >
+                <SelectTrigger className="h-12 text-body" data-testid="select-profile-gender">
+                  <SelectValue placeholder="請選擇" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">男</SelectItem>
+                  <SelectItem value="female">女</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-body font-semibold">同行家人</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    familyMembers: [...prev.familyMembers, { relationship: "spouse", name: "" }],
+                  }));
+                }}
+                data-testid="button-add-family"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                新增
+              </Button>
+            </div>
+
+            {formData.familyMembers.length === 0 && (
+              <p className="text-caption text-muted-foreground">尚未新增同行家人，點擊「新增」添加。</p>
+            )}
+
+            {formData.familyMembers.map((member, index) => (
+              <div key={index} className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-caption font-medium">同行家人 {index + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        familyMembers: prev.familyMembers.filter((_, i) => i !== index),
+                      }));
+                    }}
+                    data-testid={`button-remove-family-${index}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Select
+                    value={member.relationship}
+                    onValueChange={(value) => {
+                      setFormData((prev) => {
+                        const updated = [...prev.familyMembers];
+                        updated[index] = { ...updated[index], relationship: value as FamilyMember["relationship"] };
+                        return { ...prev, familyMembers: updated };
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-12 text-body w-28 flex-shrink-0" data-testid={`select-family-relation-${index}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="spouse">配偶</SelectItem>
+                      <SelectItem value="child">子女</SelectItem>
+                      <SelectItem value="relative">親人</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={member.name}
+                    onChange={(e) => {
+                      setFormData((prev) => {
+                        const updated = [...prev.familyMembers];
+                        updated[index] = { ...updated[index], name: e.target.value };
+                        return { ...prev, familyMembers: updated };
+                      });
+                    }}
+                    placeholder="姓名"
+                    className="h-12 text-body flex-1"
+                    data-testid={`input-family-name-${index}`}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-4">

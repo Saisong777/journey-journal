@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { ProfileEditSheet, ProfileData } from "@/components/settings/ProfileEditSheet";
+import { ProfileEditSheet, ProfileData, type FamilyMember } from "@/components/settings/ProfileEditSheet";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,11 +34,19 @@ interface SettingItem {
   onClick?: () => void;
 }
 
+function parseFamilyMembers(raw: string | null | undefined): FamilyMember[] {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
 function dbToProfileData(dbProfile: any, fallbackEmail?: string, fallbackName?: string): ProfileData {
   return {
     name: dbProfile?.name || fallbackName || "",
     phone: dbProfile?.phone || "",
     email: dbProfile?.email || fallbackEmail || "",
+    birthday: dbProfile?.birthday || "",
+    gender: dbProfile?.gender || "",
+    familyMembers: parseFamilyMembers(dbProfile?.familyMembers),
     emergencyContact: dbProfile?.emergencyContactName || "",
     emergencyPhone: dbProfile?.emergencyContactPhone || "",
     dietaryRestrictions: dbProfile?.dietaryRestrictions || "",
@@ -53,6 +61,9 @@ function profileDataToDb(profile: ProfileData) {
     phone: profile.phone,
     email: profile.email,
     avatarUrl: profile.avatarUrl || null,
+    birthday: profile.birthday || null,
+    gender: profile.gender || null,
+    familyMembers: profile.familyMembers.length > 0 ? JSON.stringify(profile.familyMembers) : null,
     emergencyContactName: profile.emergencyContact,
     emergencyContactPhone: profile.emergencyPhone,
     dietaryRestrictions: profile.dietaryRestrictions,
