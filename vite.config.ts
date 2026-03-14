@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /\/api\/(?!login|auth\/google)/,
+            urlPattern: /\/api\/(?!login|auth\/google|trips\/current\/devotional)/,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",

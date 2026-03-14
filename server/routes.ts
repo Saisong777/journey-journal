@@ -1996,7 +1996,8 @@ export function registerRoutes(app: Express) {
         return res.json([]);
       }
       const courses = await storage.getDevotionalCourses(userRole.tripId);
-      res.set("Cache-Control", "no-cache");
+      res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.set("ETag", `"dc-${Date.now()}"`);
       res.json(courses);
     } catch (error) {
       res.status(500).json({ error: "Failed to get devotional courses" });
