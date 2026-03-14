@@ -1,22 +1,40 @@
 import { useState, useMemo } from "react";
-import { Search, Users, Phone, Loader2 } from "lucide-react";
+import { Search, Users, Phone, Loader2, ChevronDown } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberCard, MemberData } from "@/components/members/MemberCard";
 import { MemberDetailSheet } from "@/components/members/MemberDetailSheet";
 import { Input } from "@/components/ui/input";
-import { useMembers } from "@/hooks/useMembers";
+import { useMembers, useGroups } from "@/hooks/useMembers";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import type { Group } from "@shared/schema";
 
 type FilterType = "all" | "leader" | "guide";
+
+const GROUP_COLORS = [
+  "bg-primary",
+  "bg-secondary",
+  "bg-terracotta",
+  "bg-stone",
+];
 
 export default function Members() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [groupSectionOpen, setGroupSectionOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const { data: membersData, isLoading } = useMembers();
+  const { data: groupsData } = useGroups();
+
+  const groups: Group[] = groupsData || [];
 
   // Transform database members to component format
   const members: MemberData[] = useMemo(() => {
@@ -68,6 +86,18 @@ export default function Members() {
     {} as Record<string, MemberData[]>
   );
 
+  const toggleGroupCollapse = (groupName: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  };
+
   // Find guide for emergency contact
   const guide = members.find((m) => m.role === "guide");
 
@@ -76,6 +106,15 @@ export default function Members() {
   const leadersCount = members.filter(
     (m) => m.role === "leader" || m.role === "guide"
   ).length;
+
+  // Count members per group for group list display
+  const memberCountByGroup = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const m of members) {
+      counts[m.group] = (counts[m.group] || 0) + 1;
+    }
+    return counts;
+  }, [members]);
 
   return (
     <PageLayout title="團員管理">
@@ -99,6 +138,48 @@ export default function Members() {
             </div>
           </div>
         </section>
+
+        {/* Group Management - Collapsible */}
+        {groups.length > 0 && (
+          <Collapsible open={groupSectionOpen} onOpenChange={setGroupSectionOpen}>
+            <section className="bg-card rounded-lg shadow-card overflow-hidden">
+              <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <h3 className="text-body font-semibold">小組管理</h3>
+                  <span className="text-caption text-muted-foreground">({groups.length} 組)</span>
+                </div>
+                <ChevronDown className={cn(
+                  "w-5 h-5 text-muted-foreground transition-transform duration-200",
+                  groupSectionOpen && "rotate-180"
+                )} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-4 pb-4 space-y-2">
+                  {groups.map((group, index) => (
+                    <div
+                      key={group.id}
+                      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                        GROUP_COLORS[index % GROUP_COLORS.length]
+                      )}>
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body font-medium truncate">{group.name}</p>
+                      </div>
+                      <span className="text-caption text-muted-foreground flex-shrink-0">
+                        {memberCountByGroup[group.name] || 0} 人
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </section>
+          </Collapsible>
+        )}
 
         {/* Search & Filter */}
         <section className="space-y-3">
@@ -133,33 +214,47 @@ export default function Members() {
           </div>
         </section>
 
-        {/* Member List by Group */}
-        <section className="space-y-6">
+        {/* Member List by Group - Collapsible */}
+        <section className="space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : Object.keys(groupedMembers).length > 0 ? (
             Object.entries(groupedMembers).map(([group, groupMembers]) => (
-              <div key={group} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" />
-                  <h3 className="text-body font-semibold">{group}</h3>
-                  <span className="text-caption text-muted-foreground">
-                    ({groupMembers.length} 人)
-                  </span>
-                </div>
-
+              <Collapsible
+                key={group}
+                open={!collapsedGroups.has(group)}
+                onOpenChange={() => toggleGroupCollapse(group)}
+              >
                 <div className="space-y-3">
-                  {groupMembers.map((member) => (
-                    <MemberCard
-                      key={member.id}
-                      member={member}
-                      onClick={() => handleMemberClick(member)}
-                    />
-                  ))}
+                  <CollapsibleTrigger className="w-full flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <h3 className="text-body font-semibold">{group}</h3>
+                      <span className="text-caption text-muted-foreground">
+                        ({groupMembers.length} 人)
+                      </span>
+                    </div>
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                      !collapsedGroups.has(group) && "rotate-180"
+                    )} />
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <div className="space-y-3">
+                      {groupMembers.map((member) => (
+                        <MemberCard
+                          key={member.id}
+                          member={member}
+                          onClick={() => handleMemberClick(member)}
+                        />
+                      ))}
+                    </div>
+                  </CollapsibleContent>
                 </div>
-              </div>
+              </Collapsible>
             ))
           ) : (
             <div className="text-center py-8 text-muted-foreground">

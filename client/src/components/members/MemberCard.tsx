@@ -83,7 +83,7 @@ export function MemberCard({ member, onClick }: MemberCardProps) {
         </div>
         
         <div className="flex items-center gap-3 text-caption text-muted-foreground">
-          <span>{member.group}</span>
+          <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[11px]">{member.group}</span>
           {member.roomNumber && (
             <>
               <span>·</span>
