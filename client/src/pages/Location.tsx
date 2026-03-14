@@ -85,9 +85,16 @@ export default function Location() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setMyPosition([position.coords.latitude, position.coords.longitude]);
+      async (position) => {
+        const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        setMyPosition([coords.latitude, coords.longitude]);
         setIsGettingLocation(false);
+        // Auto-share location to server so other members can see
+        try {
+          await updateLocation.mutateAsync(coords);
+        } catch {
+          // Silent fail — user can manually share later
+        }
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
