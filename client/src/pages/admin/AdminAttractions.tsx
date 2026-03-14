@@ -99,27 +99,29 @@ const FIELD_GROUPS = [
 ] as const;
 
 function parseCsv(text: string): Record<string, string>[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
   // Remove BOM if present
-  const headerLine = lines[0].replace(/^\uFEFF/, "");
-  const headers = parseCsvLine(headerLine);
-  return lines.slice(1).map(line => {
-    const values = parseCsvLine(line);
+  const clean = text.replace(/^\uFEFF/, "");
+  // Parse entire CSV at once to handle multiline quoted fields
+  const rows = parseCsvRows(clean);
+  if (rows.length < 2) return [];
+  const headers = rows[0];
+  return rows.slice(1).map(values => {
     const row: Record<string, string> = {};
     headers.forEach((h, i) => { row[h] = values[i] || ""; });
     return row;
   });
 }
 
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
+function parseCsvRows(text: string): string[][] {
+  const rows: string[][] = [];
   let current = "";
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+  let fields: string[] = [];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (inQuotes) {
-      if (ch === '"' && line[i + 1] === '"') {
+      if (ch === '"' && text[i + 1] === '"') {
         current += '"';
         i++;
       } else if (ch === '"') {
@@ -131,15 +133,24 @@ function parseCsvLine(line: string): string[] {
       if (ch === '"') {
         inQuotes = true;
       } else if (ch === ',') {
-        result.push(current);
+        fields.push(current);
         current = "";
+      } else if (ch === '\r' || ch === '\n') {
+        // Skip \n after \r
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        fields.push(current);
+        current = "";
+        if (fields.some(f => f.trim())) rows.push(fields);
+        fields = [];
       } else {
         current += ch;
       }
     }
   }
-  result.push(current);
-  return result;
+  // Last row
+  fields.push(current);
+  if (fields.some(f => f.trim())) rows.push(fields);
+  return rows;
 }
 
 export default function AdminAttractions() {
