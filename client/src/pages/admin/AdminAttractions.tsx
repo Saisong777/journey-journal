@@ -374,24 +374,45 @@ export default function AdminAttractions() {
         </div>
       </div>
 
-      {/* Import confirmation dialog */}
-      <AlertDialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認匯入景點</AlertDialogTitle>
-            <AlertDialogDescription>
-              即將匯入 {pendingImportData?.length || 0} 個景點。此操作會<strong>刪除現有所有景點</strong>並替換為新資料，確定要繼續嗎？
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingImportData(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmImport} disabled={importAttractions.isPending}>
+      {/* Import preview & confirmation dialog */}
+      <Dialog open={showImportConfirm} onOpenChange={(open) => { if (!open) { setShowImportConfirm(false); setPendingImportData(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>確認匯入景點</DialogTitle>
+          </DialogHeader>
+          {pendingImportData && pendingImportData.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                共 {pendingImportData.length} 筆資料。此操作會刪除現有所有景點並替換為新資料。
+              </p>
+              <div className="text-xs space-y-1">
+                <p className="font-medium">偵測到的欄位名稱：</p>
+                <p className="text-muted-foreground break-all">{Object.keys(pendingImportData[0]).join(", ")}</p>
+              </div>
+              <div className="text-xs space-y-1">
+                <p className="font-medium">前 3 筆預覽：</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {pendingImportData.slice(0, 3).map((row, idx) => (
+                    <div key={idx} className="bg-muted rounded p-2 space-y-0.5">
+                      <p><span className="text-muted-foreground">名稱：</span>{row.name_zh || row.nameZh || "(空)"}</p>
+                      <p><span className="text-muted-foreground">天數：</span>{row.day_no || row.dayNo || "(空)"}</p>
+                      <p><span className="text-muted-foreground">排序：</span>{row.seq || "(空)"}</p>
+                      <p><span className="text-muted-foreground">GPS：</span>{row.gps || "(空)"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowImportConfirm(false); setPendingImportData(null); }}>取消</Button>
+            <Button onClick={confirmImport} disabled={importAttractions.isPending} variant="destructive">
               {importAttractions.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-              確認匯入
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              確認匯入（覆蓋現有資料）
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editingAttraction} onOpenChange={(open) => { if (!open) setEditingAttraction(null); }}>
