@@ -595,6 +595,21 @@ export async function runStartupMigration() {
       console.log("[startup-migration] platform role already exists:", existingPlatformRole[0].role);
     }
 
+    // Ensure columns exist BEFORE any migrations that depend on them
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS place TEXT`);
+        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS life_question TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`);
+        console.log("[startup-migration] ensured place, life_question, google_id columns");
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error("[startup-migration] column migration error:", e);
+    }
+
     await syncDataToCurrentDb();
     await migrateToLandItinerary();
     await migrateDevotionalCourses();
@@ -602,18 +617,6 @@ export async function runStartupMigration() {
     const allTrips = await db.select().from(trips).limit(1);
     if (allTrips.length) {
       await seedTripNotes(allTrips[0].id);
-    }
-
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS place TEXT`);
-        console.log("[startup-migration] ensured place column on devotional_courses");
-      } finally {
-        client.release();
-      }
-    } catch (e) {
-      console.error("[startup-migration] place column migration error:", e);
     }
 
     await importBibleVerses();
@@ -644,30 +647,6 @@ export async function runStartupMigration() {
     }
 
     await importPaulJourneys();
-
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`);
-        console.log("[startup-migration] ensured google_id column on users");
-      } finally {
-        client.release();
-      }
-    } catch (e) {
-      console.error("[startup-migration] google_id column migration error:", e);
-    }
-
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS life_question TEXT`);
-        console.log("[startup-migration] ensured life_question column on devotional_courses");
-      } finally {
-        client.release();
-      }
-    } catch (e) {
-      console.error("[startup-migration] life_question column migration error:", e);
-    }
 
     try {
       const client = await pool.connect();
