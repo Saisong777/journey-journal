@@ -270,7 +270,7 @@ export default function AdminTripDays() {
     );
   }
 
-  const TripDayForm = ({ isEditing = false }: { isEditing?: boolean }) => (
+  const renderTripDayForm = () => (
     <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -423,7 +423,7 @@ export default function AdminTripDays() {
             <SelectTrigger>
               <SelectValue placeholder="選擇等級" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[60] pointer-events-auto">
               <SelectItem value="5-star">5星級</SelectItem>
               <SelectItem value="4-star">4星級</SelectItem>
               <SelectItem value="3-star">3星級</SelectItem>
@@ -514,7 +514,7 @@ export default function AdminTripDays() {
               <DialogHeader>
                 <DialogTitle>新增每日行程</DialogTitle>
               </DialogHeader>
-              <TripDayForm />
+              {renderTripDayForm()}
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                   取消
@@ -614,7 +614,7 @@ export default function AdminTripDays() {
                         <DialogHeader>
                           <DialogTitle>編輯每日行程</DialogTitle>
                         </DialogHeader>
-                        <TripDayForm isEditing />
+                        {renderTripDayForm()}
                         <DialogFooter>
                           <Button variant="outline" onClick={() => setEditingDay(null)}>
                             取消
