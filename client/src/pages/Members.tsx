@@ -76,20 +76,23 @@ export default function Members() {
   };
 
   // Sort members: leader/guide first, then by birthday (older first)
-  const sortMembers = (a: MemberData, b: MemberData) => {
-    const rolePriority = { guide: 0, leader: 1, member: 2 };
+  const sortedMembers = [...filteredMembers].sort((a, b) => {
+    // Group by group name first (to keep groups together)
+    if (a.group !== b.group) return a.group.localeCompare(b.group);
+    // Within same group: leader/guide first
+    const rolePriority: Record<string, number> = { guide: 0, leader: 1, member: 2 };
     const aPriority = rolePriority[a.role] ?? 2;
     const bPriority = rolePriority[b.role] ?? 2;
     if (aPriority !== bPriority) return aPriority - bPriority;
-    // Sort by birthday ascending (older = earlier date first)
+    // Then by birthday ascending (older = earlier date first)
     if (a.birthday && b.birthday) return a.birthday.localeCompare(b.birthday);
     if (a.birthday) return -1;
     if (b.birthday) return 1;
     return 0;
-  };
+  });
 
-  // Group members by their group, sorted within each group
-  const groupedMembers = filteredMembers.reduce(
+  // Group sorted members (order is preserved from sort)
+  const groupedMembers = sortedMembers.reduce(
     (acc, member) => {
       if (!acc[member.group]) {
         acc[member.group] = [];
@@ -99,11 +102,6 @@ export default function Members() {
     },
     {} as Record<string, MemberData[]>
   );
-
-  // Sort members within each group
-  for (const group of Object.keys(groupedMembers)) {
-    groupedMembers[group].sort(sortMembers);
-  }
 
   const toggleGroupCollapse = (groupName: string) => {
     setCollapsedGroups((prev) => {

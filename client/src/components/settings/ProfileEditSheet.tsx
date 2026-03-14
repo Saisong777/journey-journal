@@ -122,12 +122,12 @@ export function ProfileEditSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-        <SheetHeader className="pb-4">
+      <SheetContent side="bottom" className="h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden">
+        <SheetHeader className="pb-4 flex-shrink-0">
           <SheetTitle className="text-title text-center">編輯個人資料</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pb-4">
+        <div className="space-y-6 overflow-y-auto flex-1 pb-4 overscroll-contain">
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden shadow-card">
@@ -431,7 +431,7 @@ export function ProfileEditSheet({
           )}
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
+        <div className="flex-shrink-0 p-4 bg-card border-t border-border">
           <Button
             data-testid="button-save-profile"
             onClick={handleSave}
