@@ -9,6 +9,7 @@ export interface MemberData {
   group: string;
   phone: string;
   email?: string;
+  birthday?: string;
   roomNumber?: string;
   emergencyContact?: string;
   notes?: string;

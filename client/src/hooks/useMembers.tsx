@@ -18,6 +18,7 @@ export interface MemberDB {
   email: string | null;
   phone: string | null;
   avatarUrl: string | null;
+  birthday: string | null;
   dietaryRestrictions: string | null;
   medicalNotes: string | null;
   emergencyContactName: string | null;

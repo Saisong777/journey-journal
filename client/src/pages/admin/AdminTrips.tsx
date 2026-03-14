@@ -52,7 +52,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, Globe, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, Globe, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -514,69 +519,122 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
           <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
         </div>
       ) : tripMembers && tripMembers.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={tripMembers.length > 0 && selectedMembers.size === tripMembers.length}
-                    onCheckedChange={toggleAllMembers}
-                  />
-                </TableHead>
-                <TableHead>姓名</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>密碼狀態</TableHead>
-                <TableHead>角色</TableHead>
-                <TableHead className="w-20">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tripMembers.map((member) => (
-                <TableRow key={member.userId}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedMembers.has(member.userId)}
-                      onCheckedChange={() => toggleMember(member.userId)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{member.name || "-"}</TableCell>
-                  <TableCell className="text-caption">{member.email}</TableCell>
-                  <TableCell>
-                    <span className={`text-xs ${member.hasOwnPassword ? "text-green-600" : "text-amber-600"}`}>{member.hasOwnPassword ? "已設定" : "未設定"}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={roleColors[member.role] || roleColors.member}>
-                      {roleLabels[member.role] || member.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => openEditDialog(member)}
-                        data-testid={`button-edit-member-${member.userId}`}
-                      >
-                        <UserCog className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => setRemovingMember(member)}
-                        data-testid={`button-remove-member-${member.userId}`}
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+        (() => {
+          const groupMap = new Map(tripGroups.map(g => [g.id, g.name]));
+          const getGroupName = (m: TripMember) => (m.groupId ? groupMap.get(m.groupId) : null) || "未分組";
+          const grouped: Record<string, TripMember[]> = {};
+          for (const m of tripMembers) {
+            const gn = getGroupName(m);
+            if (!grouped[gn]) grouped[gn] = [];
+            grouped[gn].push(m);
+          }
+          // Sort group names: named groups first, 未分組 last
+          const sortedGroupNames = Object.keys(grouped).sort((a, b) => {
+            if (a === "未分組") return 1;
+            if (b === "未分組") return -1;
+            return a.localeCompare(b);
+          });
+
+          const renderMemberRow = (member: TripMember) => (
+            <TableRow key={member.userId}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedMembers.has(member.userId)}
+                  onCheckedChange={() => toggleMember(member.userId)}
+                />
+              </TableCell>
+              <TableCell className="font-medium">{member.name || "-"}</TableCell>
+              <TableCell className="text-caption">{member.email}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs">{getGroupName(member)}</Badge>
+              </TableCell>
+              <TableCell>
+                <span className={`text-xs ${member.hasOwnPassword ? "text-green-600" : "text-amber-600"}`}>{member.hasOwnPassword ? "已設定" : "未設定"}</span>
+              </TableCell>
+              <TableCell>
+                <Badge className={roleColors[member.role] || roleColors.member}>
+                  {roleLabels[member.role] || member.role}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => openEditDialog(member)}
+                    data-testid={`button-edit-member-${member.userId}`}
+                  >
+                    <UserCog className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    onClick={() => setRemovingMember(member)}
+                    data-testid={`button-remove-member-${member.userId}`}
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+
+          return (
+            <div className="space-y-3">
+              {sortedGroupNames.map(groupName => (
+                <Collapsible key={groupName} defaultOpen>
+                  <div className="border rounded-lg overflow-hidden">
+                    <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2 bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium">{groupName}</span>
+                        <span className="text-xs text-muted-foreground">({grouped[groupName].length} 人)</span>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-10">
+                                <Checkbox
+                                  checked={grouped[groupName].every(m => selectedMembers.has(m.userId))}
+                                  onCheckedChange={() => {
+                                    const groupUserIds = grouped[groupName].map(m => m.userId);
+                                    const allSelected = groupUserIds.every(id => selectedMembers.has(id));
+                                    setSelectedMembers(prev => {
+                                      const next = new Set(prev);
+                                      for (const id of groupUserIds) {
+                                        if (allSelected) next.delete(id); else next.add(id);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </TableHead>
+                              <TableHead>姓名</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>所屬小組</TableHead>
+                              <TableHead>密碼狀態</TableHead>
+                              <TableHead>角色</TableHead>
+                              <TableHead className="w-20">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {grouped[groupName].map(renderMemberRow)}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          );
+        })()
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">
           尚無團員，請使用「匯入團員」功能新增
@@ -1098,71 +1156,73 @@ export default function AdminTrips() {
                         </AlertDialog>
                       </div>
 
-                      {/* Groups Management */}
-                      <div className="border-t pt-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-body font-medium">小組管理</h4>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          {getGroupsForTrip(trip.id).map((group) => (
-                            <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                              {editingGroup?.id === group.id ? (
-                                <div className="flex items-center gap-2 flex-1">
-                                  <Input
-                                    value={editingGroup.name}
-                                    onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
-                                    className="h-8"
-                                  />
-                                  <Button size="sm" onClick={handleUpdateGroup} disabled={updateGroup.isPending}>儲存</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingGroup(null)}>取消</Button>
-                                </div>
-                              ) : (
-                                <>
-                                  <span className="text-body">{group.name}</span>
-                                  <div className="flex gap-1">
-                                    <Button variant="ghost" size="sm" onClick={() => setEditingGroup({ id: group.id, name: group.name })}>
-                                      <Pencil className="w-4 h-4" />
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="sm"><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>確定要刪除此小組？</AlertDialogTitle>
-                                          <AlertDialogDescription>小組成員將變為未分組狀態。</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>取消</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDeleteGroup(group.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">刪除</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
+                      {/* Groups Management - Collapsible, above Member Management */}
+                      <Collapsible className="border-t pt-4">
+                        <CollapsibleTrigger className="w-full flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <h4 className="text-body font-medium">小組管理</h4>
+                            <span className="text-xs text-muted-foreground">({getGroupsForTrip(trip.id).length} 組)</span>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="space-y-2 mb-4">
+                            {getGroupsForTrip(trip.id).map((group) => (
+                              <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                {editingGroup?.id === group.id ? (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <Input
+                                      value={editingGroup.name}
+                                      onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
+                                      className="h-8"
+                                    />
+                                    <Button size="sm" onClick={handleUpdateGroup} disabled={updateGroup.isPending}>儲存</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => setEditingGroup(null)}>取消</Button>
                                   </div>
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                                ) : (
+                                  <>
+                                    <span className="text-body">{group.name}</span>
+                                    <div className="flex gap-1">
+                                      <Button variant="ghost" size="sm" onClick={() => setEditingGroup({ id: group.id, name: group.name })}>
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="sm"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>確定要刪除此小組？</AlertDialogTitle>
+                                            <AlertDialogDescription>小組成員將變為未分組狀態。</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>取消</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteGroup(group.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">刪除</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
 
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="新增小組名稱..."
-                            value={newGroupName}
-                            onChange={(e) => setNewGroupName(e.target.value)}
-                            className="h-9"
-                          />
-                          <Button size="sm" onClick={() => handleCreateGroup(trip.id)} disabled={createGroup.isPending || !newGroupName.trim()}>
-                            <Plus className="w-4 h-4 mr-1" />
-                            新增
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Trip Notes Assignment */}
-                      <TripNotesAssignment tripId={trip.id} />
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="新增小組名稱..."
+                              value={newGroupName}
+                              onChange={(e) => setNewGroupName(e.target.value)}
+                              className="h-9"
+                            />
+                            <Button size="sm" onClick={() => handleCreateGroup(trip.id)} disabled={createGroup.isPending || !newGroupName.trim()}>
+                              <Plus className="w-4 h-4 mr-1" />
+                              新增
+                            </Button>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
 
                       {/* Member Management */}
                       <div className="border-t pt-4">
@@ -1172,6 +1232,9 @@ export default function AdminTrips() {
                         </div>
                         <TripMemberSection tripId={trip.id} tripGroups={getGroupsForTrip(trip.id)} />
                       </div>
+
+                      {/* Trip Notes Assignment */}
+                      <TripNotesAssignment tripId={trip.id} />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
