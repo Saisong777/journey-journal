@@ -523,27 +523,43 @@ async function migrateToLandItinerary() {
 }
 
 async function migrateDevotionalCourses() {
+  const client = await pool.connect();
   try {
-    const allTrips = await db.select().from(trips).limit(1);
-    if (!allTrips.length) return;
-    const tripId = allTrips[0].id;
+    const tripResult = await client.query(`SELECT id FROM trips LIMIT 1`);
+    if (!tripResult.rows.length) return;
+    const tripId = tripResult.rows[0].id;
 
-    // Check if migration already applied by looking for the new Day 1 title
-    const allCourses = await db.select().from(devotionalCourses)
-      .where(eq(devotionalCourses.tripId, tripId));
-    const alreadyMigrated = allCourses.some(c => c.title === "離開，是看見自己的開始");
-    if (alreadyMigrated) return;
+    // Check if migration already applied using raw SQL
+    const checkResult = await client.query(
+      `SELECT title FROM devotional_courses WHERE trip_id = $1 LIMIT 5`,
+      [tripId]
+    );
+    const alreadyMigrated = checkResult.rows.some((r: any) => r.title === "離開，是看見自己的開始");
+    if (alreadyMigrated) {
+      console.log("[data-sync] devotional courses already migrated, skipping");
+      return;
+    }
 
-    console.log("[data-sync] migrating devotional courses to new content...");
+    console.log("[data-sync] migrating devotional courses to new content (raw SQL)...");
+    console.log("[data-sync] found", checkResult.rows.length, "existing courses, titles:", checkResult.rows.map((r: any) => r.title));
 
-    // Delete all existing courses for this trip and re-insert
-    await db.delete(devotionalCourses).where(eq(devotionalCourses.tripId, tripId));
-    const courseValues = DEVOTIONAL_COURSES_DATA.map(d => ({ ...d, tripId }));
-    await db.insert(devotionalCourses).values(courseValues);
+    // Delete all existing courses for this trip
+    await client.query(`DELETE FROM devotional_courses WHERE trip_id = $1`, [tripId]);
 
-    console.log("[data-sync] devotional courses migration complete, inserted", courseValues.length, "courses");
+    // Insert new courses using raw SQL to avoid Drizzle schema issues
+    for (const d of DEVOTIONAL_COURSES_DATA) {
+      await client.query(
+        `INSERT INTO devotional_courses (trip_id, day_no, title, place, scripture, reflection, action, prayer, life_question)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [tripId, d.dayNo, d.title, d.place, d.scripture, d.reflection, d.action, d.prayer, d.lifeQuestion]
+      );
+    }
+
+    console.log("[data-sync] devotional courses migration complete, inserted", DEVOTIONAL_COURSES_DATA.length, "courses");
   } catch (error) {
     console.error("[data-sync] devotional courses migration error:", error);
+  } finally {
+    client.release();
   }
 }
 
