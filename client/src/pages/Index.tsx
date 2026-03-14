@@ -102,7 +102,8 @@ const Index = () => {
     enabled: !!user,
   });
 
-  const dayNumber = trip?.startDate ? calculateDayNumber(trip.startDate) : 1;
+  const calculatedDay = trip?.startDate ? calculateDayNumber(trip.startDate) : 1;
+  const dayNumber = todaySchedule?.dayNumber ?? calculatedDay;
   const countdown = trip?.startDate ? calculateCountdown(trip.startDate) : 0;
   const isTripStarted = dayNumber >= 1;
   const userName = profile?.name || "旅者";
