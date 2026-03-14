@@ -21,14 +21,14 @@ const TRIP_DAYS_DATA = [
   { dayNo: 4, date: "2026-03-16", cityArea: "Canakkale", title: "橫跨歐亞 / 特洛伊遺址", highlights: "達達尼爾海峽 / 木馬屠城記木馬 / 特洛伊遺址", attractions: "達達尼爾海峽 / 木馬屠城記木馬 / 特洛伊遺址", bibleRefs: null, breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Kolin Hotel", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "達達尼爾海峽是著名的土耳其海峽的一部分，位於亞歐分界處" },
   { dayNo: 5, date: "2026-03-17", cityArea: "特羅亞 Troas", title: "特羅亞 / 古城亞朔", highlights: "特羅亞異象之地 / 古城亞朔使徒保羅古道", attractions: "特羅亞 / 亞朔 / 特羅亞異象之地 / 古城亞朔使徒保羅古道", bibleRefs: "徒16:6-12; 徒20:1-14; 提後4:13; 林後2:12", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "RAMADA RESORT", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "保羅在此領受異象前往馬其頓，這是當年保羅前往歐洲宣教的啟航點" },
   { dayNo: 6, date: "2026-03-18", cityArea: "別迦摩 Pergamum", title: "別迦摩 / 推雅推喇 / 士每拿", highlights: "七教會：別迦摩 / 推雅推喇 / 士每拿", attractions: "別迦摩 / 推雅推喇 / 士每拿 / 七教會：別迦摩", bibleRefs: "啟2:12-17; 啟2:18-28; 啟2:8-11; 徒16:14", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Kaya İzmir Thermal", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "別迦摩王國的首都，擁有古代第二大圖書館" },
-  { dayNo: 7, date: "2026-03-19", cityArea: "撒狄 Sardis", title: "撒狄 / 非拉鐵非 / 棉花堡", highlights: "七教會：撒狄 / 非拉鐵非 / 希拉波立(棉花堡)", attractions: "非拉鐵非 / 撒狄 / 老底嘉 / 希拉波里斯 / 七教會：撒狄 / 希拉波立(棉花堡)", bibleRefs: "啟3:1-6; 啟3:7-13; 西4:13", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "PAMUKKALE KAYA THERMAL SPA", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "撒狄是歷史上第一次鑄造硬幣的地方，擁有豐富的黃金資源" },
+  { dayNo: 7, date: "2026-03-19", cityArea: "撒狄 Sardis", title: "撒狄 / 非拉鐵非 / 棉花堡", highlights: "七教會：撒狄 / 非拉鐵非 / 希拉波立(棉花堡)", attractions: "非拉鐵非 / 撒狄 / 老底嘉 / 希拉波里斯 / 七教會：撒狄 / 希拉波立(棉花堡)", bibleRefs: "啟3:1-6; 啟3:7-13; 西4:13", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Colossae Hotel", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "撒狄是歷史上第一次鑄造硬幣的地方，擁有豐富的黃金資源" },
   { dayNo: 8, date: "2026-03-20", cityArea: "老底嘉 Laodicea", title: "老底嘉 / 以弗所", highlights: "老底嘉 / 使徒約翰之墓 / 皮件工廠秀 / 以弗所古城", attractions: "以弗所古城 / 以弗所博物館 / 老底嘉 / 使徒約翰之墓 / 皮件工廠秀", bibleRefs: "啟3:14-22; 啟2:1-7; 徒18:19-24; 提前1:3", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Hotel Charisma De Luxe", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "以弗所是初代教會中心，2015年列入世界遺產" },
-  { dayNo: 9, date: "2026-03-21", cityArea: "拔摩島 Patmos", title: "愛琴海郵輪 / 拔摩島", highlights: "聖約翰修道院 / 啟示錄洞窟", attractions: "拔摩島 / 聖約翰修道院 / 啟示錄洞窟", bibleRefs: "啟1:9-21", breakfast: "飯店", lunch: "郵輪用餐", dinner: "郵輪用餐", lodging: "Celestyal Cruises 郵輪", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "約翰在此領受啟示，寫下啟示錄" },
-  { dayNo: 10, date: "2026-03-22", cityArea: "聖托里尼 Santorini", title: "聖托里尼自由活動", highlights: "聖托里尼 (導遊帶路自由活動)", attractions: "聖托里尼 / 聖托里尼 (導遊帶路自由活動)", bibleRefs: null, breakfast: "郵輪用餐", lunch: "郵輪用餐或自理", dinner: "郵輪用餐", lodging: "Celestyal Cruises 郵輪", lodgingLevel: null, transport: null, freeTimeFlag: true, shoppingFlag: false, mustKnow: null, notes: "沿著懸崖建立起的白色城市，亞特蘭提斯傳說的源頭" },
-  { dayNo: 11, date: "2026-03-23", cityArea: "哥林多 Corinth", title: "希臘雅典 / 哥林多 / 雅典衛城", highlights: "下船 / 哥林多 / 堅革哩 / 雅典衛城 / 亞略巴古", attractions: "哥林多 / 雅典衛城 / 亞略巴古 / 堅革哩", bibleRefs: "林前; 林後; 徒17:15-18; 徒18:18", breakfast: "郵輪用餐", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Mirage Chalkida City Resort", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "保羅曾造訪哥林多三次，在此建立教會" },
-  { dayNo: 12, date: "2026-03-24", cityArea: "帖撒羅尼迦", title: "溫泉關 / 天空之城 / 庇哩亞", highlights: "溫泉關古戰場 / 邁泰奧拉(天空之城) / 庇哩亞 / 帖撒羅尼迦", attractions: "腓立比 / 庇哩亞 / 帖撒羅尼迦 / 溫泉關古戰場 / 邁泰奧拉(天空之城)", bibleRefs: "徒17:10-15; 帖前; 帖後", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "GRECOTEL LARISSA IMPERIAL", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "邁泰奧拉為1988年世界複合遺產，修道院建築群" },
-  { dayNo: 13, date: "2026-03-25", cityArea: "腓立比 Philippi", title: "耶孫的家 / 暗妃波里 / 腓立比", highlights: "耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉)", attractions: "米特歐拉 / 耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉)", bibleRefs: "徒16:11; 徒17:1-10; 腓立比書", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Grecotel Astir Palace", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "腓立比是保羅在歐洲傳福音的第一個城市" },
-  { dayNo: 14, date: "2026-03-26", cityArea: "塔克辛廣場 Taksim", title: "返回伊斯坦堡 / 自由購物", highlights: "希臘土耳其邊界 / 塔克辛廣場自由活動", attractions: "德爾非 / 塔克辛廣場自由活動", bibleRefs: null, breakfast: "飯店", lunch: "當地特色", dinner: "X", lodging: "Hilton Istanbul Bomonti", lodgingLevel: "5星", transport: null, freeTimeFlag: true, shoppingFlag: true, mustKnow: null, notes: "塔克辛廣場與獨立大街是土耳其時尚購物天堂" },
+  { dayNo: 9, date: "2026-03-21", cityArea: "雅典 Athens", title: "搭機飛往雅典 / 雅典市區觀光", highlights: "搭機 伊茲密爾→伊斯坦堡→雅典 / 憲法廣場 / 國會大廈 / 無名戰士墓 / 奧林匹克體育場 / 總統府", attractions: "憲法廣場 / 國會大廈 / 無名戰士墓 / 奧林匹克體育場 / 總統府", bibleRefs: "徒17:15-18", breakfast: "飯店", lunch: "機上", dinner: "特色晚餐", lodging: "Radisson Blu Park Hotel Athens", lodgingLevel: "5星", transport: "飛機", freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "抵達雅典後展開市區觀光，保羅曾在雅典等候西拉和提摩太" },
+  { dayNo: 10, date: "2026-03-22", cityArea: "雅典 Athens", title: "雅典深度聖經＋歷史觀光", highlights: "雅典衛城 / 帕德嫩神廟 / 亞略巴古 / 雅典古市集（外觀）/ 哈德良拱門", attractions: "雅典衛城 / 帕德嫩神廟 / 亞略巴古 / 雅典古市集 / 哈德良拱門", bibleRefs: "徒17:15-34", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Radisson Blu Park Hotel Athens", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "雅典衛城為UNESCO世界遺產，保羅在亞略巴古向雅典人宣講未識之神" },
+  { dayNo: 11, date: "2026-03-23", cityArea: "哥林多 Corinth", title: "哥林多運河 / 哥林多古城", highlights: "哥林多運河 / 哥林多考古博物館 / 哥林多古城 / 審判台 / 堅革哩", attractions: "哥林多運河 / 哥林多考古博物館 / 哥林多古城 / 堅革哩", bibleRefs: "林前; 林後; 徒18:1-18", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Mirage Chalkida City Resort", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "保羅曾造訪哥林多三次，在此建立教會" },
+  { dayNo: 12, date: "2026-03-24", cityArea: "拉里薩 Larissa", title: "溫泉關 / 天空之城", highlights: "溫泉關古戰場 / 邁泰奧拉(天空之城) / 拉里薩", attractions: "溫泉關古戰場 / 邁泰奧拉(天空之城) / 拉里薩", bibleRefs: null, breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "GRECOTEL LARISSA IMPERIAL", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "邁泰奧拉為1988年世界複合遺產，修道院建築群" },
+  { dayNo: 13, date: "2026-03-25", cityArea: "腓立比 Philippi", title: "帖撒羅尼迦 / 腓立比", highlights: "帖撒羅尼迦 / 耶孫的家 / 暗妃波里 / 腓立比 / 呂底亞受洗處 / 尼亞波利(卡瓦拉) / 亞歷山卓波利", attractions: "帖撒羅尼迦 / 耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉) / 亞歷山卓波利", bibleRefs: "帖前; 帖後; 徒16:11; 徒17:1-10; 腓立比書", breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色", lodging: "Grecotel Astir Palace", lodgingLevel: "5星", transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "帖撒羅尼迦為1988年世界遺產。腓立比是保羅在歐洲傳福音的第一個城市" },
+  { dayNo: 14, date: "2026-03-26", cityArea: "塔克辛廣場 Taksim", title: "返回伊斯坦堡 / 自由購物", highlights: "希臘土耳其邊界 / 塔克辛廣場自由活動", attractions: "塔克辛廣場自由活動", bibleRefs: null, breakfast: "飯店", lunch: "當地特色", dinner: "自理", lodging: "Hilton Istanbul Bomonti", lodgingLevel: "5星", transport: null, freeTimeFlag: true, shoppingFlag: true, mustKnow: null, notes: "塔克辛廣場與獨立大街是土耳其時尚購物天堂" },
   { dayNo: 15, date: "2026-03-27", cityArea: "伊斯坦堡", title: "返程航班", highlights: "悠閒早餐後前往機場 / 返程航班", attractions: null, bibleRefs: null, breakfast: "飯店", lunch: "機上", dinner: "機上", lodging: "機上", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "帶著滿滿的故事踏上回家的路" },
   { dayNo: 16, date: "2026-03-28", cityArea: "溫暖的家", title: "抵達溫暖的家", highlights: "返抵國門，結束平安同行", attractions: null, bibleRefs: "太18:22", breakfast: "機上", lunch: "X", dinner: "X", lodging: "溫暖的家", lodgingLevel: null, transport: null, freeTimeFlag: false, shoppingFlag: false, mustKnow: null, notes: "腳掌所踏之地都要成為祝福" },
 ];
@@ -134,9 +134,9 @@ const TURKEY_NOTE_CONTENT = `【關於餐食】
 ◆旅遊國家沒有飲用熱水的習慣，若每日需飲用熱水，可自行準備熱水壺。
 
 【關於天氣及服裝】
-本行程涵蓋海島+希臘本土+山區修道院+土耳其小亞細亞。3–4月屬春季但變化大，重點不是極冷，而是「早晚溫差、海風、山風、偶雨」與長時間遺址步行。
+本行程涵蓋希臘本土+山區修道院+土耳其小亞細亞。3–4月屬春季但變化大，重點不是極冷，而是「早晚溫差、山風、偶雨」與長時間遺址步行。
 
-地形與體感：海島風大，船上與觀景台體感偏涼；雅典與各遺址多為曝曬平地或丘陵，走路時間長；梅黛奧拉屬山區高岩柱，風強、石階多、比平地冷；土耳其遺址多在開闊地，白色石灰岩（希拉波立）反光強，日晒明顯。
+地形與體感：雅典與各遺址多為曝曬平地或丘陵，走路時間長；梅黛奧拉屬山區高岩柱，風強、石階多、比平地冷；土耳其遺址多在開闊地，白色石灰岩（希拉波立）反光強，日晒明顯。
 
 穿搭核心：洋蔥式＋防風＋耐走。建議帶：吸汗長袖/薄發熱衣（內層）、薄針織或刷毛（中層）、防風外套或輕羽絨（外層）；下身以長褲為主，女生另備長裙或大披肩（進修道院/清真寺可遮腿遮肩）。鞋子以止滑包腳運動鞋/健行鞋為主，避免跟鞋與薄底平底鞋。配件必帶：大披肩/圍巾（保暖＋遮肩）、折傘或輕雨衣、太陽眼鏡、防曬、襪子（進清真寺需脫鞋）。
 
@@ -430,6 +430,87 @@ async function importPaulJourneys() {
   }
 }
 
+async function migrateToLandItinerary() {
+  try {
+    const allTrips = await db.select().from(trips).limit(1);
+    if (!allTrips.length) return;
+    const tripId = allTrips[0].id;
+
+    // Check if migration already applied by looking at Day 9's cityArea
+    const day9 = await db.select().from(tripDays)
+      .where(and(eq(tripDays.tripId, tripId), eq(tripDays.dayNo, 9)))
+      .limit(1);
+    if (!day9.length || day9[0].cityArea === "雅典 Athens") {
+      return; // already migrated or no data
+    }
+
+    console.log("[data-sync] migrating from cruise to land itinerary...");
+
+    const updates: { dayNo: number; data: Record<string, any> }[] = [
+      { dayNo: 7, data: { lodging: "Colossae Hotel" } },
+      { dayNo: 9, data: {
+        cityArea: "雅典 Athens",
+        title: "搭機飛往雅典 / 雅典市區觀光",
+        highlights: "搭機 伊茲密爾→伊斯坦堡→雅典 / 憲法廣場 / 國會大廈 / 無名戰士墓 / 奧林匹克體育場 / 總統府",
+        attractions: "憲法廣場 / 國會大廈 / 無名戰士墓 / 奧林匹克體育場 / 總統府",
+        bibleRefs: "徒17:15-18",
+        breakfast: "飯店", lunch: "機上", dinner: "特色晚餐",
+        lodging: "Radisson Blu Park Hotel Athens", lodgingLevel: "5星",
+        transport: "飛機",
+        freeTimeFlag: false, shoppingFlag: false,
+        notes: "抵達雅典後展開市區觀光，保羅曾在雅典等候西拉和提摩太",
+      }},
+      { dayNo: 10, data: {
+        cityArea: "雅典 Athens",
+        title: "雅典深度聖經＋歷史觀光",
+        highlights: "雅典衛城 / 帕德嫩神廟 / 亞略巴古 / 雅典古市集（外觀）/ 哈德良拱門",
+        attractions: "雅典衛城 / 帕德嫩神廟 / 亞略巴古 / 雅典古市集 / 哈德良拱門",
+        bibleRefs: "徒17:15-34",
+        breakfast: "飯店", lunch: "當地特色", dinner: "飯店或當地特色",
+        lodging: "Radisson Blu Park Hotel Athens", lodgingLevel: "5星",
+        transport: null,
+        freeTimeFlag: false, shoppingFlag: false,
+        notes: "雅典衛城為UNESCO世界遺產，保羅在亞略巴古向雅典人宣講未識之神",
+      }},
+      { dayNo: 11, data: {
+        title: "哥林多運河 / 哥林多古城",
+        highlights: "哥林多運河 / 哥林多考古博物館 / 哥林多古城 / 審判台 / 堅革哩",
+        attractions: "哥林多運河 / 哥林多考古博物館 / 哥林多古城 / 堅革哩",
+        bibleRefs: "林前; 林後; 徒18:1-18",
+        breakfast: "飯店",
+      }},
+      { dayNo: 12, data: {
+        cityArea: "拉里薩 Larissa",
+        title: "溫泉關 / 天空之城",
+        highlights: "溫泉關古戰場 / 邁泰奧拉(天空之城) / 拉里薩",
+        attractions: "溫泉關古戰場 / 邁泰奧拉(天空之城) / 拉里薩",
+        bibleRefs: null,
+      }},
+      { dayNo: 13, data: {
+        title: "帖撒羅尼迦 / 腓立比",
+        highlights: "帖撒羅尼迦 / 耶孫的家 / 暗妃波里 / 腓立比 / 呂底亞受洗處 / 尼亞波利(卡瓦拉) / 亞歷山卓波利",
+        attractions: "帖撒羅尼迦 / 耶孫的家 / 暗妃波里 / 腓立比 / 尼亞波利(卡瓦拉) / 亞歷山卓波利",
+        bibleRefs: "帖前; 帖後; 徒16:11; 徒17:1-10; 腓立比書",
+        notes: "帖撒羅尼迦為1988年世界遺產。腓立比是保羅在歐洲傳福音的第一個城市",
+      }},
+      { dayNo: 14, data: {
+        dinner: "自理",
+        attractions: "塔克辛廣場自由活動",
+      }},
+    ];
+
+    for (const { dayNo, data } of updates) {
+      await db.update(tripDays)
+        .set({ ...data, updatedAt: new Date() })
+        .where(and(eq(tripDays.tripId, tripId), eq(tripDays.dayNo, dayNo)));
+    }
+
+    console.log("[data-sync] land itinerary migration complete, updated", updates.length, "days");
+  } catch (error) {
+    console.error("[data-sync] land itinerary migration error:", error);
+  }
+}
+
 export async function runStartupMigration() {
   try {
     console.log("[startup-migration] checking admin role...");
@@ -479,6 +560,7 @@ export async function runStartupMigration() {
     }
 
     await syncDataToCurrentDb();
+    await migrateToLandItinerary();
 
     const allTrips = await db.select().from(trips).limit(1);
     if (allTrips.length) {
