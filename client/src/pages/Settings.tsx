@@ -43,7 +43,7 @@ function dbToProfileData(dbProfile: any, fallbackEmail?: string, fallbackName?: 
     emergencyPhone: dbProfile?.emergencyContactPhone || "",
     dietaryRestrictions: dbProfile?.dietaryRestrictions || "",
     medicalNotes: dbProfile?.medicalNotes || "",
-    avatarUrl: dbProfile?.avatarUrl ? transformPhotoUrl(dbProfile.avatarUrl) : null,
+    avatarUrl: dbProfile?.avatarUrl || null,
   };
 }
 
@@ -216,7 +216,7 @@ export default function Settings() {
         >
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
             {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt="頭像" className="w-full h-full object-cover" />
+              <img src={transformPhotoUrl(profile.avatarUrl)} alt="頭像" className="w-full h-full object-cover" />
             ) : (
               <span className="text-title text-muted-foreground">
                 {profile.name.charAt(0)}
