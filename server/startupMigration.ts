@@ -529,13 +529,12 @@ async function migrateDevotionalCourses() {
     if (!tripResult.rows.length) return;
     const tripId = tripResult.rows[0].id;
 
-    // Check if migration already applied using raw SQL
+    // Check if migration already applied by verifying Day 9 has the land itinerary title
     const checkResult = await client.query(
-      `SELECT title FROM devotional_courses WHERE trip_id = $1 LIMIT 5`,
+      `SELECT title FROM devotional_courses WHERE trip_id = $1 AND day_no = 9`,
       [tripId]
     );
-    const alreadyMigrated = checkResult.rows.some((r: any) => r.title === "離開，是看見自己的開始");
-    if (alreadyMigrated) {
+    if (checkResult.rows.length > 0 && checkResult.rows[0].title === "在趕路的日子裡，學會在「經過」中看見意義") {
       console.log("[data-sync] devotional courses already migrated, skipping");
       return;
     }
