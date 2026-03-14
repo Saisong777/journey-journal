@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { TripOverview } from "@/components/summary/TripOverview";
@@ -6,6 +7,8 @@ import { HighlightMoments, Highlight } from "@/components/summary/HighlightMomen
 import { DevotionalSummary } from "@/components/summary/DevotionalSummary";
 import { JournalWithPhotos } from "@/components/summary/JournalWithPhotos";
 import { ExportOptions } from "@/components/summary/ExportOptions";
+import { ViewJournalSheet } from "@/components/journal/ViewJournalSheet";
+import { type JournalEntryData } from "@/components/journal/JournalEntry";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +16,7 @@ import { useTrip } from "@/hooks/useTrip";
 import { useTripStats, useTripPhotos, useTripHighlights, formatTripDateRange, calculateTripDuration } from "@/hooks/useTripSummary";
 import { useJournalEntries, useDeleteJournalEntry, useUpdateJournalEntry } from "@/hooks/useJournalEntries";
 import { useDevotionalEntries, useDeleteDevotionalEntry } from "@/hooks/useDevotional";
-import { useAllEveningReflections } from "@/hooks/useEveningReflection";
+import { useAllEveningReflections, useDeleteEveningReflection } from "@/hooks/useEveningReflection";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +43,10 @@ const TripSummary = () => {
   const deleteJournal = useDeleteJournalEntry();
   const updateJournal = useUpdateJournalEntry();
   const deleteDevotional = useDeleteDevotionalEntry();
+  const deleteEvening = useDeleteEveningReflection();
+
+  // Journal edit sheet state
+  const [editingJournal, setEditingJournal] = useState<JournalEntryData | null>(null);
 
   // Build trip data from database or fallback
   const tripData = {
@@ -185,6 +192,9 @@ const TripSummary = () => {
               <DevotionalSummary
                 devotionals={devotionals || []}
                 eveningReflections={allEveningReflections || []}
+                onEditDevotional={() => navigate("/daily-journey")}
+                onDeleteDevotional={(entry) => deleteDevotional.mutate(entry.id)}
+                onDeleteEvening={(entry) => deleteEvening.mutate(entry.id)}
               />
             )}
           </TabsContent>
@@ -199,7 +209,24 @@ const TripSummary = () => {
             ) : (
               <JournalWithPhotos
                 journals={journals || []}
-                onEdit={() => navigate("/daily-journey")}
+                onEdit={(journal) => {
+                  const photos = (journal.photos || []).map(p => transformPhotoUrl(p.photoUrl));
+                  const photoDetails = (journal.photos || []).map(p => ({
+                    url: transformPhotoUrl(p.photoUrl),
+                    originalPath: p.photoUrl,
+                    latitude: p.latitude,
+                    longitude: p.longitude,
+                  }));
+                  setEditingJournal({
+                    id: journal.id,
+                    location: journal.location || "",
+                    time: format(parseISO(journal.entryDate), "M月d日", { locale: zhTW }),
+                    content: journal.content || "",
+                    photos,
+                    photoDetails,
+                    originalPhotoPaths: (journal.photos || []).map(p => p.photoUrl),
+                  });
+                }}
                 onDelete={(journal) => deleteJournal.mutate(journal.id)}
               />
             )}
@@ -230,6 +257,21 @@ const TripSummary = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Journal edit sheet */}
+      <ViewJournalSheet
+        entry={editingJournal}
+        open={!!editingJournal}
+        onOpenChange={(open) => { if (!open) setEditingJournal(null); }}
+        onDelete={async (id) => {
+          await deleteJournal.mutateAsync(id);
+          setEditingJournal(null);
+        }}
+        onUpdate={async (id, data) => {
+          await updateJournal.mutateAsync({ id, ...data });
+          setEditingJournal(null);
+        }}
+      />
     </PageLayout>
   );
 };

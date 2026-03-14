@@ -65,6 +65,30 @@ export function useAllEveningReflections() {
   });
 }
 
+export function useDeleteEveningReflection() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/evening-reflections/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to delete evening reflection");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["evening-reflection"] });
+      queryClient.invalidateQueries({ queryKey: ["evening-reflections-all"] });
+      toast({ title: "成功", description: "晚間感恩已刪除" });
+    },
+    onError: () => {
+      toast({ title: "錯誤", description: "刪除晚間感恩時發生錯誤", variant: "destructive" });
+    },
+  });
+}
+
 export function useSaveEveningReflection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

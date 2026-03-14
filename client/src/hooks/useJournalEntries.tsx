@@ -65,12 +65,14 @@ export function useCreateJournalEntry() {
       content: string;
       location: string;
       photos: PhotoWithMeta[];
+      entryDate?: string;
     }) => {
       const payload = {
         title: entry.title,
         content: entry.content,
         location: entry.location,
         photos: entry.photos,
+        entryDate: entry.entryDate,
       };
 
       try {

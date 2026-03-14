@@ -419,6 +419,7 @@ export default function DailyJourney() {
       content: newEntry.content,
       location: newEntry.location,
       photos: newEntry.photos,
+      entryDate: dateStr,
     });
   };
 

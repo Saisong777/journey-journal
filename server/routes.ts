@@ -893,14 +893,18 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: "User not in a trip" });
       }
 
-      const { title, content, location, photos } = req.body;
+      const { title, content, location, photos, entryDate } = req.body;
+      // Allow past dates; default to today if not provided
+      const dateToUse = entryDate && /^\d{4}-\d{2}-\d{2}$/.test(entryDate)
+        ? entryDate
+        : new Date().toISOString().split("T")[0];
       const entry = await storage.createJournalEntry({
         userId: req.userId!,
         tripId: userRole.tripId,
         title: title || location || "無標題",
         content: content || "",
         location: location || "",
-        entryDate: new Date().toISOString().split("T")[0],
+        entryDate: dateToUse,
       });
 
       if (photos && Array.isArray(photos) && photos.length > 0) {
@@ -1129,6 +1133,16 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to save evening reflection:", error);
       res.status(500).json({ error: "Failed to save evening reflection" });
+    }
+  });
+
+  app.delete("/api/evening-reflections/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteEveningReflection(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete evening reflection:", error);
+      res.status(500).json({ error: "Failed to delete evening reflection" });
     }
   });
 

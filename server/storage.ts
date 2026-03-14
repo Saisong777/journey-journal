@@ -153,6 +153,7 @@ export interface IStorage {
   getEveningReflection(userId: string, tripId: string, date: string): Promise<EveningReflection | undefined>;
   getAllEveningReflections(userId: string, tripId: string): Promise<EveningReflection[]>;
   saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection>;
+  deleteEveningReflection(id: string): Promise<void>;
 
   getPlatformRole(userId: string): Promise<PlatformRole | undefined>;
   setPlatformRole(userId: string, role: string, permissions: Record<string, boolean> | null, assignedBy: string): Promise<PlatformRole>;
@@ -753,6 +754,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(eveningReflections)
       .where(and(eq(eveningReflections.userId, userId), eq(eveningReflections.tripId, tripId)))
       .orderBy(eveningReflections.entryDate);
+  }
+
+  async deleteEveningReflection(id: string): Promise<void> {
+    await db.delete(eveningReflections).where(eq(eveningReflections.id, id));
   }
 
   async saveEveningReflection(data: InsertEveningReflection): Promise<EveningReflection> {

@@ -1,7 +1,18 @@
 import { useState } from "react";
-import { BookOpen, Moon, ChevronDown } from "lucide-react";
+import { BookOpen, Moon, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { DevotionalEntryDB } from "@/hooks/useDevotional";
 import type { EveningReflectionDB } from "@/hooks/useEveningReflection";
 import { format, parseISO } from "date-fns";
@@ -11,9 +22,14 @@ import { cn } from "@/lib/utils";
 interface DevotionalSummaryProps {
   devotionals: DevotionalEntryDB[];
   eveningReflections: EveningReflectionDB[];
+  onEditDevotional?: (entry: DevotionalEntryDB) => void;
+  onDeleteDevotional?: (entry: DevotionalEntryDB) => void;
+  onDeleteEvening?: (entry: EveningReflectionDB) => void;
 }
 
-export function DevotionalSummary({ devotionals, eveningReflections }: DevotionalSummaryProps) {
+export function DevotionalSummary({ devotionals, eveningReflections, onEditDevotional, onDeleteDevotional, onDeleteEvening }: DevotionalSummaryProps) {
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "devotional" | "evening"; id: string; label: string } | null>(null);
+
   // Merge by date
   const dateMap = new Map<string, { devotional?: DevotionalEntryDB; evening?: EveningReflectionDB }>();
 
@@ -39,16 +55,61 @@ export function DevotionalSummary({ devotionals, eveningReflections }: Devotiona
     );
   }
 
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === "devotional") {
+      const entry = devotionals.find(d => d.id === deleteTarget.id);
+      if (entry) onDeleteDevotional?.(entry);
+    } else {
+      const entry = eveningReflections.find(e => e.id === deleteTarget.id);
+      if (entry) onDeleteEvening?.(entry);
+    }
+    setDeleteTarget(null);
+  };
+
   return (
     <section className="space-y-3">
       {sortedDates.map((date) => (
-        <DaySection key={date} date={date} data={dateMap.get(date)!} />
+        <DaySection
+          key={date}
+          date={date}
+          data={dateMap.get(date)!}
+          onEditDevotional={onEditDevotional}
+          onDeleteDevotional={onDeleteDevotional ? (d) => setDeleteTarget({ type: "devotional", id: d.id, label: d.scriptureReference || "靈修記錄" }) : undefined}
+          onDeleteEvening={onDeleteEvening ? (e) => setDeleteTarget({ type: "evening", id: e.id, label: "晚間感恩" }) : undefined}
+        />
       ))}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定刪除？</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除「{deleteTarget?.label}」嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDelete}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
 
-function DaySection({ date, data }: { date: string; data: { devotional?: DevotionalEntryDB; evening?: EveningReflectionDB } }) {
+function DaySection({ date, data, onEditDevotional, onDeleteDevotional, onDeleteEvening }: {
+  date: string;
+  data: { devotional?: DevotionalEntryDB; evening?: EveningReflectionDB };
+  onEditDevotional?: (entry: DevotionalEntryDB) => void;
+  onDeleteDevotional?: (entry: DevotionalEntryDB) => void;
+  onDeleteEvening?: (entry: EveningReflectionDB) => void;
+}) {
   const [isOpen, setIsOpen] = useState(true);
   const formattedDate = format(parseISO(date), "M月d日（EEEE）", { locale: zhTW });
 
@@ -69,7 +130,23 @@ function DaySection({ date, data }: { date: string; data: { devotional?: Devotio
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <p className="text-caption font-medium text-primary">晨光靈修</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-caption font-medium text-primary">晨光靈修</p>
+                    {(onEditDevotional || onDeleteDevotional) && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {onEditDevotional && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEditDevotional(data.devotional!)}>
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        )}
+                        {onDeleteDevotional && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDeleteDevotional(data.devotional!)}>
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {data.devotional.scriptureReference && (
                     <p className="text-body font-semibold">{data.devotional.scriptureReference}</p>
                   )}
@@ -90,7 +167,14 @@ function DaySection({ date, data }: { date: string; data: { devotional?: Devotio
                   <Moon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <p className="text-caption font-medium text-indigo-600 dark:text-indigo-400">夜間感恩</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-caption font-medium text-indigo-600 dark:text-indigo-400">夜間感恩</p>
+                    {onDeleteEvening && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDeleteEvening(data.evening!)}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                   {data.evening.gratitude && (
                     <p className="text-caption text-muted-foreground leading-relaxed">{data.evening.gratitude}</p>
                   )}
