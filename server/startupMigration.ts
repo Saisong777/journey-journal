@@ -528,12 +528,11 @@ async function migrateDevotionalCourses() {
     if (!allTrips.length) return;
     const tripId = allTrips[0].id;
 
-    // Check if migration already applied by looking at Day 1's title
-    const day1 = await db.select().from(devotionalCourses)
-      .where(and(eq(devotionalCourses.tripId, tripId), eq(devotionalCourses.dayNo, 1)))
-      .limit(1);
-    if (!day1.length) return;
-    if (day1[0].title === "離開，是看見自己的開始") return; // already migrated
+    // Check if migration already applied by looking for the new Day 1 title
+    const allCourses = await db.select().from(devotionalCourses)
+      .where(eq(devotionalCourses.tripId, tripId));
+    const alreadyMigrated = allCourses.some(c => c.title === "離開，是看見自己的開始");
+    if (alreadyMigrated) return;
 
     console.log("[data-sync] migrating devotional courses to new content...");
 
