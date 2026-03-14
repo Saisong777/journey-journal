@@ -748,7 +748,27 @@ export function useAttractionMutations(tripId: string | null) {
     },
   });
 
-  return { updateAttraction, deleteAttraction };
+  const importAttractions = useMutation({
+    mutationFn: async (items: Record<string, any>[]) => {
+      const response = await fetch(`/api/admin/trips/${tripId}/attractions/import`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(items),
+      });
+      if (!response.ok) throw new Error("Failed to import attractions");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attractions", tripId] });
+      toast({ title: `成功匯入 ${data.count} 個景點` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "匯入失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { updateAttraction, deleteAttraction, importAttractions };
 }
 
 // ===== Bible Library Modules =====

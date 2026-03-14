@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Loader2, ArrowLeft, MapPin, Book, Search } from "lucide-react";
+import { Pencil, Trash2, Loader2, ArrowLeft, MapPin, Book, Search, Upload } from "lucide-react";
 
 // Fields to show in the edit form, grouped
 const FIELD_GROUPS = [
@@ -98,17 +98,86 @@ const FIELD_GROUPS = [
   },
 ] as const;
 
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  // Remove BOM if present
+  const headerLine = lines[0].replace(/^\uFEFF/, "");
+  const headers = parseCsvLine(headerLine);
+  return lines.slice(1).map(line => {
+    const values = parseCsvLine(line);
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = values[i] || ""; });
+    return row;
+  });
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 export default function AdminAttractions() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { data: trips } = useAllTrips();
   const { data: attractions, isLoading } = useAdminAttractions(tripId || null);
-  const { updateAttraction, deleteAttraction } = useAttractionMutations(tripId || null);
+  const { updateAttraction, deleteAttraction, importAttractions } = useAttractionMutations(tripId || null);
 
   const [editingAttraction, setEditingAttraction] = useState<AdminAttraction | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDay, setFilterDay] = useState<number | null>(null);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<Record<string, string>[] | null>(null);
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = parseCsv(text);
+      if (rows.length === 0) return;
+      setPendingImportData(rows);
+      setShowImportConfirm(true);
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const confirmImport = () => {
+    if (pendingImportData) {
+      importAttractions.mutate(pendingImportData);
+    }
+    setShowImportConfirm(false);
+    setPendingImportData(null);
+  };
 
   // Trip selection
   if (!tripId) {
@@ -177,9 +246,20 @@ export default function AdminAttractions() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-display">景點管理</h2>
-          <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> 返回
-          </Button>
+          <div className="flex gap-2">
+            <label>
+              <input type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
+              <Button variant="outline" size="sm" asChild>
+                <span>
+                  <Upload className="w-4 h-4 mr-1" />
+                  匯入 CSV
+                </span>
+              </Button>
+            </label>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> 返回
+            </Button>
+          </div>
         </div>
         {/* Search + filter */}
         <div className="flex gap-2 flex-wrap">
@@ -282,6 +362,25 @@ export default function AdminAttractions() {
           ))}
         </div>
       </div>
+
+      {/* Import confirmation dialog */}
+      <AlertDialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認匯入景點</AlertDialogTitle>
+            <AlertDialogDescription>
+              即將匯入 {pendingImportData?.length || 0} 個景點。此操作會<strong>刪除現有所有景點</strong>並替換為新資料，確定要繼續嗎？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingImportData(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport} disabled={importAttractions.isPending}>
+              {importAttractions.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              確認匯入
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editingAttraction} onOpenChange={(open) => { if (!open) setEditingAttraction(null); }}>
