@@ -1287,9 +1287,10 @@ export function registerRoutes(app: Express) {
         return res.json(null);
       }
 
-      // Use local date (YYYY-MM-DD format) for comparison
+      // Use Taiwan timezone (UTC+8) for date comparison
       const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const taiwanDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+      const today = `${taiwanDate.getFullYear()}-${String(taiwanDate.getMonth() + 1).padStart(2, '0')}-${String(taiwanDate.getDate()).padStart(2, '0')}`;
 
       // Find today's schedule
       const todaySchedule = days.find(d => d.date === today);
