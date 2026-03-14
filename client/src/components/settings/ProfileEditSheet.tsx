@@ -122,12 +122,12 @@ export function ProfileEditSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden">
+      <SheetContent side="bottom" className="h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden" style={{ transition: "transform 0.3s ease-in-out" }}>
         <SheetHeader className="pb-4 flex-shrink-0">
           <SheetTitle className="text-title text-center">編輯個人資料</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 overflow-y-auto flex-1 pb-4 overscroll-contain">
+        <div className="space-y-6 overflow-y-auto overflow-x-hidden flex-1 pb-4 overscroll-contain touch-pan-y">
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden shadow-card">
