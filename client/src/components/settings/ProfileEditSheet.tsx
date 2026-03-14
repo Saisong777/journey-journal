@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Camera, Save, Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { transformPhotoUrl } from "@/lib/photoUtils";
@@ -60,13 +60,16 @@ export function ProfileEditSheet({
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      setFormData(profile);
-      setNewPassword("");
-      setConfirmPassword("");
-    }
-  }, [open, profile]);
+  // Only reset form when sheet opens, not on every profile prop change while open
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open && !prevOpen) {
+    setFormData(profile);
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+  }
 
   const handleChange = (field: keyof ProfileData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

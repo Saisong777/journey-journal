@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -72,7 +72,10 @@ export default function Settings() {
     queryKey: ["/api/profile"],
   });
 
-  const profile: ProfileData = dbToProfileData(dbProfile, user?.email, user?.user_metadata?.name);
+  const profile: ProfileData = useMemo(
+    () => dbToProfileData(dbProfile, user?.email, user?.user_metadata?.name),
+    [dbProfile, user?.email, user?.user_metadata?.name]
+  );
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(true);
