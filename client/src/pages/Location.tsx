@@ -104,23 +104,43 @@ export default function Location() {
   // Build a map of userId -> location data
   const locationByUserId = new Map(locations.map((loc) => [loc.userId, loc]));
 
-  // Merge all members with location data; members without location show as "未分享"
-  const membersWithLocation: MemberLocationData[] = allMembers.map((member) => {
-    const loc = locationByUserId.get(member.userId);
-    return {
-      id: member.userId,
-      name: member.name || "未知成員",
-      avatar: member.avatarUrl ? transformPhotoUrl(member.avatarUrl) : undefined,
-      location: loc ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : "未分享位置",
-      lastUpdate: loc ? formatTimeAgo(loc.updatedAt) : "—",
-      distance: "",
-      status: loc ? (isOnline(loc.updatedAt) ? "online" as const : "offline" as const) : "offline" as const,
-      group: member.group?.name,
-      groupId: member.groupId || undefined,
-      latitude: loc?.latitude,
-      longitude: loc?.longitude,
-    };
-  });
+  // Merge both sources: members + location-only users (who shared location but may not be in allMembers)
+  const memberUserIds = new Set(allMembers.map((m) => m.userId));
+  const membersWithLocation: MemberLocationData[] = [
+    // All members from the group roster
+    ...allMembers.map((member) => {
+      const loc = locationByUserId.get(member.userId);
+      return {
+        id: member.userId,
+        name: member.name || "未知成員",
+        avatar: member.avatarUrl ? transformPhotoUrl(member.avatarUrl) : undefined,
+        location: loc ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : "未分享位置",
+        lastUpdate: loc ? formatTimeAgo(loc.updatedAt) : "—",
+        distance: "",
+        status: loc ? (isOnline(loc.updatedAt) ? "online" as const : "offline" as const) : "offline" as const,
+        group: member.group?.name,
+        groupId: member.groupId || undefined,
+        latitude: loc?.latitude,
+        longitude: loc?.longitude,
+      };
+    }),
+    // Users who shared location but aren't in the member roster (e.g. no group assigned)
+    ...locations
+      .filter((loc) => !memberUserIds.has(loc.userId))
+      .map((loc) => ({
+        id: loc.userId,
+        name: loc.profile?.name || "未知成員",
+        avatar: loc.profile?.avatarUrl ? transformPhotoUrl(loc.profile.avatarUrl) : undefined,
+        location: `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`,
+        lastUpdate: formatTimeAgo(loc.updatedAt),
+        distance: "",
+        status: isOnline(loc.updatedAt) ? "online" as const : "offline" as const,
+        group: undefined,
+        groupId: undefined,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      })),
+  ];
 
   function isOnline(updatedAt: string): boolean {
     const date = new Date(updatedAt);
