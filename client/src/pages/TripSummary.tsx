@@ -192,7 +192,7 @@ const TripSummary = () => {
               <DevotionalSummary
                 devotionals={devotionals || []}
                 eveningReflections={allEveningReflections || []}
-                onEditDevotional={() => navigate("/daily-journey")}
+                onEditDevotional={(entry) => navigate("/daily-journey", { state: { date: entry.entryDate } })}
                 onDeleteDevotional={(entry) => deleteDevotional.mutate(entry.id)}
                 onDeleteEvening={(entry) => deleteEvening.mutate(entry.id)}
               />

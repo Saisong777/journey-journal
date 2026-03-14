@@ -335,6 +335,7 @@ export function ViewJournalSheet({ entry, open, onOpenChange, onDelete, onUpdate
                   onChange={(e) => setEditContent(e.target.value)}
                   placeholder="寫下你的感言..."
                   className="min-h-[150px] text-body resize-none"
+                  style={{ WebkitUserSelect: "text", userSelect: "text", touchAction: "manipulation" }}
                   data-testid="input-edit-content"
                 />
               ) : (

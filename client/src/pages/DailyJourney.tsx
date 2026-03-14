@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Sun, Compass, Moon, Plus, Calendar, ChevronLeft, ChevronRight,
   Loader2, Check, BookOpen, Volume2, Heart, Bookmark, Pencil, MapPin, HandHeart, MessageCircleHeart,
@@ -189,8 +190,15 @@ type TabType = "morning" | "adventure" | "evening";
 
 
 export default function DailyJourney() {
+  const location = useLocation();
+  const navDate = (location.state as any)?.date;
   const [activeTab, setActiveTab] = useState<TabType>("morning");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (navDate && /^\d{4}-\d{2}-\d{2}$/.test(navDate)) {
+      return parseISO(navDate);
+    }
+    return new Date();
+  });
   const dateScrollRef = useRef<HTMLDivElement>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewingEntry, setViewingEntry] = useState<JournalEntryData | null>(null);

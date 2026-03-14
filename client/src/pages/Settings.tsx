@@ -164,7 +164,7 @@ export default function Settings() {
       items: [
         {
           icon: Share2,
-          label: "匯出旅遊簡表",
+          label: "旅程回憶錄",
           description: "產生精美的旅遊回憶錄",
           action: "navigate" as const,
           onClick: () => navigate("/summary"),
