@@ -220,7 +220,7 @@ export function ProfileEditSheet({
                 <SelectTrigger className="h-12 text-body" data-testid="select-profile-gender">
                   <SelectValue placeholder="請選擇" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[1001] pointer-events-auto">
                   <SelectItem value="male">男</SelectItem>
                   <SelectItem value="female">女</SelectItem>
                 </SelectContent>
@@ -286,7 +286,7 @@ export function ProfileEditSheet({
                     <SelectTrigger className="h-12 text-body w-28 flex-shrink-0" data-testid={`select-family-relation-${index}`}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[1001] pointer-events-auto">
                       <SelectItem value="spouse">配偶</SelectItem>
                       <SelectItem value="child">子女</SelectItem>
                       <SelectItem value="relative">親人</SelectItem>
