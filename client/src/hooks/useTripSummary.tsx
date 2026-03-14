@@ -86,7 +86,7 @@ export function useTripHighlights() {
         entryDate?: string;
       }> = [];
 
-      for (const d of devotionalEntries?.slice(0, 5) || []) {
+      for (const d of devotionalEntries || []) {
         if (d.reflection) {
           highlights.push({
             id: d.id,
@@ -99,7 +99,7 @@ export function useTripHighlights() {
         }
       }
 
-      for (const j of journalEntries?.slice(0, 5) || []) {
+      for (const j of journalEntries || []) {
         if (j.content) {
           highlights.push({
             id: j.id,
@@ -112,10 +112,10 @@ export function useTripHighlights() {
         }
       }
 
-      // Sort chronologically (earliest first)
+      // Sort chronologically (earliest first, newest at bottom)
       highlights.sort((a, b) => (a.entryDate || "").localeCompare(b.entryDate || ""));
 
-      return highlights.slice(0, 6);
+      return highlights;
     },
     enabled: !!journalEntries || !!devotionalEntries,
   });
