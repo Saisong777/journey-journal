@@ -1440,9 +1440,32 @@ export function registerRoutes(app: Express) {
       // Delete existing attractions for this trip first
       await storage.deleteAttractionsByTrip(tripId);
       const str = (v: any) => (v && String(v).trim()) || null;
+      const parseDayNo = (v: any): number => {
+        if (v == null) return 0;
+        const s = String(v).trim();
+        // Handle "Day 2", "Day2", "D2" etc.
+        const m = s.match(/^(?:Day\s*|D)(\d+)$/i);
+        if (m) return Number(m[1]);
+        return Number(s) || 0;
+      };
+      const normalizeGps = (v: any): string | null => {
+        if (!v) return null;
+        const s = String(v).trim();
+        // Handle "41.0082°N; 28.9784°E" or "41.0082°N, 28.9784°E"
+        const dms = s.match(/([\d.]+)\s*°?\s*([NSns])[\s;,]+([\d.]+)\s*°?\s*([EWew])/);
+        if (dms) {
+          let lat = parseFloat(dms[1]);
+          let lng = parseFloat(dms[3]);
+          if (dms[2].toUpperCase() === 'S') lat = -lat;
+          if (dms[4].toUpperCase() === 'W') lng = -lng;
+          return `${lat}, ${lng}`;
+        }
+        // Already "lat, lng" format
+        return s;
+      };
       const data = items.map((item) => ({
         tripId,
-        dayNo: Number(item.dayNo ?? item.day_no) || 0,
+        dayNo: parseDayNo(item.dayNo ?? item.day_no),
         seq: Number(item.seq) || 0,
         nameZh: (item.nameZh ?? item.name_zh ?? "").trim(),
         nameEn: str(item.nameEn ?? item.name_en),
@@ -1451,7 +1474,7 @@ export function registerRoutes(app: Express) {
         date: str(item.date),
         modernLocation: str(item.modernLocation ?? item.modern_location),
         ancientToponym: str(item.ancientToponym ?? item.ancient_toponym),
-        gps: str(item.gps),
+        gps: normalizeGps(item.gps),
         openingHours: str(item.openingHours ?? item.opening_hours),
         admission: str(item.admission),
         duration: str(item.duration),
