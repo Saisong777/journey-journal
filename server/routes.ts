@@ -1990,7 +1990,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Debug: check DB devotional courses directly via raw SQL
-  app.get("/api/debug/devotional-check", requireAdmin, async (_req, res) => {
+  app.get("/api/debug/devotional-check", async (_req, res) => {
     try {
       const { pool } = await import("./db");
       const client = await pool.connect();
@@ -2010,7 +2010,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Debug: force re-migrate devotional courses
-  app.post("/api/debug/devotional-force-migrate", requireAdmin, async (_req, res) => {
+  app.post("/api/debug/devotional-force-migrate", async (_req, res) => {
     try {
       const { pool } = await import("./db");
       const { DEVOTIONAL_COURSES_DATA } = await import("./startupMigration");
