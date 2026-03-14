@@ -1989,6 +1989,68 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Debug: check DB devotional courses directly via raw SQL
+  app.get("/api/debug/devotional-check", requireAdmin, async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `SELECT day_no, title, place, substring(scripture, 1, 30) as scripture_preview,
+                  substring(life_question, 1, 30) as lq_preview
+           FROM devotional_courses ORDER BY day_no`
+        );
+        res.json({ count: result.rows.length, courses: result.rows });
+      } finally {
+        client.release();
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Debug: force re-migrate devotional courses
+  app.post("/api/debug/devotional-force-migrate", requireAdmin, async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const { DEVOTIONAL_COURSES_DATA } = await import("./startupMigration");
+      const client = await pool.connect();
+      try {
+        const tripResult = await client.query(`SELECT id FROM trips LIMIT 1`);
+        if (!tripResult.rows.length) return res.json({ error: "no trips" });
+        const tripId = tripResult.rows[0].id;
+
+        const before = await client.query(
+          `SELECT count(*) as cnt FROM devotional_courses WHERE trip_id = $1`, [tripId]
+        );
+
+        await client.query(`DELETE FROM devotional_courses WHERE trip_id = $1`, [tripId]);
+
+        for (const d of DEVOTIONAL_COURSES_DATA) {
+          await client.query(
+            `INSERT INTO devotional_courses (trip_id, day_no, title, place, scripture, reflection, action, prayer, life_question)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [tripId, d.dayNo, d.title, d.place, d.scripture, d.reflection, d.action, d.prayer, d.lifeQuestion]
+          );
+        }
+
+        const after = await client.query(
+          `SELECT count(*) as cnt FROM devotional_courses WHERE trip_id = $1`, [tripId]
+        );
+
+        res.json({
+          success: true,
+          deletedOld: before.rows[0].cnt,
+          insertedNew: after.rows[0].cnt
+        });
+      } finally {
+        client.release();
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/trips/current/devotional-courses", requireAuth, async (req, res) => {
     try {
       const userRole = await getCachedUserRole(req.userId!);
