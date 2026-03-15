@@ -191,8 +191,10 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   // Search all attractions (not just today's dayNo) to handle any dayNo mismatches
   function findAttraction(title: string): Attraction | undefined {
     if (!allAttractions) return undefined;
-    const normalize = (s: string) => s.replace(/[的了之在於]/g, "");
+    const normalize = (s: string) => s.replace(/[的了之在於記]/g, "");
     const normTitle = normalize(title);
+    // Debug: log matching attempts
+    console.log("[findAttraction]", title, "→ normalized:", normTitle, "| attractions:", allAttractions.map(a => ({ name: a.nameZh, norm: normalize(a.nameZh) })));
     return allAttractions.find(a => {
       const normName = normalize(a.nameZh);
       return normTitle.includes(normName) || normName.includes(normTitle);
