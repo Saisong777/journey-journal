@@ -1,6 +1,17 @@
-import { Clock, MapPin, Utensils, Home } from "lucide-react";
+import { useState } from "react";
+import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { getAuthToken } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
+import { useCreateJournalEntry } from "@/hooks/useJournalEntries";
 
 interface TripDay {
   id: string;
@@ -18,6 +29,28 @@ interface TripDay {
   dayNumber: number;
   isPreTrip?: boolean;
   isPostTrip?: boolean;
+}
+
+interface Attraction {
+  id: string;
+  nameZh: string;
+  nameEn?: string;
+  nameAlt?: string;
+  dayNo: number;
+  scriptureRefs?: string;
+  storySummary?: string;
+  keyFigures?: string;
+  historicalEra?: string;
+  theologicalSignificance?: string;
+  lifeApplication?: string;
+  openingHours?: string;
+  admission?: string;
+  duration?: string;
+  dressCode?: string;
+  photoRestrictions?: string;
+  safetyNotes?: string;
+  physicalComment?: string;
+  gps?: string;
 }
 
 interface ScheduleItem {
@@ -100,7 +133,49 @@ function parseHighlightsToSchedule(tripDay: TripDay): ScheduleItem[] {
   return items;
 }
 
+function AttractionInfoSection({ label, icon: Icon, value }: { label: string; icon: React.ComponentType<{ className?: string }>; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground">
+        <Icon className="w-3.5 h-3.5" />
+        {label}
+      </div>
+      <p className="text-body text-foreground leading-relaxed whitespace-pre-line">{value}</p>
+    </div>
+  );
+}
+
 export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) {
+  const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journalLocation, setJournalLocation] = useState("");
+  const createJournal = useCreateJournalEntry();
+
+  // Fetch attractions for today's day
+  const { data: allAttractions } = useQuery<Attraction[]>({
+    queryKey: ["/api/attractions"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch("/api/attractions", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!todaySchedule,
+  });
+
+  // Filter to today's attractions
+  const todayAttractions = allAttractions?.filter(a => a.dayNo === todaySchedule?.dayNo) || [];
+
+  // Match schedule item title to an attraction
+  function findAttraction(title: string): Attraction | undefined {
+    return todayAttractions.find(a =>
+      title.includes(a.nameZh) || a.nameZh.includes(title)
+    );
+  }
+
   if (isLoading) {
     return (
       <section className="space-y-4">
@@ -124,15 +199,21 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     );
   }
 
-  if (!todaySchedule) {
-    return null;
-  }
-
-  if (todaySchedule.isPreTrip) {
+  if (!todaySchedule || todaySchedule.isPreTrip) {
     return null;
   }
 
   const scheduleItems = parseHighlightsToSchedule(todaySchedule);
+
+  const handleJournalSave = async (entry: { location: string; content: string; photos: any[]; mood: string }) => {
+    await createJournal.mutateAsync({
+      title: entry.location || "隨手記錄",
+      content: entry.content,
+      location: entry.location,
+      photos: entry.photos,
+      entryDate: todaySchedule.date,
+    });
+  };
 
   return (
     <section className="space-y-4">
@@ -150,63 +231,126 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
             <p className="text-body-lg">今日為自由活動日，好好享受！</p>
           </div>
         ) : (
-          scheduleItems.map((item, index) => (
-            <div
-              key={index}
-              className={cn(
-                "flex items-center gap-4 p-5 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30",
-                item.isNext && "bg-primary/5 border-primary/20"
-              )}
-              data-testid={`schedule-item-${index}`}
-            >
-              <div className={cn(
-                "text-center min-w-[64px]",
-                item.isNext ? "text-primary font-bold" : "text-muted-foreground"
-              )}>
-                {item.icon === "meal" ? (
-                  <Utensils className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
-                ) : item.icon === "lodging" ? (
-                  <Home className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
-                ) : (
-                  <Clock className="w-5 h-5 mx-auto mb-1.5 opacity-80" />
+          scheduleItems.map((item, index) => {
+            const attraction = item.icon === "activity" ? findAttraction(item.title) : undefined;
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "border-b border-border/50 last:border-0 transition-colors",
+                  item.isNext && "bg-primary/5 border-primary/20"
                 )}
-                <span className="text-body-lg">{item.time}</span>
-              </div>
+                data-testid={`schedule-item-${index}`}
+              >
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className={cn(
+                    "text-center min-w-[50px]",
+                    item.isNext ? "text-primary font-bold" : "text-muted-foreground"
+                  )}>
+                    {item.icon === "meal" ? (
+                      <Utensils className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    ) : item.icon === "lodging" ? (
+                      <Home className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    ) : (
+                      <Clock className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    )}
+                    <span className="text-body">{item.time}</span>
+                  </div>
 
-              <div className="relative flex flex-col items-center self-stretch py-2">
-                <div className={cn(
-                  "w-3.5 h-3.5 rounded-full z-10 shadow-sm",
-                  item.isNext ? "bg-primary ring-4 ring-primary/20" : "bg-muted border-2 border-border"
-                )} />
-                {index < scheduleItems.length - 1 && (
-                  <div className="absolute top-5 w-0.5 h-[calc(100%+12px)] bg-gradient-to-b from-border to-border/50" />
-                )}
-              </div>
+                  <div className="relative flex flex-col items-center self-stretch py-1">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full z-10 shadow-sm",
+                      item.isNext ? "bg-primary ring-3 ring-primary/20" : "bg-muted border-2 border-border"
+                    )} />
+                    {index < scheduleItems.length - 1 && (
+                      <div className="absolute top-4 w-0.5 h-[calc(100%+8px)] bg-gradient-to-b from-border to-border/50" />
+                    )}
+                  </div>
 
-              <div className="flex-1 py-1">
-                <h3 className={cn(
-                  "text-body-lg font-semibold",
-                  item.isNext ? "text-primary" : "text-foreground"
-                )}>
-                  {item.title}
-                </h3>
-                {item.location && (
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-body mt-1">
-                    <MapPin className="w-4 h-4 opacity-70" />
-                    {item.location}
+                  <div className="flex-1 min-w-0 py-0.5">
+                    <h3 className={cn(
+                      "text-body font-semibold truncate",
+                      item.isNext ? "text-primary" : "text-foreground"
+                    )}>
+                      {item.title}
+                    </h3>
+                    {item.location && (
+                      <div className="flex items-center gap-1 text-muted-foreground text-caption mt-0.5">
+                        <MapPin className="w-3 h-3 opacity-70 flex-shrink-0" />
+                        <span className="truncate">{item.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons for activity items */}
+                {item.icon === "activity" && (
+                  <div className="flex gap-2 px-4 pb-3 pl-[74px]">
+                    {attraction && (
+                      <button
+                        onClick={() => setSelectedAttraction(attraction)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Info className="w-3 h-3" />
+                        景點資訊
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setJournalLocation(item.title);
+                        setJournalOpen(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-secondary/10 text-secondary-foreground hover:bg-secondary/20 transition-colors"
+                    >
+                      <PenLine className="w-3 h-3" />
+                      隨手記錄
+                    </button>
                   </div>
                 )}
               </div>
-
-              {item.isNext && (
-                <span className="hidden sm:inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-caption font-bold shadow-sm animate-pulse">
-                  即將前往
-                </span>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* Attraction info dialog */}
+      <Dialog open={!!selectedAttraction} onOpenChange={(open) => { if (!open) setSelectedAttraction(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg">
+              {selectedAttraction?.nameZh}
+              {selectedAttraction?.nameEn && (
+                <span className="text-caption text-muted-foreground ml-2 font-normal">{selectedAttraction.nameEn}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedAttraction && (
+            <div className="space-y-4 text-sm">
+              <AttractionInfoSection label="聖經經文" icon={Book} value={selectedAttraction.scriptureRefs} />
+              <AttractionInfoSection label="聖經故事" icon={Book} value={selectedAttraction.storySummary} />
+              <AttractionInfoSection label="關鍵人物" icon={Users} value={selectedAttraction.keyFigures} />
+              <AttractionInfoSection label="歷史時期" icon={Clock3} value={selectedAttraction.historicalEra} />
+              <AttractionInfoSection label="神學意義" icon={Book} value={selectedAttraction.theologicalSignificance} />
+              <AttractionInfoSection label="生活應用" icon={Compass} value={selectedAttraction.lifeApplication} />
+              <AttractionInfoSection label="開放時間" icon={Clock3} value={selectedAttraction.openingHours} />
+              <AttractionInfoSection label="門票" icon={DollarSign} value={selectedAttraction.admission} />
+              <AttractionInfoSection label="建議停留" icon={Clock} value={selectedAttraction.duration} />
+              <AttractionInfoSection label="服裝要求" icon={Shirt} value={selectedAttraction.dressCode} />
+              <AttractionInfoSection label="安全提醒" icon={Info} value={selectedAttraction.safetyNotes} />
+              <AttractionInfoSection label="體力備註" icon={Compass} value={selectedAttraction.physicalComment} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick journal sheet */}
+      <AddJournalSheet
+        open={journalOpen}
+        onOpenChange={setJournalOpen}
+        date={todaySchedule.date}
+        defaultLocation={journalLocation}
+        onSave={handleJournalSave}
+      />
     </section>
   );
 }

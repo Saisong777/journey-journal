@@ -120,44 +120,31 @@ const Index = () => {
             <Skeleton className="h-12 w-40 mx-auto" />
           </section>
         ) : trip ? (
-          <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-6 md:p-8 text-center space-y-3 shadow-card border border-primary/10" data-testid="section-hero">
-            <p className="text-body text-muted-foreground">
-              {isTripStarted
-                ? `${getGreeting()}，${userName}，願神與您同在`
-                : `平安，${userName}`}
-            </p>
-            <h1 className="text-display text-foreground" data-testid="text-trip-title">{trip.title}</h1>
-
+          <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-xl px-4 py-3 text-center shadow-card border border-primary/10" data-testid="section-hero">
             {isTripStarted ? (
-              <>
-                <p className="text-5xl font-bold text-primary" data-testid="text-day-number">
-                  第 {dayNumber} 天
-                </p>
-                {todaySchedule?.title && (
-                  <div className="flex items-center justify-center gap-2 text-body-lg text-foreground mt-1">
-                    <MapPin className="w-5 h-5 text-primary" />
-                    <span className="font-medium">{todaySchedule.title}</span>
-                  </div>
-                )}
-                {todaySchedule?.cityArea && (
-                  <p className="text-body text-muted-foreground">{todaySchedule.cityArea}</p>
-                )}
-              </>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-left min-w-0 flex-1">
+                  <p className="text-caption text-muted-foreground">{getGreeting()}，{userName}</p>
+                  <p className="text-body font-medium text-foreground truncate" data-testid="text-trip-title">{trip.title}</p>
+                </div>
+                <div className="text-center flex-shrink-0">
+                  <p className="text-2xl font-bold text-primary leading-none" data-testid="text-day-number">第{dayNumber}天</p>
+                  {todaySchedule?.cityArea && (
+                    <p className="text-caption text-muted-foreground mt-0.5">{todaySchedule.cityArea}</p>
+                  )}
+                </div>
+              </div>
             ) : (
-              <>
-                <p className="text-body text-muted-foreground">
-                  距離出發還有
-                </p>
-                <p className="text-5xl font-bold text-primary" data-testid="text-countdown">
-                  {countdown} 天
-                </p>
-                {todaySchedule?.title && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-foreground/80 mt-1">
-                    <Plane className="w-4 h-4 text-primary" />
-                    <span>{todaySchedule.title}</span>
-                  </div>
-                )}
-              </>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-left min-w-0 flex-1">
+                  <p className="text-caption text-muted-foreground">平安，{userName}</p>
+                  <p className="text-body font-medium text-foreground truncate" data-testid="text-trip-title">{trip.title}</p>
+                </div>
+                <div className="text-center flex-shrink-0">
+                  <p className="text-caption text-muted-foreground">出發倒數</p>
+                  <p className="text-2xl font-bold text-primary leading-none" data-testid="text-countdown">{countdown}天</p>
+                </div>
+              </div>
             )}
           </section>
         ) : (

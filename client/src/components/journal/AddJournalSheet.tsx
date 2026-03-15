@@ -16,6 +16,7 @@ interface AddJournalSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date?: string;
+  defaultLocation?: string;
   onSave?: (entry: {
     location: string;
     content: string;
@@ -31,7 +32,7 @@ const moods = [
   { key: "amazed", emoji: "✨", label: "驚嘆" },
 ];
 
-export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournalSheetProps) {
+export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onSave }: AddJournalSheetProps) {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
@@ -43,9 +44,12 @@ export function AddJournalSheet({ open, onOpenChange, date, onSave }: AddJournal
 
   useEffect(() => {
     if (open) {
+      if (defaultLocation) {
+        setSelectedLocation(defaultLocation);
+      }
       fetchLocations();
     }
-  }, [open, date]);
+  }, [open, date, defaultLocation]);
 
   const fetchLocations = async () => {
     setIsLoadingLocations(true);
