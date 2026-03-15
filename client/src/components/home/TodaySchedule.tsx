@@ -187,14 +187,13 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     enabled: !!todaySchedule,
   });
 
-  // Filter to today's attractions
-  const todayAttractions = allAttractions?.filter(a => a.dayNo === todaySchedule?.dayNo) || [];
-
   // Match schedule item title to an attraction (fuzzy: strip particles like 的/了/之)
+  // Search all attractions (not just today's dayNo) to handle any dayNo mismatches
   function findAttraction(title: string): Attraction | undefined {
+    if (!allAttractions) return undefined;
     const normalize = (s: string) => s.replace(/[的了之在於]/g, "");
     const normTitle = normalize(title);
-    return todayAttractions.find(a => {
+    return allAttractions.find(a => {
       const normName = normalize(a.nameZh);
       return normTitle.includes(normName) || normName.includes(normTitle);
     });
