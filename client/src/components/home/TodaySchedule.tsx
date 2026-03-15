@@ -319,7 +319,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                         setJournalLocation(item.title);
                         setJournalOpen(true);
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-secondary/10 text-secondary-foreground hover:bg-secondary/20 transition-colors"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
                     >
                       <PenLine className="w-3 h-3" />
                       隨手記錄
