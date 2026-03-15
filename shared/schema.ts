@@ -342,6 +342,7 @@ export const attractions = pgTable("attractions", {
   localProducts: text("local_products"),
   recommendationScore: text("recommendation_score"),
   physicalComment: text("physical_comment"),
+  mdContent: text("md_content"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [

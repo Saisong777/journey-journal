@@ -162,7 +162,7 @@ export default function AdminAttractions() {
   const navigate = useNavigate();
   const { data: trips } = useAllTrips();
   const { data: attractions, isLoading } = useAdminAttractions(tripId || null);
-  const { updateAttraction, deleteAttraction, importAttractions } = useAttractionMutations(tripId || null);
+  const { updateAttraction, deleteAttraction, importAttractions, importMdContent } = useAttractionMutations(tripId || null);
 
   const [editingAttraction, setEditingAttraction] = useState<AdminAttraction | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -192,6 +192,23 @@ export default function AdminAttractions() {
     }
     setShowImportConfirm(false);
     setPendingImportData(null);
+  };
+
+  const handleMdImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const promises = fileArray.map(file => new Promise<{ filename: string; content: string }>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        resolve({ filename: file.name, content: ev.target?.result as string });
+      };
+      reader.readAsText(file, "UTF-8");
+    }));
+    Promise.all(promises).then(results => {
+      importMdContent.mutate(results);
+    });
+    e.target.value = "";
   };
 
   // Trip selection
@@ -268,6 +285,15 @@ export default function AdminAttractions() {
                 <span>
                   <Upload className="w-4 h-4 mr-1" />
                   匯入 CSV
+                </span>
+              </Button>
+            </label>
+            <label>
+              <input type="file" accept=".md" multiple className="hidden" onChange={handleMdImport} />
+              <Button variant="outline" size="sm" asChild>
+                <span>
+                  <Book className="w-4 h-4 mr-1" />
+                  匯入深度資料
                 </span>
               </Button>
             </label>

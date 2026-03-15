@@ -1513,6 +1513,54 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Admin: import .md deep content into existing attractions (match by name)
+  app.post("/api/admin/trips/:tripId/attractions/import-md", requireAdmin, async (req, res) => {
+    try {
+      const tripId = req.params.tripId;
+      const files: { filename: string; content: string }[] = req.body;
+      if (!Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ error: "Body must be a non-empty array of {filename, content}" });
+      }
+
+      const existing = await storage.getAttractionsByTrip(tripId);
+      let matched = 0;
+      let skipped = 0;
+      const results: { filename: string; status: string; attractionName?: string }[] = [];
+
+      for (const file of files) {
+        // Extract attraction name from first line (# title)
+        const titleMatch = file.content.match(/^#\s+(.+)/m);
+        const mdTitle = titleMatch ? titleMatch[1].trim() : file.filename.replace(/^\d+_/, "").replace(/\.md$/, "");
+
+        // Find matching attraction by nameZh (fuzzy: contains or contained by)
+        const attraction = existing.find(a =>
+          a.nameZh === mdTitle ||
+          mdTitle.includes(a.nameZh) ||
+          a.nameZh.includes(mdTitle)
+        );
+
+        if (attraction) {
+          // Skip if already has md_content
+          if (attraction.mdContent) {
+            skipped++;
+            results.push({ filename: file.filename, status: "skipped (already has content)", attractionName: attraction.nameZh });
+            continue;
+          }
+          await storage.updateAttraction(attraction.id, { mdContent: file.content });
+          matched++;
+          results.push({ filename: file.filename, status: "matched", attractionName: attraction.nameZh });
+        } else {
+          results.push({ filename: file.filename, status: "no match found (title: " + mdTitle + ")" });
+        }
+      }
+
+      res.json({ success: true, matched, skipped, total: files.length, results });
+    } catch (error) {
+      console.error("Error importing md content:", error);
+      res.status(500).json({ error: "Failed to import md content" });
+    }
+  });
+
   // Admin: update single attraction
   app.patch("/api/admin/attractions/:id", requireAdmin, async (req, res) => {
     try {

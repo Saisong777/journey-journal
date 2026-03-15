@@ -768,7 +768,27 @@ export function useAttractionMutations(tripId: string | null) {
     },
   });
 
-  return { updateAttraction, deleteAttraction, importAttractions };
+  const importMdContent = useMutation({
+    mutationFn: async (files: { filename: string; content: string }[]) => {
+      const response = await fetch(`/api/admin/trips/${tripId}/attractions/import-md`, {
+        method: "POST",
+        headers: getAuthHeadersWithJson(),
+        credentials: "include",
+        body: JSON.stringify(files),
+      });
+      if (!response.ok) throw new Error("Failed to import md content");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attractions", tripId] });
+      toast({ title: `深度資料匯入完成`, description: `比對成功 ${data.matched} 筆，略過 ${data.skipped} 筆（共 ${data.total} 個檔案）` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "匯入失敗", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return { updateAttraction, deleteAttraction, importAttractions, importMdContent };
 }
 
 // ===== Bible Library Modules =====

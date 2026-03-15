@@ -617,7 +617,8 @@ export async function runStartupMigration() {
         await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS place TEXT`);
         await client.query(`ALTER TABLE devotional_courses ADD COLUMN IF NOT EXISTS life_question TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`);
-        console.log("[startup-migration] ensured place, life_question, google_id columns");
+        await client.query(`ALTER TABLE attractions ADD COLUMN IF NOT EXISTS md_content TEXT`);
+        console.log("[startup-migration] ensured place, life_question, google_id, md_content columns");
       } finally {
         client.release();
       }

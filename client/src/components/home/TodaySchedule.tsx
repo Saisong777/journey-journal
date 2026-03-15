@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -70,6 +71,7 @@ interface Attraction {
   localProducts?: string;
   recommendationScore?: string;
   physicalComment?: string;
+  mdContent?: string;
 }
 
 interface ScheduleItem {
@@ -346,87 +348,93 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
             )}
           </DialogHeader>
           {selectedAttraction && (
-            <div className="space-y-6 text-sm">
-              {/* Basic info badges */}
-              <div className="flex flex-wrap gap-2">
-                {selectedAttraction.country && (
-                  <span className="px-2 py-0.5 rounded-full bg-muted text-caption">{selectedAttraction.country}</span>
+            selectedAttraction.mdContent ? (
+              <div className="prose prose-sm max-w-none prose-headings:text-primary prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-p:text-foreground prose-p:leading-relaxed prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground prose-li:text-foreground prose-strong:text-foreground">
+                <ReactMarkdown>{selectedAttraction.mdContent}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="space-y-6 text-sm">
+                {/* Basic info badges */}
+                <div className="flex flex-wrap gap-2">
+                  {selectedAttraction.country && (
+                    <span className="px-2 py-0.5 rounded-full bg-muted text-caption">{selectedAttraction.country}</span>
+                  )}
+                  {selectedAttraction.historicalEra && (
+                    <span className="px-2 py-0.5 rounded-full bg-muted text-caption">{selectedAttraction.historicalEra}</span>
+                  )}
+                  {selectedAttraction.recommendationScore && (
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-caption flex items-center gap-1">
+                      <Star className="w-3 h-3" /> {selectedAttraction.recommendationScore}
+                    </span>
+                  )}
+                  {selectedAttraction.accuracyRating && (
+                    <span className="px-2 py-0.5 rounded-full bg-muted text-caption">考古準確度：{selectedAttraction.accuracyRating}</span>
+                  )}
+                </div>
+
+                {/* Section: 聖經與信仰 */}
+                {(selectedAttraction.scriptureRefs || selectedAttraction.storySummary || selectedAttraction.keyFigures || selectedAttraction.theologicalSignificance || selectedAttraction.lifeApplication || selectedAttraction.discussionQuestions) && (
+                  <div className="space-y-3">
+                    <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">聖經與信仰</h3>
+                    <AttractionInfoSection label="經文參考" icon={Book} value={selectedAttraction.scriptureRefs} />
+                    <AttractionInfoSection label="相關書卷" icon={Book} value={selectedAttraction.bibleBooks} />
+                    <AttractionInfoSection label="聖經故事摘要" icon={Book} value={selectedAttraction.storySummary} />
+                    <AttractionInfoSection label="關鍵人物" icon={Users} value={selectedAttraction.keyFigures} />
+                    <AttractionInfoSection label="神學意義" icon={Book} value={selectedAttraction.theologicalSignificance} />
+                    <AttractionInfoSection label="生活應用" icon={Compass} value={selectedAttraction.lifeApplication} />
+                    <AttractionInfoSection label="討論問題" icon={MessageCircleQuestion} value={selectedAttraction.discussionQuestions} />
+                  </div>
                 )}
-                {selectedAttraction.historicalEra && (
-                  <span className="px-2 py-0.5 rounded-full bg-muted text-caption">{selectedAttraction.historicalEra}</span>
+
+                {/* Section: 歷史與考古 */}
+                {(selectedAttraction.historicalStrata || selectedAttraction.archaeologicalFindings || selectedAttraction.keyArtifacts || selectedAttraction.ancientToponym || selectedAttraction.modernLocation) && (
+                  <div className="space-y-3">
+                    <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">歷史與考古</h3>
+                    <AttractionInfoSection label="古代地名" icon={Landmark} value={selectedAttraction.ancientToponym} />
+                    <AttractionInfoSection label="現代位置" icon={MapPin} value={selectedAttraction.modernLocation} />
+                    <AttractionInfoSection label="歷史分層" icon={Search} value={selectedAttraction.historicalStrata} />
+                    <AttractionInfoSection label="考古發現" icon={Search} value={selectedAttraction.archaeologicalFindings} />
+                    <AttractionInfoSection label="重要文物" icon={Landmark} value={selectedAttraction.keyArtifacts} />
+                  </div>
                 )}
-                {selectedAttraction.recommendationScore && (
-                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-caption flex items-center gap-1">
-                    <Star className="w-3 h-3" /> {selectedAttraction.recommendationScore}
-                  </span>
+
+                {/* Section: 參觀資訊 */}
+                {(selectedAttraction.openingHours || selectedAttraction.admission || selectedAttraction.duration || selectedAttraction.bestTime || selectedAttraction.dressCode || selectedAttraction.photoRestrictions || selectedAttraction.crowdLevels || selectedAttraction.tourRoutePosition) && (
+                  <div className="space-y-3">
+                    <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">參觀資訊</h3>
+                    <AttractionInfoSection label="開放時間" icon={Clock3} value={selectedAttraction.openingHours} />
+                    <AttractionInfoSection label="門票費用" icon={DollarSign} value={selectedAttraction.admission} />
+                    <AttractionInfoSection label="建議停留時間" icon={Clock} value={selectedAttraction.duration} />
+                    <AttractionInfoSection label="最佳造訪時間" icon={Clock3} value={selectedAttraction.bestTime} />
+                    <AttractionInfoSection label="行程位置" icon={Map} value={selectedAttraction.tourRoutePosition} />
+                    <AttractionInfoSection label="服裝要求" icon={Shirt} value={selectedAttraction.dressCode} />
+                    <AttractionInfoSection label="拍照限制" icon={Camera} value={selectedAttraction.photoRestrictions} />
+                    <AttractionInfoSection label="人潮程度" icon={Users} value={selectedAttraction.crowdLevels} />
+                  </div>
                 )}
-                {selectedAttraction.accuracyRating && (
-                  <span className="px-2 py-0.5 rounded-full bg-muted text-caption">考古準確度：{selectedAttraction.accuracyRating}</span>
+
+                {/* Section: 安全與無障礙 */}
+                {(selectedAttraction.safetyNotes || selectedAttraction.physicalComment || selectedAttraction.accessibility) && (
+                  <div className="space-y-3">
+                    <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">安全與體力</h3>
+                    <AttractionInfoSection label="安全提醒" icon={Shield} value={selectedAttraction.safetyNotes} />
+                    <AttractionInfoSection label="體力備註" icon={Compass} value={selectedAttraction.physicalComment} />
+                    <AttractionInfoSection label="無障礙資訊" icon={Accessibility} value={selectedAttraction.accessibility} />
+                  </div>
+                )}
+
+                {/* Section: 周邊資訊 */}
+                {(selectedAttraction.nearbyDining || selectedAttraction.accommodation || selectedAttraction.nearbyBiblicalSites || selectedAttraction.localProducts) && (
+                  <div className="space-y-3">
+                    <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">周邊資訊</h3>
+                    <AttractionInfoSection label="附近餐飲" icon={UtensilsCrossed} value={selectedAttraction.nearbyDining} />
+                    <AttractionInfoSection label="住宿" icon={BedDouble} value={selectedAttraction.accommodation} />
+                    <AttractionInfoSection label="附近聖經景點" icon={MapPin} value={selectedAttraction.nearbyBiblicalSites} />
+                    <AttractionInfoSection label="當地特產" icon={Info} value={selectedAttraction.localProducts} />
+                  </div>
                 )}
               </div>
-
-              {/* Section: 聖經與信仰 */}
-              {(selectedAttraction.scriptureRefs || selectedAttraction.storySummary || selectedAttraction.keyFigures || selectedAttraction.theologicalSignificance || selectedAttraction.lifeApplication || selectedAttraction.discussionQuestions) && (
-                <div className="space-y-3">
-                  <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">聖經與信仰</h3>
-                  <AttractionInfoSection label="經文參考" icon={Book} value={selectedAttraction.scriptureRefs} />
-                  <AttractionInfoSection label="相關書卷" icon={Book} value={selectedAttraction.bibleBooks} />
-                  <AttractionInfoSection label="聖經故事摘要" icon={Book} value={selectedAttraction.storySummary} />
-                  <AttractionInfoSection label="關鍵人物" icon={Users} value={selectedAttraction.keyFigures} />
-                  <AttractionInfoSection label="神學意義" icon={Book} value={selectedAttraction.theologicalSignificance} />
-                  <AttractionInfoSection label="生活應用" icon={Compass} value={selectedAttraction.lifeApplication} />
-                  <AttractionInfoSection label="討論問題" icon={MessageCircleQuestion} value={selectedAttraction.discussionQuestions} />
-                </div>
-              )}
-
-              {/* Section: 歷史與考古 */}
-              {(selectedAttraction.historicalStrata || selectedAttraction.archaeologicalFindings || selectedAttraction.keyArtifacts || selectedAttraction.ancientToponym || selectedAttraction.modernLocation) && (
-                <div className="space-y-3">
-                  <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">歷史與考古</h3>
-                  <AttractionInfoSection label="古代地名" icon={Landmark} value={selectedAttraction.ancientToponym} />
-                  <AttractionInfoSection label="現代位置" icon={MapPin} value={selectedAttraction.modernLocation} />
-                  <AttractionInfoSection label="歷史分層" icon={Search} value={selectedAttraction.historicalStrata} />
-                  <AttractionInfoSection label="考古發現" icon={Search} value={selectedAttraction.archaeologicalFindings} />
-                  <AttractionInfoSection label="重要文物" icon={Landmark} value={selectedAttraction.keyArtifacts} />
-                </div>
-              )}
-
-              {/* Section: 參觀資訊 */}
-              {(selectedAttraction.openingHours || selectedAttraction.admission || selectedAttraction.duration || selectedAttraction.bestTime || selectedAttraction.dressCode || selectedAttraction.photoRestrictions || selectedAttraction.crowdLevels || selectedAttraction.tourRoutePosition) && (
-                <div className="space-y-3">
-                  <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">參觀資訊</h3>
-                  <AttractionInfoSection label="開放時間" icon={Clock3} value={selectedAttraction.openingHours} />
-                  <AttractionInfoSection label="門票費用" icon={DollarSign} value={selectedAttraction.admission} />
-                  <AttractionInfoSection label="建議停留時間" icon={Clock} value={selectedAttraction.duration} />
-                  <AttractionInfoSection label="最佳造訪時間" icon={Clock3} value={selectedAttraction.bestTime} />
-                  <AttractionInfoSection label="行程位置" icon={Map} value={selectedAttraction.tourRoutePosition} />
-                  <AttractionInfoSection label="服裝要求" icon={Shirt} value={selectedAttraction.dressCode} />
-                  <AttractionInfoSection label="拍照限制" icon={Camera} value={selectedAttraction.photoRestrictions} />
-                  <AttractionInfoSection label="人潮程度" icon={Users} value={selectedAttraction.crowdLevels} />
-                </div>
-              )}
-
-              {/* Section: 安全與無障礙 */}
-              {(selectedAttraction.safetyNotes || selectedAttraction.physicalComment || selectedAttraction.accessibility) && (
-                <div className="space-y-3">
-                  <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">安全與體力</h3>
-                  <AttractionInfoSection label="安全提醒" icon={Shield} value={selectedAttraction.safetyNotes} />
-                  <AttractionInfoSection label="體力備註" icon={Compass} value={selectedAttraction.physicalComment} />
-                  <AttractionInfoSection label="無障礙資訊" icon={Accessibility} value={selectedAttraction.accessibility} />
-                </div>
-              )}
-
-              {/* Section: 周邊資訊 */}
-              {(selectedAttraction.nearbyDining || selectedAttraction.accommodation || selectedAttraction.nearbyBiblicalSites || selectedAttraction.localProducts) && (
-                <div className="space-y-3">
-                  <h3 className="text-body font-bold text-primary border-b border-primary/20 pb-1">周邊資訊</h3>
-                  <AttractionInfoSection label="附近餐飲" icon={UtensilsCrossed} value={selectedAttraction.nearbyDining} />
-                  <AttractionInfoSection label="住宿" icon={BedDouble} value={selectedAttraction.accommodation} />
-                  <AttractionInfoSection label="附近聖經景點" icon={MapPin} value={selectedAttraction.nearbyBiblicalSites} />
-                  <AttractionInfoSection label="當地特產" icon={Info} value={selectedAttraction.localProducts} />
-                </div>
-              )}
-            </div>
+            )
           )}
         </DialogContent>
       </Dialog>
