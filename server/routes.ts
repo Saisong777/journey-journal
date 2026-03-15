@@ -1532,12 +1532,13 @@ export function registerRoutes(app: Express) {
         const titleMatch = file.content.match(/^#\s+(.+)/m);
         const mdTitle = titleMatch ? titleMatch[1].trim() : file.filename.replace(/^\d+_/, "").replace(/\.md$/, "");
 
-        // Find matching attraction by nameZh (fuzzy: contains or contained by)
-        const attraction = existing.find(a =>
-          a.nameZh === mdTitle ||
-          mdTitle.includes(a.nameZh) ||
-          a.nameZh.includes(mdTitle)
-        );
+        // Find matching attraction by nameZh (fuzzy: strip particles, then contains)
+        const normalize = (s: string) => s.replace(/[的了之在於記]/g, "");
+        const normTitle = normalize(mdTitle);
+        const attraction = existing.find(a => {
+          const normName = normalize(a.nameZh);
+          return a.nameZh === mdTitle || normTitle.includes(normName) || normName.includes(normTitle);
+        });
 
         if (attraction) {
           // Skip if already has md_content
@@ -1550,7 +1551,22 @@ export function registerRoutes(app: Express) {
           matched++;
           results.push({ filename: file.filename, status: "matched", attractionName: attraction.nameZh });
         } else {
-          results.push({ filename: file.filename, status: "no match found (title: " + mdTitle + ")" });
+          // Auto-create attraction from md content if no match found
+          // Try to extract day number from content (e.g., "Day 4", "· Day 4 ·", "day_no: 4")
+          const dayMatch = file.content.match(/Day\s+(\d+)/i);
+          const dayNo = dayMatch ? parseInt(dayMatch[1]) : 0;
+          // Extract English name from second heading (### English Name)
+          const enMatch = file.content.match(/^###\s+(.+)/m);
+          const nameEn = enMatch ? enMatch[1].trim() : "";
+          await storage.createAttraction({
+            tripId,
+            nameZh: mdTitle,
+            nameEn,
+            dayNo,
+            mdContent: file.content,
+          } as any);
+          matched++;
+          results.push({ filename: file.filename, status: "created (new)", attractionName: mdTitle });
         }
       }
 

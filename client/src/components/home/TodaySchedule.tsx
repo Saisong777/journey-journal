@@ -193,8 +193,6 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     if (!allAttractions) return undefined;
     const normalize = (s: string) => s.replace(/[的了之在於記]/g, "");
     const normTitle = normalize(title);
-    // Debug: log matching attempts
-    console.log("[findAttraction]", title, "→ normalized:", normTitle, "| attractions:", allAttractions.map(a => ({ name: a.nameZh, norm: normalize(a.nameZh) })));
     return allAttractions.find(a => {
       const normName = normalize(a.nameZh);
       return normTitle.includes(normName) || normName.includes(normTitle);
@@ -310,12 +308,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
 
                 {/* Action buttons for activity items */}
                 {item.icon === "activity" && (
-                  <div className="flex flex-col gap-1 px-4 pb-3 pl-[74px]">
-                    {/* DEBUG: show matching info - remove after fixing */}
-                    <div className="text-[10px] text-red-400 break-all">
-                      [{item.title}] matched: {attraction ? attraction.nameZh : "NONE"} | total: {allAttractions?.length ?? 0} | names: {allAttractions?.map(a => a.nameZh).join(", ")}
-                    </div>
-                    <div className="flex gap-2">
+                  <div className="flex gap-2 px-4 pb-3 pl-[74px]">
                     {attraction && (
                       <button
                         onClick={() => setSelectedAttraction(attraction)}
@@ -335,7 +328,6 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                       <PenLine className="w-3 h-3" />
                       隨手記錄
                     </button>
-                    </div>
                   </div>
                 )}
               </div>
