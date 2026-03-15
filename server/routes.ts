@@ -1563,6 +1563,7 @@ export function registerRoutes(app: Express) {
             nameZh: mdTitle,
             nameEn,
             dayNo,
+            seq: 0,
             mdContent: file.content,
           } as any);
           matched++;
