@@ -310,7 +310,12 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
 
                 {/* Action buttons for activity items */}
                 {item.icon === "activity" && (
-                  <div className="flex gap-2 px-4 pb-3 pl-[74px]">
+                  <div className="flex flex-col gap-1 px-4 pb-3 pl-[74px]">
+                    {/* DEBUG: show matching info - remove after fixing */}
+                    <div className="text-[10px] text-red-400 break-all">
+                      [{item.title}] matched: {attraction ? attraction.nameZh : "NONE"} | total: {allAttractions?.length ?? 0} | names: {allAttractions?.map(a => a.nameZh).join(", ")}
+                    </div>
+                    <div className="flex gap-2">
                     {attraction && (
                       <button
                         onClick={() => setSelectedAttraction(attraction)}
@@ -330,6 +335,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                       <PenLine className="w-3 h-3" />
                       隨手記錄
                     </button>
+                    </div>
                   </div>
                 )}
               </div>
