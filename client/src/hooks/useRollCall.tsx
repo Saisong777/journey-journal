@@ -37,6 +37,7 @@ export interface RollCallWithCounts {
 
 export interface RollCallDetail extends RollCallWithCounts {
   attendances: RollCallAttendanceWithProfile[];
+  myRole?: string;
 }
 
 export function useRollCalls() {
@@ -53,8 +54,13 @@ export function useRollCalls() {
   });
 }
 
+export interface ActiveRollCallResponse {
+  active: false;
+  myRole: string;
+}
+
 export function useActiveRollCall() {
-  return useQuery<RollCallDetail | null>({
+  return useQuery<RollCallDetail | ActiveRollCallResponse | null>({
     queryKey: ["roll-call-active"],
     queryFn: async () => {
       const res = await fetch("/api/roll-calls/active", {
@@ -66,6 +72,11 @@ export function useActiveRollCall() {
     },
     refetchInterval: 5000,
   });
+}
+
+/** Helper: check if the response is an active roll call (not the "no active" response) */
+export function isActiveRollCall(data: RollCallDetail | ActiveRollCallResponse | null): data is RollCallDetail {
+  return data !== null && !("active" in data && data.active === false);
 }
 
 export function useRollCallDetail(id: string | null) {

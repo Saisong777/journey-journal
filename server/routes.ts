@@ -3039,8 +3039,10 @@ export function registerRoutes(app: Express) {
     try {
       const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) return res.json(null);
+      const isAdmin = await storage.hasAdminAccess(req.userId!);
+      const myRole = isAdmin ? "admin" : (userRole.role || "member");
       const active = await storage.getActiveRollCall(userRole.tripId);
-      if (!active) return res.json(null);
+      if (!active) return res.json({ active: false, myRole });
       const attendances = await storage.getRollCallAttendances(active.id);
       // Get member profiles
       const userIds = attendances.map(a => a.userId);
@@ -3050,7 +3052,7 @@ export function registerRoutes(app: Express) {
         return { ...a, name: member?.name || "未知", avatarUrl: member?.avatarUrl, groupName: member?.group?.name };
       });
       const presentCount = attendances.filter(a => a.status === "present" || a.status === "late").length;
-      res.json({ ...active, attendances: enrichedAttendances, presentCount, totalCount: attendances.length });
+      res.json({ ...active, attendances: enrichedAttendances, presentCount, totalCount: attendances.length, myRole });
     } catch (error) {
       res.status(500).json({ error: "Failed to get active roll call" });
     }
