@@ -349,6 +349,35 @@ export const attractions = pgTable("attractions", {
   index("idx_attractions_trip_day").on(table.tripId, table.dayNo),
 ]);
 
+// ===== Roll Call (Attendance) System =====
+export const rollCalls = pgTable("roll_calls", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  date: text("date").notNull(),
+  location: text("location"),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }).notNull(),
+  selfCheckInEnabled: boolean("self_check_in_enabled").default(false).notNull(),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_roll_calls_trip_date").on(table.tripId, table.date),
+]);
+
+export const rollCallAttendances = pgTable("roll_call_attendances", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  rollCallId: uuid("roll_call_id").references(() => rollCalls.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  status: text("status").default("absent").notNull(),
+  checkedInBy: uuid("checked_in_by").references(() => users.id, { onDelete: "set null" }),
+  checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("idx_roll_call_attendance_unique").on(table.rollCallId, table.userId),
+  index("idx_roll_call_attendance_roll_call").on(table.rollCallId),
+]);
+
 // ===== Bible Library Module System =====
 export const bibleLibraryModules = pgTable("bible_library_modules", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -453,3 +482,8 @@ export type BibleLibraryItem = typeof bibleLibraryItems.$inferSelect;
 export type BibleLibraryModuleTrip = typeof bibleLibraryModuleTrips.$inferSelect;
 export type InsertBibleLibraryModule = z.infer<typeof insertBibleLibraryModuleSchema>;
 export type InsertBibleLibraryItem = z.infer<typeof insertBibleLibraryItemSchema>;
+
+export type RollCall = typeof rollCalls.$inferSelect;
+export type RollCallAttendance = typeof rollCallAttendances.$inferSelect;
+export type InsertRollCall = Omit<RollCall, "id" | "createdAt" | "updatedAt">;
+export type InsertRollCallAttendance = Omit<RollCallAttendance, "id" | "createdAt">;

@@ -28,6 +28,7 @@ const PaulJourneys = lazy(() => import("./pages/PaulJourneys"));
 const VerifyTrip = lazy(() => import("./pages/VerifyTrip"));
 const AuthCallbackSuccess = lazy(() => import("./pages/AuthCallbackSuccess"));
 const Landing = lazy(() => import("./pages/Landing"));
+const RollCall = lazy(() => import("./pages/RollCall"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin pages — separate chunk
@@ -129,6 +130,14 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <Members />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roll-call"
+          element={
+            <ProtectedRoute>
+              <RollCall />
             </ProtectedRoute>
           }
         />

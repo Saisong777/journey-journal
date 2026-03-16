@@ -3005,4 +3005,156 @@ export function registerRoutes(app: Express) {
       });
     }
   });
+
+  // ===== Roll Call (Attendance) System =====
+
+  // Helper: allow admin, leader, or guide roles
+  async function isLeaderOrAdmin(userId: string): Promise<boolean> {
+    const hasAccess = await storage.hasAdminAccess(userId);
+    if (hasAccess) return true;
+    const role = await getCachedUserRole(userId);
+    return !!(role && (role.role === "leader" || role.role === "guide"));
+  }
+
+  // List roll calls for user's trip
+  app.get("/api/roll-calls", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.json([]);
+      const rollCallList = await storage.getRollCallsByTrip(userRole.tripId);
+      // Enrich with attendance counts
+      const enriched = await Promise.all(rollCallList.map(async (rc) => {
+        const attendances = await storage.getRollCallAttendances(rc.id);
+        const presentCount = attendances.filter(a => a.status === "present" || a.status === "late").length;
+        return { ...rc, presentCount, totalCount: attendances.length };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get roll calls" });
+    }
+  });
+
+  // Get active (open) roll call
+  app.get("/api/roll-calls/active", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.json(null);
+      const active = await storage.getActiveRollCall(userRole.tripId);
+      if (!active) return res.json(null);
+      const attendances = await storage.getRollCallAttendances(active.id);
+      // Get member profiles
+      const userIds = attendances.map(a => a.userId);
+      const members = await storage.getMembers(userRole.tripId);
+      const enrichedAttendances = attendances.map(a => {
+        const member = members.find(m => m.userId === a.userId);
+        return { ...a, name: member?.name || "未知", avatarUrl: member?.avatarUrl, groupName: member?.group?.name };
+      });
+      const presentCount = attendances.filter(a => a.status === "present" || a.status === "late").length;
+      res.json({ ...active, attendances: enrichedAttendances, presentCount, totalCount: attendances.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get active roll call" });
+    }
+  });
+
+  // Get single roll call detail
+  app.get("/api/roll-calls/:id", requireAuth, async (req, res) => {
+    try {
+      const rc = await storage.getRollCall(req.params.id);
+      if (!rc) return res.status(404).json({ error: "Not found" });
+      const userRole = await getCachedUserRole(req.userId!);
+      const attendances = await storage.getRollCallAttendances(rc.id);
+      const members = userRole?.tripId ? await storage.getMembers(userRole.tripId) : [];
+      const enrichedAttendances = attendances.map(a => {
+        const member = members.find(m => m.userId === a.userId);
+        return { ...a, name: member?.name || "未知", avatarUrl: member?.avatarUrl, groupName: member?.group?.name };
+      });
+      const presentCount = attendances.filter(a => a.status === "present" || a.status === "late").length;
+      res.json({ ...rc, attendances: enrichedAttendances, presentCount, totalCount: attendances.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get roll call" });
+    }
+  });
+
+  // Create roll call (leader/admin only)
+  app.post("/api/roll-calls", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.status(400).json({ error: "No trip" });
+
+      // Check no active roll call
+      const existing = await storage.getActiveRollCall(userRole.tripId);
+      if (existing) return res.status(409).json({ error: "已有進行中的點名，請先結束" });
+
+      const { date, location, note, selfCheckInEnabled } = req.body;
+      const rc = await storage.createRollCall({
+        tripId: userRole.tripId,
+        date: date || new Date().toISOString().slice(0, 10),
+        location: location || null,
+        note: note || null,
+        createdBy: req.userId!,
+        selfCheckInEnabled: selfCheckInEnabled || false,
+        closedAt: null,
+      });
+
+      // Pre-populate attendance for all members
+      const members = await storage.getMembers(userRole.tripId);
+      for (const member of members) {
+        await storage.upsertAttendance(rc.id, member.userId!, "absent", req.userId!);
+      }
+
+      res.json(rc);
+    } catch (error) {
+      console.error("Error creating roll call:", error);
+      res.status(500).json({ error: "Failed to create roll call" });
+    }
+  });
+
+  // Toggle attendance (leader/admin)
+  app.patch("/api/roll-calls/:id/attendance/:userId", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const { status } = req.body;
+      const result = await storage.upsertAttendance(req.params.id, req.params.userId, status || "present", req.userId!);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update attendance" });
+    }
+  });
+
+  // Self check-in (member)
+  app.post("/api/roll-calls/:id/self-check-in", requireAuth, async (req, res) => {
+    try {
+      const rc = await storage.getRollCall(req.params.id);
+      if (!rc) return res.status(404).json({ error: "Not found" });
+      if (rc.closedAt) return res.status(400).json({ error: "點名已結束" });
+      if (!rc.selfCheckInEnabled) return res.status(403).json({ error: "自助簽到未開放" });
+      const result = await storage.upsertAttendance(rc.id, req.userId!, "present", req.userId!);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to self check-in" });
+    }
+  });
+
+  // Close roll call (leader/admin)
+  app.post("/api/roll-calls/:id/close", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const result = await storage.closeRollCall(req.params.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to close roll call" });
+    }
+  });
+
+  // Delete roll call (leader/admin)
+  app.delete("/api/roll-calls/:id", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      await storage.deleteRollCall(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete roll call" });
+    }
+  });
 }

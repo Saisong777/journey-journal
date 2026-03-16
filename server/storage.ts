@@ -67,6 +67,12 @@ import {
   type BibleLibraryModuleTrip,
   type InsertBibleLibraryModule,
   type InsertBibleLibraryItem,
+  rollCalls,
+  rollCallAttendances,
+  type RollCall,
+  type RollCallAttendance,
+  type InsertRollCall,
+  type InsertRollCallAttendance,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -211,6 +217,17 @@ export interface IStorage {
   assignModuleToTrip(moduleId: string, tripId: string): Promise<void>;
   unassignModuleFromTrip(moduleId: string, tripId: string): Promise<void>;
   getModuleTrips(moduleId: string): Promise<BibleLibraryModuleTrip[]>;
+
+  // Roll Call
+  getRollCallsByTrip(tripId: string): Promise<RollCall[]>;
+  getActiveRollCall(tripId: string): Promise<RollCall | undefined>;
+  getRollCall(id: string): Promise<RollCall | undefined>;
+  createRollCall(data: InsertRollCall): Promise<RollCall>;
+  updateRollCall(id: string, data: Partial<InsertRollCall>): Promise<RollCall | undefined>;
+  closeRollCall(id: string): Promise<RollCall | undefined>;
+  deleteRollCall(id: string): Promise<void>;
+  getRollCallAttendances(rollCallId: string): Promise<RollCallAttendance[]>;
+  upsertAttendance(rollCallId: string, userId: string, status: string, checkedInBy: string): Promise<RollCallAttendance>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1003,6 +1020,75 @@ export class DatabaseStorage implements IStorage {
   }
   async getModuleTrips(moduleId: string): Promise<BibleLibraryModuleTrip[]> {
     return db.select().from(bibleLibraryModuleTrips).where(eq(bibleLibraryModuleTrips.moduleId, moduleId));
+  }
+
+  // ===== Roll Call =====
+  async getRollCallsByTrip(tripId: string): Promise<RollCall[]> {
+    return db.select().from(rollCalls)
+      .where(eq(rollCalls.tripId, tripId))
+      .orderBy(desc(rollCalls.createdAt));
+  }
+
+  async getActiveRollCall(tripId: string): Promise<RollCall | undefined> {
+    const [row] = await db.select().from(rollCalls)
+      .where(and(eq(rollCalls.tripId, tripId), sql`${rollCalls.closedAt} IS NULL`));
+    return row;
+  }
+
+  async getRollCall(id: string): Promise<RollCall | undefined> {
+    const [row] = await db.select().from(rollCalls).where(eq(rollCalls.id, id));
+    return row;
+  }
+
+  async createRollCall(data: InsertRollCall): Promise<RollCall> {
+    const [created] = await db.insert(rollCalls).values(data).returning();
+    return created;
+  }
+
+  async updateRollCall(id: string, data: Partial<InsertRollCall>): Promise<RollCall | undefined> {
+    const [updated] = await db.update(rollCalls)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rollCalls.id, id))
+      .returning();
+    return updated;
+  }
+
+  async closeRollCall(id: string): Promise<RollCall | undefined> {
+    const [updated] = await db.update(rollCalls)
+      .set({ closedAt: new Date(), updatedAt: new Date() })
+      .where(eq(rollCalls.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteRollCall(id: string): Promise<void> {
+    await db.delete(rollCalls).where(eq(rollCalls.id, id));
+  }
+
+  async getRollCallAttendances(rollCallId: string): Promise<RollCallAttendance[]> {
+    return db.select().from(rollCallAttendances)
+      .where(eq(rollCallAttendances.rollCallId, rollCallId));
+  }
+
+  async upsertAttendance(rollCallId: string, userId: string, status: string, checkedInBy: string): Promise<RollCallAttendance> {
+    const [result] = await db.insert(rollCallAttendances)
+      .values({
+        rollCallId,
+        userId,
+        status,
+        checkedInBy,
+        checkedInAt: status === "present" || status === "late" ? new Date() : null,
+      })
+      .onConflictDoUpdate({
+        target: [rollCallAttendances.rollCallId, rollCallAttendances.userId],
+        set: {
+          status,
+          checkedInBy,
+          checkedInAt: status === "present" || status === "late" ? new Date() : null,
+        },
+      })
+      .returning();
+    return result;
   }
 }
 

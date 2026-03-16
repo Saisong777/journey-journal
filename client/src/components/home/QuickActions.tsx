@@ -6,6 +6,7 @@ import {
   Wrench,
   Users,
   Library,
+  ClipboardCheck,
 } from "lucide-react";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 
@@ -37,6 +38,12 @@ const baseFeatures = [
     title: "團員管理",
     description: "查看團員資訊",
     path: "/members",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "點名",
+    description: "出席點名與紀錄",
+    path: "/roll-call",
   },
 ];
 

@@ -679,6 +679,7 @@ export async function runStartupMigration() {
 
     await ensureAttractionsTable();
     await ensureBibleLibraryTables();
+    await ensureRollCallTables();
 
     console.log("[startup-migration] complete");
   } catch (error) {
@@ -813,5 +814,48 @@ async function ensureBibleLibraryTables() {
     }
   } catch (e) {
     console.error("[startup-migration] bible library tables error:", e);
+  }
+}
+
+async function ensureRollCallTables() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS roll_calls (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          date TEXT NOT NULL,
+          location TEXT,
+          note TEXT,
+          created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+          self_check_in_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          closed_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_roll_calls_trip_date ON roll_calls(trip_id, date)`);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS roll_call_attendances (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          roll_call_id UUID NOT NULL REFERENCES roll_calls(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'absent',
+          checked_in_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          checked_in_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_roll_call_attendance_unique ON roll_call_attendances(roll_call_id, user_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_roll_call_attendance_roll_call ON roll_call_attendances(roll_call_id)`);
+
+      console.log("[startup-migration] ensured roll call tables");
+    } finally {
+      client.release();
+    }
+  } catch (e) {
+    console.error("[startup-migration] roll call tables error:", e);
   }
 }
