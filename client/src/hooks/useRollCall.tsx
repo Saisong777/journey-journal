@@ -75,8 +75,8 @@ export function useActiveRollCall() {
 }
 
 /** Helper: check if the response is an active roll call (not the "no active" response) */
-export function isActiveRollCall(data: RollCallDetail | ActiveRollCallResponse | null): data is RollCallDetail {
-  return data !== null && !("active" in data && data.active === false);
+export function isActiveRollCall(data: RollCallDetail | ActiveRollCallResponse | null | undefined): data is RollCallDetail {
+  return data != null && !("active" in data && data.active === false);
 }
 
 export function useRollCallDetail(id: string | null) {
