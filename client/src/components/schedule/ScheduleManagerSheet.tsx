@@ -7,13 +7,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Utensils, Clock, Home, Bus, Users, Coffee, Pencil, Trash2, Plus, RefreshCw, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -282,32 +275,39 @@ interface EditFormProps {
 function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps) {
   return (
     <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2.5">
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <Input
           value={editing.time}
           onChange={e => onChange({ ...editing, time: e.target.value })}
           placeholder="09:00"
-          className="w-20 font-mono text-center text-sm h-9"
+          className="w-20 font-mono text-center text-sm h-9 flex-shrink-0"
           maxLength={5}
         />
-        <Select
-          value={editing.type}
-          onValueChange={v => onChange({ ...editing, type: v as ScheduleItem["type"] })}
-        >
-          <SelectTrigger className="flex-1 h-9 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="z-[200]">
-            {TYPE_OPTIONS.map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <span className="flex items-center gap-1.5">
-                  <opt.icon className="w-3.5 h-3.5" />
-                  {opt.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="text-caption text-muted-foreground flex-shrink-0">類型</div>
+      </div>
+
+      {/* Type picker — horizontal scroll buttons, no Radix dropdown */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {TYPE_OPTIONS.map(opt => {
+          const Icon = opt.icon;
+          const active = editing.type === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange({ ...editing, type: opt.value as ScheduleItem["type"] })}
+              className={cn(
+                "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-caption whitespace-nowrap flex-shrink-0 border transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:border-primary/50"
+              )}
+            >
+              <Icon className="w-3 h-3" />
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
 
       <Input
