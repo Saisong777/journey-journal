@@ -99,7 +99,7 @@ function dbItemsToSchedule(dbItems: DbScheduleItem[]): LocalScheduleItem[] {
     free_time: "free_time",
     custom: "custom",
   };
-  const sorted = [...dbItems].sort((a, b) => a.seq - b.seq || a.time.localeCompare(b.time));
+  const sorted = [...dbItems].sort((a, b) => a.time.localeCompare(b.time));
   const items: LocalScheduleItem[] = sorted.map(item => ({
     time: item.time,
     title: item.title,
