@@ -3159,4 +3159,131 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to delete roll call" });
     }
   });
+
+  // ===== Trip Schedule Items =====
+
+  // GET /api/schedule-items?dayNo=X  — all users can read
+  app.get("/api/schedule-items", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.json({ items: [], canManage: false });
+      const dayNo = parseInt(req.query.dayNo as string);
+      if (isNaN(dayNo)) return res.status(400).json({ error: "dayNo required" });
+      const items = await storage.getScheduleItems(userRole.tripId, dayNo);
+      const canManage = await isLeaderOrAdmin(req.userId!);
+      res.json({ items, canManage });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get schedule items" });
+    }
+  });
+
+  // POST /api/schedule-items  — leader/guide/admin only
+  app.post("/api/schedule-items", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.status(400).json({ error: "No trip assigned" });
+      const { dayNo, seq, time, type, title, location, notes, attractionId } = req.body;
+      const item = await storage.createScheduleItem({
+        tripId: userRole.tripId,
+        dayNo,
+        seq: seq ?? 0,
+        time,
+        type: type ?? "custom",
+        title,
+        location: location ?? null,
+        notes: notes ?? null,
+        attractionId: attractionId ?? null,
+      });
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create schedule item" });
+    }
+  });
+
+  // PATCH /api/schedule-items/:id  — leader/guide/admin only
+  app.patch("/api/schedule-items/:id", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const { time, type, title, location, notes, seq } = req.body;
+      const item = await storage.updateScheduleItem(req.params.id, { time, type, title, location, notes, seq });
+      if (!item) return res.status(404).json({ error: "Not found" });
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update schedule item" });
+    }
+  });
+
+  // DELETE /api/schedule-items/:id  — leader/guide/admin only
+  app.delete("/api/schedule-items/:id", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      await storage.deleteScheduleItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete schedule item" });
+    }
+  });
+
+  // POST /api/schedule-items/reorder  — leader/guide/admin only
+  app.post("/api/schedule-items/reorder", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const { items } = req.body as { items: { id: string; seq: number }[] };
+      await storage.reorderScheduleItems(items);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder schedule items" });
+    }
+  });
+
+  // POST /api/schedule-items/seed/:dayNo  — seed from tripDays data
+  app.post("/api/schedule-items/seed/:dayNo", requireAuth, async (req, res) => {
+    try {
+      if (!(await isLeaderOrAdmin(req.userId!))) return res.status(403).json({ error: "Forbidden" });
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.status(400).json({ error: "No trip assigned" });
+      const dayNo = parseInt(req.params.dayNo);
+      if (isNaN(dayNo)) return res.status(400).json({ error: "Invalid dayNo" });
+
+      // Check if items already exist
+      const existing = await storage.getScheduleItems(userRole.tripId, dayNo);
+      if (existing.length > 0) return res.status(409).json({ error: "Schedule items already exist for this day" });
+
+      // Fetch tripDay data
+      const tripDaysList = await storage.getTripDays(userRole.tripId);
+      const tripDay = tripDaysList.find(d => d.dayNo === dayNo);
+      if (!tripDay) return res.status(404).json({ error: "Trip day not found" });
+
+      const itemsToCreate: Parameters<typeof storage.createScheduleItem>[0][] = [];
+      let seq = 0;
+
+      if (tripDay.breakfast && tripDay.breakfast !== "X" && tripDay.breakfast !== "x") {
+        itemsToCreate.push({ tripId: userRole.tripId, dayNo, seq: seq++, time: "07:30", type: "meal", title: "早餐", location: tripDay.breakfast, notes: null, attractionId: null });
+      }
+
+      const highlights = tripDay.highlights?.split("/").map((h: string) => h.trim()).filter(Boolean) || [];
+      const defaultTimes = ["09:00", "10:30", "14:00", "15:30", "16:30"];
+      highlights.slice(0, 5).forEach((highlight: string, i: number) => {
+        itemsToCreate.push({ tripId: userRole.tripId, dayNo, seq: seq++, time: defaultTimes[i] || "11:00", type: "activity", title: highlight, location: tripDay.cityArea || null, notes: null, attractionId: null });
+      });
+
+      if (tripDay.lunch && tripDay.lunch !== "X" && tripDay.lunch !== "x") {
+        itemsToCreate.push({ tripId: userRole.tripId, dayNo, seq: seq++, time: "12:00", type: "meal", title: "午餐", location: tripDay.lunch, notes: null, attractionId: null });
+      }
+
+      if (tripDay.dinner && tripDay.dinner !== "X" && tripDay.dinner !== "x") {
+        itemsToCreate.push({ tripId: userRole.tripId, dayNo, seq: seq++, time: "18:30", type: "meal", title: "晚餐", location: tripDay.dinner, notes: null, attractionId: null });
+      }
+
+      if (tripDay.lodging && tripDay.lodging !== "X" && tripDay.lodging !== "x") {
+        itemsToCreate.push({ tripId: userRole.tripId, dayNo, seq: seq++, time: "20:00", type: "accommodation", title: "住宿", location: tripDay.lodging, notes: null, attractionId: null });
+      }
+
+      const created = await Promise.all(itemsToCreate.map(item => storage.createScheduleItem(item)));
+      res.json(created);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to seed schedule items" });
+    }
+  });
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion } from "lucide-react";
+import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion, Bus, Coffee, Settings2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/sheet";
 import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { useCreateJournalEntry } from "@/hooks/useJournalEntries";
+import { useScheduleItems, type ScheduleItem as DbScheduleItem } from "@/hooks/useScheduleItems";
+import { ScheduleManagerSheet } from "@/components/schedule/ScheduleManagerSheet";
 
 interface TripDay {
   id: string;
@@ -74,11 +76,11 @@ interface Attraction {
   mdContent?: string;
 }
 
-interface ScheduleItem {
+interface LocalScheduleItem {
   time: string;
   title: string;
   location: string;
-  icon: "activity" | "meal" | "lodging";
+  icon: "activity" | "meal" | "lodging" | "boarding" | "gathering" | "free_time" | "custom";
   isNext?: boolean;
 }
 
@@ -87,8 +89,39 @@ interface TodayScheduleProps {
   isLoading: boolean;
 }
 
-function parseHighlightsToSchedule(tripDay: TripDay): ScheduleItem[] {
-  const items: ScheduleItem[] = [];
+function dbItemsToSchedule(dbItems: DbScheduleItem[]): LocalScheduleItem[] {
+  const iconMap: Record<DbScheduleItem["type"], LocalScheduleItem["icon"]> = {
+    meal: "meal",
+    activity: "activity",
+    boarding: "boarding",
+    gathering: "gathering",
+    accommodation: "lodging",
+    free_time: "free_time",
+    custom: "custom",
+  };
+  const sorted = [...dbItems].sort((a, b) => a.seq - b.seq || a.time.localeCompare(b.time));
+  const items: LocalScheduleItem[] = sorted.map(item => ({
+    time: item.time,
+    title: item.title,
+    location: item.location ?? "",
+    icon: iconMap[item.type],
+  }));
+  // Mark next upcoming item
+  const now = new Date();
+  const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  let nextFound = false;
+  items.forEach(item => {
+    item.isNext = false;
+    if (!nextFound && item.time >= currentTime) {
+      item.isNext = true;
+      nextFound = true;
+    }
+  });
+  return items;
+}
+
+function parseHighlightsToSchedule(tripDay: TripDay): LocalScheduleItem[] {
+  const items: LocalScheduleItem[] = [];
 
   if (tripDay.breakfast && tripDay.breakfast !== "X" && tripDay.breakfast !== "x") {
     items.push({
@@ -171,7 +204,13 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [journalOpen, setJournalOpen] = useState(false);
   const [journalLocation, setJournalLocation] = useState("");
+  const [managerOpen, setManagerOpen] = useState(false);
   const createJournal = useCreateJournalEntry();
+
+  // Fetch DB-driven schedule items
+  const { data: scheduleData } = useScheduleItems(todaySchedule?.dayNumber ?? null);
+  const dbItems = scheduleData?.items ?? [];
+  const canManage = scheduleData?.canManage ?? false;
 
   // Fetch attractions for today's day
   const { data: allAttractions } = useQuery<Attraction[]>({
@@ -226,7 +265,10 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     return null;
   }
 
-  const scheduleItems = parseHighlightsToSchedule(todaySchedule);
+  // Use DB items if available, otherwise fall back to parsed highlights
+  const scheduleItems = dbItems.length > 0
+    ? dbItemsToSchedule(dbItems)
+    : parseHighlightsToSchedule(todaySchedule);
 
   const handleJournalSave = async (entry: { location: string; content: string; photos: any[]; mood: string }) => {
     await createJournal.mutateAsync({
@@ -242,9 +284,20 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     <section className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-title">今日行程</h2>
-        <div className="text-primary text-body font-medium flex items-center gap-1">
-          第 {todaySchedule.dayNumber} 天
-          {todaySchedule.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <button
+              onClick={() => setManagerOpen(true)}
+              className="flex items-center gap-1 text-caption text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              管理
+            </button>
+          )}
+          <div className="text-primary text-body font-medium flex items-center gap-1">
+            第 {todaySchedule.dayNumber} 天
+            {todaySchedule.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
+          </div>
         </div>
       </div>
 
@@ -274,6 +327,12 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                       <Utensils className="w-4 h-4 mx-auto mb-1 opacity-80" />
                     ) : item.icon === "lodging" ? (
                       <Home className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    ) : item.icon === "boarding" ? (
+                      <Bus className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    ) : item.icon === "gathering" ? (
+                      <Users className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                    ) : item.icon === "free_time" ? (
+                      <Coffee className="w-4 h-4 mx-auto mb-1 opacity-80" />
                     ) : (
                       <Clock className="w-4 h-4 mx-auto mb-1 opacity-80" />
                     )}
@@ -461,6 +520,17 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
         defaultLocation={journalLocation}
         onSave={handleJournalSave}
       />
+
+      {/* Schedule manager sheet (leader/guide/admin only) */}
+      {canManage && (
+        <ScheduleManagerSheet
+          open={managerOpen}
+          onOpenChange={setManagerOpen}
+          dayNo={todaySchedule.dayNumber}
+          items={dbItems}
+          hasItems={dbItems.length > 0}
+        />
+      )}
     </section>
   );
 }

@@ -349,6 +349,34 @@ export const attractions = pgTable("attractions", {
   index("idx_attractions_trip_day").on(table.tripId, table.dayNo),
 ]);
 
+// ===== Trip Schedule Items (DB-driven timeline) =====
+export const scheduleItemTypeEnum = pgEnum("schedule_item_type", [
+  "meal",           // 餐食 (早/午/晚餐)
+  "activity",       // 景點/活動
+  "boarding",       // 上車
+  "gathering",      // 集合
+  "accommodation",  // 住宿
+  "free_time",      // 自由時間
+  "custom",         // 自訂
+]);
+
+export const tripScheduleItems = pgTable("trip_schedule_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }).notNull(),
+  dayNo: integer("day_no").notNull(),
+  seq: integer("seq").notNull().default(0),
+  time: text("time").notNull(), // "HH:MM"
+  type: scheduleItemTypeEnum("type").default("custom").notNull(),
+  title: text("title").notNull(),
+  location: text("location"),
+  notes: text("notes"),
+  attractionId: uuid("attraction_id").references(() => attractions.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_schedule_items_trip_day").on(table.tripId, table.dayNo),
+]);
+
 // ===== Roll Call (Attendance) System =====
 export const rollCalls = pgTable("roll_calls", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -428,6 +456,7 @@ export const fileUploads = pgTable("file_uploads", {
 
 export const insertAttractionSchema = createInsertSchema(attractions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripInvitationSchema = createInsertSchema(tripInvitations).omit({ id: true, createdAt: true, usedCount: true });
+export const insertTripScheduleItemSchema = createInsertSchema(tripScheduleItems).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEveningReflectionSchema = createInsertSchema(eveningReflections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformRoleSchema = createInsertSchema(platformRoles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTripNoteSchema = createInsertSchema(tripNotes).omit({ id: true, createdAt: true, updatedAt: true });
@@ -447,6 +476,7 @@ export type InsertDevotionalCourse = z.infer<typeof insertDevotionalCourseSchema
 export type InsertTripInvitation = z.infer<typeof insertTripInvitationSchema>;
 export type InsertEveningReflection = z.infer<typeof insertEveningReflectionSchema>;
 export type InsertPlatformRole = z.infer<typeof insertPlatformRoleSchema>;
+export type InsertTripScheduleItem = z.infer<typeof insertTripScheduleItemSchema>;
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -463,6 +493,7 @@ export type DevotionalCourse = typeof devotionalCourses.$inferSelect;
 export type TripInvitation = typeof tripInvitations.$inferSelect;
 export type EveningReflection = typeof eveningReflections.$inferSelect;
 export type PlatformRole = typeof platformRoles.$inferSelect;
+export type TripScheduleItem = typeof tripScheduleItems.$inferSelect;
 export type TripNote = typeof tripNotes.$inferSelect;
 export type TripNoteAssignment = typeof tripNoteAssignments.$inferSelect;
 export type BibleVerse = typeof bibleVerses.$inferSelect;

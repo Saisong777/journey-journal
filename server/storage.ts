@@ -73,6 +73,9 @@ import {
   type RollCallAttendance,
   type InsertRollCall,
   type InsertRollCallAttendance,
+  tripScheduleItems,
+  type TripScheduleItem,
+  type InsertTripScheduleItem,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -228,6 +231,13 @@ export interface IStorage {
   deleteRollCall(id: string): Promise<void>;
   getRollCallAttendances(rollCallId: string): Promise<RollCallAttendance[]>;
   upsertAttendance(rollCallId: string, userId: string, status: string, checkedInBy: string): Promise<RollCallAttendance>;
+
+  // Trip Schedule Items
+  getScheduleItems(tripId: string, dayNo: number): Promise<TripScheduleItem[]>;
+  createScheduleItem(data: InsertTripScheduleItem): Promise<TripScheduleItem>;
+  updateScheduleItem(id: string, data: Partial<InsertTripScheduleItem>): Promise<TripScheduleItem | undefined>;
+  deleteScheduleItem(id: string): Promise<void>;
+  reorderScheduleItems(items: { id: string; seq: number }[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1089,6 +1099,36 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return result;
+  }
+
+  // Trip Schedule Items
+  async getScheduleItems(tripId: string, dayNo: number): Promise<TripScheduleItem[]> {
+    return db.select().from(tripScheduleItems)
+      .where(and(eq(tripScheduleItems.tripId, tripId), eq(tripScheduleItems.dayNo, dayNo)))
+      .orderBy(asc(tripScheduleItems.seq), asc(tripScheduleItems.time));
+  }
+
+  async createScheduleItem(data: InsertTripScheduleItem): Promise<TripScheduleItem> {
+    const [item] = await db.insert(tripScheduleItems).values(data).returning();
+    return item;
+  }
+
+  async updateScheduleItem(id: string, data: Partial<InsertTripScheduleItem>): Promise<TripScheduleItem | undefined> {
+    const [item] = await db.update(tripScheduleItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(tripScheduleItems.id, id))
+      .returning();
+    return item;
+  }
+
+  async deleteScheduleItem(id: string): Promise<void> {
+    await db.delete(tripScheduleItems).where(eq(tripScheduleItems.id, id));
+  }
+
+  async reorderScheduleItems(items: { id: string; seq: number }[]): Promise<void> {
+    await Promise.all(items.map(({ id, seq }) =>
+      db.update(tripScheduleItems).set({ seq, updatedAt: new Date() }).where(eq(tripScheduleItems.id, id))
+    ));
   }
 }
 
