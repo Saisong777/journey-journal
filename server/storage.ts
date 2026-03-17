@@ -1105,7 +1105,7 @@ export class DatabaseStorage implements IStorage {
   async getScheduleItems(tripId: string, dayNo: number): Promise<TripScheduleItem[]> {
     return db.select().from(tripScheduleItems)
       .where(and(eq(tripScheduleItems.tripId, tripId), eq(tripScheduleItems.dayNo, dayNo)))
-      .orderBy(asc(tripScheduleItems.seq), asc(tripScheduleItems.time));
+      .orderBy(asc(tripScheduleItems.time));
   }
 
   async createScheduleItem(data: InsertTripScheduleItem): Promise<TripScheduleItem> {

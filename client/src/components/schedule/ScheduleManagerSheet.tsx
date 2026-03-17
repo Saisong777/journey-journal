@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Utensils, Clock, Home, Bus, Users, Coffee, Pencil, Trash2, Plus, ChevronUp, ChevronDown, RefreshCw, Check, X } from "lucide-react";
+import { Utensils, Clock, Home, Bus, Users, Coffee, Pencil, Trash2, Plus, RefreshCw, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,13 +40,8 @@ function getTypeIcon(type: ScheduleItem["type"]) {
   return opt ? opt.icon : Clock;
 }
 
-function getTypeLabel(type: ScheduleItem["type"]) {
-  const opt = TYPE_OPTIONS.find(o => o.value === type);
-  return opt ? opt.label : "自訂";
-}
-
 interface EditingItem {
-  id: string | null; // null = new item
+  id: string | null;
   time: string;
   type: ScheduleItem["type"];
   title: string;
@@ -103,8 +98,6 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
 
     try {
       if (editing.id === null) {
-        // New item — seq = last + 1
-        const maxSeq = items.length > 0 ? Math.max(...items.map(i => i.seq)) + 1 : 0;
         await createItem.mutateAsync({
           dayNo,
           time: editing.time,
@@ -112,7 +105,7 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
           title: editing.title.trim(),
           location: editing.location.trim() || undefined,
           notes: editing.notes.trim() || undefined,
-          seq: maxSeq,
+          seq: 0,
         });
         toast({ title: "已新增行程項目" });
       } else {
@@ -142,24 +135,6 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
     }
   }
 
-  async function handleMove(item: ScheduleItem, dir: "up" | "down") {
-    const sorted = [...items].sort((a, b) => a.seq - b.seq || a.time.localeCompare(b.time));
-    const idx = sorted.findIndex(i => i.id === item.id);
-    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-
-    const swapItem = sorted[swapIdx];
-    const mySeq = item.seq;
-    const theirSeq = swapItem.seq;
-
-    try {
-      await updateItem.mutateAsync({ id: item.id, dayNo, seq: theirSeq });
-      await updateItem.mutateAsync({ id: swapItem.id, dayNo, seq: mySeq });
-    } catch {
-      toast({ title: "排序失敗", variant: "destructive" });
-    }
-  }
-
   async function handleSeed() {
     try {
       await seedItems.mutateAsync(dayNo);
@@ -174,7 +149,8 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
     }
   }
 
-  const sorted = [...items].sort((a, b) => a.seq - b.seq || a.time.localeCompare(b.time));
+  // Always sort by time
+  const sorted = [...items].sort((a, b) => a.time.localeCompare(b.time));
   const isBusy = createItem.isPending || updateItem.isPending || deleteItem.isPending;
 
   return (
@@ -182,7 +158,7 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
       <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl flex flex-col">
         <SheetHeader className="flex-shrink-0 pb-3 border-b border-border">
           <SheetTitle className="text-center">管理行程安排</SheetTitle>
-          <p className="text-caption text-muted-foreground text-center">第 {dayNo} 天</p>
+          <p className="text-caption text-muted-foreground text-center">第 {dayNo} 天 · 依時間自動排序</p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto py-3 space-y-2">
@@ -203,8 +179,8 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
             </div>
           )}
 
-          {/* Existing items */}
-          {sorted.map((item, idx) => {
+          {/* Existing items sorted by time */}
+          {sorted.map((item) => {
             const Icon = getTypeIcon(item.type);
             const isEditing = editing?.id === item.id;
 
@@ -222,24 +198,7 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
             }
 
             return (
-              <div key={item.id} className="flex items-center gap-2 bg-card rounded-lg px-3 py-2.5 border border-border/50">
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    onClick={() => handleMove(item, "up")}
-                    disabled={idx === 0 || isBusy}
-                  >
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    onClick={() => handleMove(item, "down")}
-                    disabled={idx === sorted.length - 1 || isBusy}
-                  >
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
+              <div key={item.id} className="flex items-center gap-3 bg-card rounded-lg px-3 py-2.5 border border-border/50">
                 <div className="text-center min-w-[46px]">
                   <Icon className="w-3.5 h-3.5 mx-auto text-muted-foreground mb-0.5" />
                   <span className="text-caption font-mono text-muted-foreground">{item.time}</span>
@@ -284,7 +243,7 @@ export function ScheduleManagerSheet({ open, onOpenChange, dayNo, items, hasItem
           )}
         </div>
 
-        {/* Footer buttons */}
+        {/* Footer */}
         <div className="flex-shrink-0 pt-3 border-t border-border flex gap-2">
           {hasItems && (
             <Button
@@ -324,7 +283,6 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
   return (
     <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2.5">
       <div className="flex gap-2">
-        {/* Time */}
         <Input
           value={editing.time}
           onChange={e => onChange({ ...editing, time: e.target.value })}
@@ -332,7 +290,6 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
           className="w-20 font-mono text-center text-sm h-9"
           maxLength={5}
         />
-        {/* Type */}
         <Select
           value={editing.type}
           onValueChange={v => onChange({ ...editing, type: v as ScheduleItem["type"] })}
@@ -353,7 +310,6 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
         </Select>
       </div>
 
-      {/* Title */}
       <Input
         value={editing.title}
         onChange={e => onChange({ ...editing, title: e.target.value })}
@@ -361,7 +317,6 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
         className="h-9 text-sm"
       />
 
-      {/* Location */}
       <Input
         value={editing.location}
         onChange={e => onChange({ ...editing, location: e.target.value })}
@@ -369,7 +324,6 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
         className="h-9 text-sm"
       />
 
-      {/* Notes */}
       <Input
         value={editing.notes}
         onChange={e => onChange({ ...editing, notes: e.target.value })}
