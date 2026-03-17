@@ -297,7 +297,7 @@ function EditForm({ editing, onChange, onSave, onCancel, isBusy }: EditFormProps
           <SelectTrigger className="flex-1 h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[200]">
             {TYPE_OPTIONS.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>
                 <span className="flex items-center gap-1.5">
