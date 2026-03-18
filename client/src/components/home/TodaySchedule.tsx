@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion, Bus, Coffee, Settings2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -423,7 +425,16 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                 prose-ul:my-3 prose-ol:my-3
                 prose-strong:text-foreground
                 prose-hr:my-6 prose-hr:border-border">
-                <ReactMarkdown>{selectedAttraction.mdContent}</ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    table: ({ children }) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
+                    thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
+                    th: ({ children }) => <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>,
+                    td: ({ children }) => <td className="border border-border px-3 py-2">{children}</td>,
+                  }}
+                >{selectedAttraction.mdContent}</ReactMarkdown>
               </div>
             ) : (
               <div className="space-y-8 text-sm">

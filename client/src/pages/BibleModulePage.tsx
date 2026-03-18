@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { Loader2, FileDown, ChevronRight, ArrowLeft } from "lucide-react";
@@ -34,6 +36,10 @@ const markdownComponents = {
   strong: ({ children }: any) => <strong className="font-bold text-foreground">{children}</strong>,
   blockquote: ({ children }: any) => <blockquote className="border-l-2 border-amber-400 pl-3 italic my-2">{children}</blockquote>,
   hr: () => <hr className="my-3 border-border" />,
+  table: ({ children }: any) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
+  thead: ({ children }: any) => <thead className="bg-muted">{children}</thead>,
+  th: ({ children }: any) => <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>,
+  td: ({ children }: any) => <td className="border border-border px-3 py-2">{children}</td>,
 };
 
 function getPreview(content: string | null, maxLen = 80): string {
@@ -83,6 +89,8 @@ export default function BibleModulePage() {
             <h2 className="text-lg font-bold mb-4">{selectedItem.title}</h2>
             {selectedItem.content && (
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                 components={markdownComponents}
               >

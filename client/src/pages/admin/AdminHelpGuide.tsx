@@ -8,6 +8,8 @@ import { Save, Loader2, Eye, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 const markdownComponents = {
   p: ({ children }: any) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
@@ -21,6 +23,10 @@ const markdownComponents = {
   strong: ({ children }: any) => <strong className="font-bold">{children}</strong>,
   blockquote: ({ children }: any) => <blockquote className="border-l-2 border-primary/40 pl-4 italic my-3 text-muted-foreground">{children}</blockquote>,
   hr: () => <hr className="my-4 border-border" />,
+  table: ({ children }: any) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
+  thead: ({ children }: any) => <thead className="bg-muted">{children}</thead>,
+  th: ({ children }: any) => <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>,
+  td: ({ children }: any) => <td className="border border-border px-3 py-2">{children}</td>,
 };
 
 export default function AdminHelpGuide() {
@@ -101,6 +107,8 @@ export default function AdminHelpGuide() {
             <div className="bg-card rounded-xl border border-border p-5 min-h-[500px]">
               {content ? (
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
                   className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                   components={markdownComponents}
                 >
