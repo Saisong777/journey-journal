@@ -26,18 +26,18 @@ const Attractions = () => {
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionDB | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: attractionsData, isLoading } = useQuery<AttractionDB[]>({
-    queryKey: ["/api/attractions"],
+  type ScheduleLocationItem = AttractionDB & { scheduledDayNo?: number };
+  const { data: attractionsData, isLoading } = useQuery<ScheduleLocationItem[]>({
+    queryKey: ["/api/schedule-locations"],
     queryFn: async () => {
       const token = getAuthToken();
-      const response = await fetch("/api/attractions", {
+      const response = await fetch("/api/schedule-locations", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
     enabled: !!user,
-    staleTime: Infinity,
   });
 
   const { data: trip } = useQuery({
@@ -55,7 +55,8 @@ const Attractions = () => {
 
   const attractions = attractionsData || [];
 
-  const uniqueDays = [...new Set(attractions.map(a => a.dayNo))].sort((a, b) => a - b);
+  const getDay = (a: ScheduleLocationItem) => a.scheduledDayNo ?? a.dayNo;
+  const uniqueDays = [...new Set(attractions.map(a => getDay(a)))].sort((a, b) => a - b);
 
   const filteredAttractions = attractions.filter((a) => {
     const q = searchQuery.toLowerCase();
@@ -64,7 +65,7 @@ const Attractions = () => {
       (a.nameEn || "").toLowerCase().includes(q) ||
       (a.modernLocation || "").toLowerCase().includes(q) ||
       (a.ancientToponym || "").toLowerCase().includes(q);
-    const matchesDay = selectedDay === null || a.dayNo === selectedDay;
+    const matchesDay = selectedDay === null || getDay(a) === selectedDay;
     return matchesSearch && matchesDay;
   });
 
@@ -185,7 +186,7 @@ const Attractions = () => {
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      第{a.dayNo}天{a.date && ` · ${formatDate(a.date)}`}
+                      第{getDay(a)}天{a.date && ` · ${formatDate(a.date)}`}
                     </span>
                     {a.modernLocation && (
                       <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
