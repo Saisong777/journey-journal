@@ -226,11 +226,12 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     enabled: !!todaySchedule,
   });
 
-  // Match schedule item title to an attraction (fuzzy: strip particles like 的/了/之)
-  // Search all attractions (not just today's dayNo) to handle any dayNo mismatches
+  // Match schedule item title to an attraction
+  // Normalize: strip particles, punctuation, spaces — compare pure Chinese chars
   function findAttraction(title: string): Attraction | undefined {
     if (!allAttractions) return undefined;
-    const normalize = (s: string) => s.replace(/[的了之在於記]/g, "");
+    const normalize = (s: string) =>
+      s.replace(/[的了之在於記]/g, "").replace(/[(（）)\/／\s·・\-–—]/g, "");
     const normTitle = normalize(title);
     return allAttractions.find(a => {
       const normName = normalize(a.nameZh);

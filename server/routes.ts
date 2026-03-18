@@ -2834,7 +2834,8 @@ export function registerRoutes(app: Express) {
         storage.getAllActivityScheduleItems(userRole.tripId),
         storage.getTripDays(userRole.tripId),
       ]);
-      const normalize = (s: string) => s.replace(/[的了之在於記]/g, "").toLowerCase();
+      const normalize = (s: string) =>
+        s.replace(/[的了之在於記]/g, "").replace(/[(（）)\/／\s·・\-–—]/g, "").toLowerCase();
 
       // Layer 1: tripDays.highlights — first (lowest dayNo) wins when attraction appears in multiple days
       const highlightsDayMap = new Map<string, number>();
