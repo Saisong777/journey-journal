@@ -2797,6 +2797,37 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Attractions annotated with scheduledDayNo from current schedule items
+  app.get("/api/schedule-locations", requireAuth, async (req, res) => {
+    try {
+      const userRole = await getCachedUserRole(req.userId!);
+      if (!userRole?.tripId) return res.json([]);
+      const [attractions, activityItems] = await Promise.all([
+        storage.getAttractionsByTrip(userRole.tripId),
+        storage.getAllActivityScheduleItems(userRole.tripId),
+      ]);
+      const normalize = (s: string) => s.replace(/[的了之在於記]/g, "").toLowerCase();
+      const scheduledDayMap = new Map<string, number>();
+      for (const item of activityItems) {
+        const normTitle = normalize(item.title);
+        for (const a of attractions) {
+          const normName = normalize(a.nameZh);
+          if (normTitle.includes(normName) || normName.includes(normTitle)) {
+            scheduledDayMap.set(a.id, item.dayNo);
+            break;
+          }
+        }
+      }
+      const result = attractions.map(a => ({
+        ...a,
+        scheduledDayNo: scheduledDayMap.get(a.id) ?? a.dayNo,
+      }));
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get schedule locations" });
+    }
+  });
+
   app.get("/api/attractions/:id", requireAuth, async (req, res) => {
     try {
       const attraction = await storage.getAttraction(req.params.id);

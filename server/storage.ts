@@ -1108,6 +1108,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(tripScheduleItems.time));
   }
 
+  async getAllActivityScheduleItems(tripId: string): Promise<TripScheduleItem[]> {
+    return db.select().from(tripScheduleItems)
+      .where(and(eq(tripScheduleItems.tripId, tripId), eq(tripScheduleItems.type, "activity")))
+      .orderBy(asc(tripScheduleItems.dayNo), asc(tripScheduleItems.time));
+  }
+
   async createScheduleItem(data: InsertTripScheduleItem): Promise<TripScheduleItem> {
     const [item] = await db.insert(tripScheduleItems).values(data).returning();
     return item;

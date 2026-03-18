@@ -55,18 +55,18 @@ export default function Location() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
-  const { data: attractionsData = [] } = useQuery<AttractionDB[]>({
-    queryKey: ["/api/attractions"],
+  type ScheduleLocationItem = AttractionDB & { scheduledDayNo: number };
+  const { data: attractionsData = [] } = useQuery<ScheduleLocationItem[]>({
+    queryKey: ["/api/schedule-locations"],
     queryFn: async () => {
       const token = getAuthToken();
-      const response = await fetch("/api/attractions", {
+      const response = await fetch("/api/schedule-locations", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) return [];
       return response.json();
     },
     enabled: !!user,
-    staleTime: Infinity,
   });
 
   const attractionsWithGps = attractionsData.filter((a) => parseGps(a.gps) !== null);
@@ -419,9 +419,9 @@ export default function Location() {
 
             <div className="space-y-2">
               {(() => {
-                const days = [...new Set(attractionsWithGps.map((a) => a.dayNo))].sort((a, b) => a - b);
+                const days = [...new Set(attractionsWithGps.map((a) => (a as any).scheduledDayNo ?? a.dayNo))].sort((a, b) => a - b);
                 return days.map((dayNo) => {
-                  const dayAttractions = attractionsWithGps.filter((a) => a.dayNo === dayNo);
+                  const dayAttractions = attractionsWithGps.filter((a) => ((a as any).scheduledDayNo ?? a.dayNo) === dayNo);
                   const isExpanded = expandedDays.has(dayNo);
                   return (
                     <div key={dayNo} className="rounded-xl border border-border overflow-hidden">
