@@ -2836,13 +2836,14 @@ export function registerRoutes(app: Express) {
       ]);
       const normalize = (s: string) => s.replace(/[的了之在於記]/g, "").toLowerCase();
 
-      // Layer 1: tripDays.highlights (lowest priority)
+      // Layer 1: tripDays.highlights — first (lowest dayNo) wins when attraction appears in multiple days
       const highlightsDayMap = new Map<string, number>();
       for (const day of tripDaysList) {
         const highlights = day.highlights?.split("/").map((h: string) => h.trim()).filter(Boolean) || [];
         for (const highlight of highlights) {
           const normHighlight = normalize(highlight);
           for (const a of attractions) {
+            if (highlightsDayMap.has(a.id)) continue;
             const normName = normalize(a.nameZh);
             if (normHighlight.includes(normName) || normName.includes(normHighlight)) {
               highlightsDayMap.set(a.id, day.dayNo);
