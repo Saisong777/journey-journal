@@ -1131,6 +1131,11 @@ export class DatabaseStorage implements IStorage {
     await db.delete(tripScheduleItems).where(eq(tripScheduleItems.id, id));
   }
 
+  async deleteScheduleItemsByDay(tripId: string, dayNo: number): Promise<void> {
+    await db.delete(tripScheduleItems)
+      .where(and(eq(tripScheduleItems.tripId, tripId), eq(tripScheduleItems.dayNo, dayNo)));
+  }
+
   async reorderScheduleItems(items: { id: string; seq: number }[]): Promise<void> {
     await Promise.all(items.map(({ id, seq }) =>
       db.update(tripScheduleItems).set({ seq, updatedAt: new Date() }).where(eq(tripScheduleItems.id, id))
