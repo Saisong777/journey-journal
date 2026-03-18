@@ -406,6 +406,9 @@ export function useTripDayMutations(tripId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-trip-days", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-days/today"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule-locations"] });
       toast({ title: "每日行程已建立" });
     },
     onError: (error: Error) => {
@@ -426,6 +429,10 @@ export function useTripDayMutations(tripId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-trip-days", tripId] });
+      // Invalidate frontend caches so Today Schedule and Location page reflect changes
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-days/today"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule-locations"] });
       toast({ title: "每日行程已更新" });
     },
     onError: (error: Error) => {
