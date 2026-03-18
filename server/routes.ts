@@ -2824,16 +2824,35 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Attractions annotated with scheduledDayNo from current schedule items
+  // Attractions annotated with scheduledDayNo — priority: scheduleItems > tripDays.highlights > attractions.dayNo
   app.get("/api/schedule-locations", requireAuth, async (req, res) => {
     try {
       const userRole = await getCachedUserRole(req.userId!);
       if (!userRole?.tripId) return res.json([]);
-      const [attractions, activityItems] = await Promise.all([
+      const [attractions, activityItems, tripDaysList] = await Promise.all([
         storage.getAttractionsByTrip(userRole.tripId),
         storage.getAllActivityScheduleItems(userRole.tripId),
+        storage.getTripDays(userRole.tripId),
       ]);
       const normalize = (s: string) => s.replace(/[的了之在於記]/g, "").toLowerCase();
+
+      // Layer 1: tripDays.highlights (lowest priority)
+      const highlightsDayMap = new Map<string, number>();
+      for (const day of tripDaysList) {
+        const highlights = day.highlights?.split("/").map((h: string) => h.trim()).filter(Boolean) || [];
+        for (const highlight of highlights) {
+          const normHighlight = normalize(highlight);
+          for (const a of attractions) {
+            const normName = normalize(a.nameZh);
+            if (normHighlight.includes(normName) || normName.includes(normHighlight)) {
+              highlightsDayMap.set(a.id, day.dayNo);
+              break;
+            }
+          }
+        }
+      }
+
+      // Layer 2: schedule items (overrides highlights)
       const scheduledDayMap = new Map<string, number>();
       for (const item of activityItems) {
         const normTitle = normalize(item.title);
@@ -2845,9 +2864,10 @@ export function registerRoutes(app: Express) {
           }
         }
       }
+
       const result = attractions.map(a => ({
         ...a,
-        scheduledDayNo: scheduledDayMap.get(a.id) ?? a.dayNo,
+        scheduledDayNo: scheduledDayMap.get(a.id) ?? highlightsDayMap.get(a.id) ?? a.dayNo,
       }));
       res.json(result);
     } catch (error) {
