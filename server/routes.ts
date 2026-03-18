@@ -1244,33 +1244,6 @@ export function registerRoutes(app: Express) {
   app.patch("/api/admin/trip-days/:id", requireAdmin, async (req, res) => {
     try {
       const updated = await storage.updateTripDay(req.params.id, req.body);
-      // Auto-sync schedule items if they already exist for this day
-      if (updated) {
-        const existing = await storage.getScheduleItems(updated.tripId, updated.dayNo);
-        if (existing.length > 0) {
-          await storage.deleteScheduleItemsByDay(updated.tripId, updated.dayNo);
-          const itemsToCreate: Parameters<typeof storage.createScheduleItem>[0][] = [];
-          let seq = 0;
-          if (updated.breakfast && updated.breakfast !== "X" && updated.breakfast !== "x") {
-            itemsToCreate.push({ tripId: updated.tripId, dayNo: updated.dayNo, seq: seq++, time: "07:30", type: "meal", title: "早餐", location: updated.breakfast, notes: null, attractionId: null });
-          }
-          const highlights = updated.highlights?.split("/").map((h: string) => h.trim()).filter(Boolean) || [];
-          const defaultTimes = ["09:00", "10:30", "14:00", "15:30", "16:30"];
-          highlights.slice(0, 5).forEach((highlight: string, i: number) => {
-            itemsToCreate.push({ tripId: updated.tripId, dayNo: updated.dayNo, seq: seq++, time: defaultTimes[i] || "11:00", type: "activity", title: highlight, location: updated.cityArea || null, notes: null, attractionId: null });
-          });
-          if (updated.lunch && updated.lunch !== "X" && updated.lunch !== "x") {
-            itemsToCreate.push({ tripId: updated.tripId, dayNo: updated.dayNo, seq: seq++, time: "12:00", type: "meal", title: "午餐", location: updated.lunch, notes: null, attractionId: null });
-          }
-          if (updated.dinner && updated.dinner !== "X" && updated.dinner !== "x") {
-            itemsToCreate.push({ tripId: updated.tripId, dayNo: updated.dayNo, seq: seq++, time: "18:30", type: "meal", title: "晚餐", location: updated.dinner, notes: null, attractionId: null });
-          }
-          if (updated.lodging && updated.lodging !== "X" && updated.lodging !== "x") {
-            itemsToCreate.push({ tripId: updated.tripId, dayNo: updated.dayNo, seq: seq++, time: "20:00", type: "accommodation", title: "住宿", location: updated.lodging, notes: null, attractionId: null });
-          }
-          await Promise.all(itemsToCreate.map(item => storage.createScheduleItem(item)));
-        }
-      }
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update trip day" });
