@@ -231,6 +231,103 @@ function SpaceGuideCard() {
   );
 }
 
+// ── Space Index Card ──────────────────────────────────────────────────────────
+function SpaceIndexCard({ stops }: { stops: PaulJourney[] }) {
+  const [openSpaceId, setOpenSpaceId] = useState<string | null>(null);
+
+  // Build map: spaceId → matching stops
+  const spaceStopMap = new Map<string, PaulJourney[]>();
+  for (const stop of stops) {
+    for (const st of detectSpaces(stop)) {
+      if (!spaceStopMap.has(st.id)) spaceStopMap.set(st.id, []);
+      spaceStopMap.get(st.id)!.push(stop);
+    }
+  }
+
+  const activeSpaces = SPACE_TYPES.filter((st) => spaceStopMap.has(st.id));
+  if (activeSpaces.length === 0) return null;
+
+  return (
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <BookOpen className="w-4 h-4 text-primary" />
+        <span className="text-sm font-semibold">城市空間導覽</span>
+        <span className="text-xs text-muted-foreground">點選空間查看相關經文</span>
+      </div>
+      <div className="divide-y divide-border">
+        {activeSpaces.map((st) => {
+          const matchedStops = spaceStopMap.get(st.id)!;
+          const isOpen = openSpaceId === st.id;
+          return (
+            <div key={st.id}>
+              <button
+                onClick={() => setOpenSpaceId(isOpen ? null : st.id)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 min-h-[44px] hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                      st.bg,
+                      st.text
+                    )}
+                  >
+                    <span className="text-[10px]">{st.emoji}</span>
+                    {st.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {matchedStops.length} 個地點
+                  </span>
+                </div>
+                {isOpen ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                )}
+              </button>
+
+              {isOpen && (
+                <div className="px-4 pb-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">{st.desc}</p>
+                  <div className="space-y-2 mt-2">
+                    {matchedStops.map((stop) => (
+                      <div
+                        key={stop.id}
+                        className="rounded-lg bg-muted/40 px-3 py-2.5 space-y-1"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-primary" />
+                            {stop.location}
+                          </span>
+                          {stop.year && (
+                            <span className="text-xs text-muted-foreground">{stop.year}</span>
+                          )}
+                        </div>
+                        {stop.scripture ? (
+                          <ScriptureLink
+                            reference={stop.scripture}
+                            className="text-xs text-amber-700 dark:text-amber-400 font-medium hover:underline cursor-pointer inline-flex items-center gap-1"
+                          />
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">無經文記載</p>
+                        )}
+                        {stop.events && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{stop.events}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── City Narrative Card ───────────────────────────────────────────────────────
 function CityNarrativeCard({ narrative }: { narrative: NonNullable<ReturnType<typeof findCityNarrative>> }) {
   return (
@@ -378,6 +475,9 @@ export default function PaulJourneys() {
 
             {/* Space guide */}
             <SpaceGuideCard />
+
+            {/* Space index */}
+            <SpaceIndexCard stops={stops} />
 
             <div className="flex justify-end">
               <button
