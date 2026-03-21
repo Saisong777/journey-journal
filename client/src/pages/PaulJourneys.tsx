@@ -27,6 +27,7 @@ const JOURNEY_TABS = [
 ];
 
 // ── Urban Space Types ─────────────────────────────────────────────────────────
+// Keywords are matched against the actual CSV events text (column: 主要事件與備註)
 const SPACE_TYPES = [
   {
     id: "synagogue",
@@ -35,7 +36,8 @@ const SPACE_TYPES = [
     bg: "bg-blue-100 dark:bg-blue-900/30",
     text: "text-blue-800 dark:text-blue-200",
     desc: "猶太人宗教聚會所，保羅每到新城必先造訪",
-    keywords: ["會堂"],
+    keywords: ["會堂", "安息日"],
+    // CSV: "在猶太人的會堂裡傳道", "安息日講道", "連三個安息日辯論"
   },
   {
     id: "agora",
@@ -44,7 +46,8 @@ const SPACE_TYPES = [
     bg: "bg-stone-100 dark:bg-stone-800/50",
     text: "text-stone-700 dark:text-stone-300",
     desc: "城市公共中心，哲學家辯論、市民聚集之處",
-    keywords: ["廣場", "市集", "市場"],
+    keywords: ["偶像", "廣場", "市集", "著急"],
+    // CSV: 雅典 "看見滿城偶像心裡著急"
   },
   {
     id: "areopagus",
@@ -61,8 +64,9 @@ const SPACE_TYPES = [
     emoji: "💧",
     bg: "bg-sky-100 dark:bg-sky-900/30",
     text: "text-sky-800 dark:text-sky-200",
-    desc: "無會堂城市中猶太人的戶外禱告場所",
-    keywords: ["河邊", "河旁", "水邊", "水旁"],
+    desc: "無會堂城市中猶太人的戶外禱告場所，呂底亞在此受洗",
+    keywords: ["呂底亞", "河邊", "水旁", "河旁"],
+    // CSV: 腓立比 "呂底亞信主"
   },
   {
     id: "house",
@@ -70,8 +74,9 @@ const SPACE_TYPES = [
     emoji: "🏠",
     bg: "bg-amber-100 dark:bg-amber-900/30",
     text: "text-amber-800 dark:text-amber-200",
-    desc: "早期家庭教會的搖籃，私人空間成為聖所",
-    keywords: ["家", "住宅", "房子"],
+    desc: "早期家庭教會的搖籃，門徒家成為聚會場所",
+    keywords: ["亞居拉", "耶孫", "另住", "同住", "腓利家", "住宅"],
+    // CSV: 哥林多 "遇見亞居拉夫婦", 帖撒 "耶孫", 羅馬 "另住", 部丟利 "懇求同住"
   },
   {
     id: "lecture",
@@ -79,8 +84,9 @@ const SPACE_TYPES = [
     emoji: "📖",
     bg: "bg-green-100 dark:bg-green-900/30",
     text: "text-green-800 dark:text-green-200",
-    desc: "租用的教學場所，吸引各族群的文化橋樑",
-    keywords: ["講堂", "學堂", "推喇奴"],
+    desc: "推喇奴學堂——以弗所兩年公開教學，全亞細亞都聽見",
+    keywords: ["推喇奴", "講堂", "學堂", "行異能", "邪術書"],
+    // CSV: 以弗所(第三次) "行異能；焚燒邪術書" → 推喇奴教學成果
   },
   {
     id: "theatre",
@@ -88,8 +94,9 @@ const SPACE_TYPES = [
     emoji: "🎭",
     bg: "bg-rose-100 dark:bg-rose-900/30",
     text: "text-rose-800 dark:text-rose-200",
-    desc: "可容納數萬人的城市最大集會場所",
-    keywords: ["劇場"],
+    desc: "可容納兩萬人的城市最大集會場所，銀匠暴動現場",
+    keywords: ["暴動", "底米丟", "劇場", "騷亂"],
+    // CSV: 以弗所 "銀匠底米丟引發暴動"
   },
   {
     id: "temple",
@@ -98,7 +105,8 @@ const SPACE_TYPES = [
     bg: "bg-orange-100 dark:bg-orange-900/30",
     text: "text-orange-800 dark:text-orange-200",
     desc: "外邦偶像信仰中心，保羅宣教面對的文化衝突",
-    keywords: ["神廟", "廟", "偶像", "亞底米"],
+    keywords: ["神廟", "神明", "廟", "亞底米"],
+    // CSV: 路司得 "被誤認為神明"
   },
   {
     id: "prison",
@@ -107,7 +115,8 @@ const SPACE_TYPES = [
     bg: "bg-gray-100 dark:bg-gray-800/50",
     text: "text-gray-700 dark:text-gray-300",
     desc: "逼迫之地，卻成為書信見證與奇蹟的起源",
-    keywords: ["監獄", "囚", "牢", "捆"],
+    keywords: ["入獄", "監獄", "囚", "牢", "軟禁", "捆"],
+    // CSV: 腓立比 "入獄", 羅馬 "被軟禁兩年"
   },
   {
     id: "court",
@@ -116,7 +125,8 @@ const SPACE_TYPES = [
     bg: "bg-indigo-100 dark:bg-indigo-900/30",
     text: "text-indigo-800 dark:text-indigo-200",
     desc: "羅馬法律空間，保羅在此為福音辯護",
-    keywords: ["審判", "法庭", "比馬", "巡撫", "辯護"],
+    keywords: ["審案", "迦流", "方伯", "巡撫", "總督", "法庭", "審判"],
+    // CSV: 哥林多 "迦流審案事件", 帕弗 "羅馬方伯(總督)信主"
   },
 ];
 
