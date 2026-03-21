@@ -445,6 +445,26 @@ export const bibleLibraryModuleTrips = pgTable("bible_library_module_trips", {
   index("idx_bible_module_trips_unique").on(table.tripId, table.moduleId),
 ]);
 
+// ===== Telegram Integration =====
+export const telegramLinks = pgTable("telegram_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  telegramChatId: text("telegram_chat_id").notNull().unique(),
+  telegramUsername: text("telegram_username"),
+  telegramFirstName: text("telegram_first_name"),
+  linkCode: text("link_code").unique(),
+  linkCodeExpiresAt: timestamp("link_code_expires_at", { withTimezone: true }),
+  notifyDevotional: boolean("notify_devotional").default(true).notNull(),
+  notifySchedule: boolean("notify_schedule").default(true).notNull(),
+  notifyRollCall: boolean("notify_roll_call").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_telegram_links_user_id").on(table.userId),
+  index("idx_telegram_links_chat_id").on(table.telegramChatId),
+  index("idx_telegram_links_link_code").on(table.linkCode),
+]);
+
 export const fileUploads = pgTable("file_uploads", {
   id: uuid("id").defaultRandom().primaryKey(),
   data: bytea("data").notNull(),
@@ -518,3 +538,7 @@ export type RollCall = typeof rollCalls.$inferSelect;
 export type RollCallAttendance = typeof rollCallAttendances.$inferSelect;
 export type InsertRollCall = Omit<RollCall, "id" | "createdAt" | "updatedAt">;
 export type InsertRollCallAttendance = Omit<RollCallAttendance, "id" | "createdAt">;
+
+export const insertTelegramLinkSchema = createInsertSchema(telegramLinks).omit({ id: true, createdAt: true, updatedAt: true });
+export type TelegramLink = typeof telegramLinks.$inferSelect;
+export type InsertTelegramLink = z.infer<typeof insertTelegramLinkSchema>;

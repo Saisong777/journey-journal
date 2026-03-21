@@ -130,6 +130,14 @@ app.use((req, res, next) => {
     console.error("[startup-migration] failed, server will continue:", e);
   }
 
+  // Initialize Telegram bot (non-blocking)
+  try {
+    const { initTelegramBot } = await import("./telegram");
+    initTelegramBot();
+  } catch (e) {
+    console.error("[telegram] init failed, server will continue:", e);
+  }
+
   // Register application routes
   registerRoutes(app);
 

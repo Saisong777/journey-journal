@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ProfileEditSheet, ProfileData, type FamilyMember } from "@/components/settings/ProfileEditSheet";
+import { TelegramLinkSection } from "@/components/settings/TelegramLinkSection";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -296,6 +297,9 @@ export default function Settings() {
             </div>
           </section>
         ))}
+
+        {/* Telegram Integration */}
+        <TelegramLinkSection />
 
         {/* Admin Access */}
         {isAdmin?.isAdmin && (

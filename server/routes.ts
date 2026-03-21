@@ -3339,4 +3339,114 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to seed schedule items" });
     }
   });
+
+  // ===== Telegram Integration =====
+
+  // Get Telegram link status for current user
+  app.get("/api/telegram/status", requireAuth, async (req, res) => {
+    try {
+      const { getTelegramLinkByUserId } = await import("./telegram");
+      const link = await getTelegramLinkByUserId(req.userId!);
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME || null;
+      res.json({
+        linked: link?.isLinked || false,
+        telegramUsername: link?.isLinked ? link.telegramUsername : null,
+        telegramFirstName: link?.isLinked ? link.telegramFirstName : null,
+        notifyDevotional: link?.notifyDevotional ?? true,
+        notifySchedule: link?.notifySchedule ?? true,
+        notifyRollCall: link?.notifyRollCall ?? true,
+        botUsername,
+        botConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Telegram status" });
+    }
+  });
+
+  // Generate a link code for binding Telegram
+  app.post("/api/telegram/link-code", requireAuth, async (req, res) => {
+    try {
+      const { generateLinkCode } = await import("./telegram");
+      const result = await generateLinkCode(req.userId!);
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME || "";
+      res.json({
+        code: result.code,
+        expiresAt: result.expiresAt.toISOString(),
+        botUsername,
+        deepLink: botUsername ? `https://t.me/${botUsername}?start=${result.code}` : null,
+      });
+    } catch (error: any) {
+      if (error.message === "ALREADY_LINKED") {
+        return res.status(409).json({ error: "Telegram 帳號已綁定。如需重新綁定，請先解除綁定。" });
+      }
+      res.status(500).json({ error: "Failed to generate link code" });
+    }
+  });
+
+  // Unlink Telegram
+  app.delete("/api/telegram/unlink", requireAuth, async (req, res) => {
+    try {
+      const { unlinkTelegram } = await import("./telegram");
+      await unlinkTelegram(req.userId!);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unlink Telegram" });
+    }
+  });
+
+  // Update notification preferences
+  app.patch("/api/telegram/preferences", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        notifyDevotional: z.boolean().optional(),
+        notifySchedule: z.boolean().optional(),
+        notifyRollCall: z.boolean().optional(),
+      });
+      const prefs = schema.parse(req.body);
+
+      const { telegramLinks } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { db } = await import("./db");
+
+      const existing = await db.select().from(telegramLinks)
+        .where(eq(telegramLinks.userId, req.userId!))
+        .then((r: any[]) => r[0]);
+
+      if (!existing || existing.telegramChatId.startsWith("pending_")) {
+        return res.status(404).json({ error: "Telegram 尚未綁定" });
+      }
+
+      await db.update(telegramLinks)
+        .set({ ...prefs, updatedAt: new Date() })
+        .where(eq(telegramLinks.userId, req.userId!));
+
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid preferences" });
+      }
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+
+  // Admin: Send notification to trip members via Telegram
+  app.post("/api/admin/telegram/notify", requireAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        tripId: z.string().uuid(),
+        message: z.string().min(1).max(2000),
+        type: z.enum(["devotional", "schedule", "rollCall"]).optional(),
+      });
+      const { tripId, message, type } = schema.parse(req.body);
+
+      const { sendTripNotification } = await import("./telegram");
+      const sent = await sendTripNotification(tripId, message, type);
+      res.json({ sent, message: `成功發送給 ${sent} 位團員` });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+      res.status(500).json({ error: "Failed to send notifications" });
+    }
+  });
 }

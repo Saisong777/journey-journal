@@ -680,6 +680,7 @@ export async function runStartupMigration() {
     await ensureAttractionsTable();
     await ensureBibleLibraryTables();
     await ensureRollCallTables();
+    await ensureTelegramLinksTable();
 
     console.log("[startup-migration] complete");
   } catch (error) {
@@ -857,5 +858,37 @@ async function ensureRollCallTables() {
     }
   } catch (e) {
     console.error("[startup-migration] roll call tables error:", e);
+  }
+}
+
+async function ensureTelegramLinksTable() {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS telegram_links (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          telegram_chat_id TEXT NOT NULL UNIQUE,
+          telegram_username TEXT,
+          telegram_first_name TEXT,
+          link_code TEXT UNIQUE,
+          link_code_expires_at TIMESTAMPTZ,
+          notify_devotional BOOLEAN NOT NULL DEFAULT TRUE,
+          notify_schedule BOOLEAN NOT NULL DEFAULT TRUE,
+          notify_roll_call BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_links_user_id ON telegram_links(user_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_links_chat_id ON telegram_links(telegram_chat_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_links_link_code ON telegram_links(link_code)`);
+      console.log("[startup-migration] ensured telegram_links table");
+    } finally {
+      client.release();
+    }
+  } catch (e) {
+    console.error("[startup-migration] telegram_links table error:", e);
   }
 }
