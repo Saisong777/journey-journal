@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion, Bus, Coffee, Settings2 } from "lucide-react";
+import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion, Bus, Coffee, Settings2, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -207,10 +207,39 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   const [journalOpen, setJournalOpen] = useState(false);
   const [journalLocation, setJournalLocation] = useState("");
   const [managerOpen, setManagerOpen] = useState(false);
+  const [dayOffset, setDayOffset] = useState(0);
   const createJournal = useCreateJournalEntry();
 
-  // Fetch DB-driven schedule items
-  const { data: scheduleData } = useScheduleItems(todaySchedule?.dayNumber ?? null);
+  // Fetch all trip days for navigation
+  const { data: allTripDays } = useQuery<TripDay[]>({
+    queryKey: ["/api/trip-days"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch("/api/trip-days", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!todaySchedule,
+  });
+
+  // Resolve the displayed day based on offset from today
+  const displayedDay: TripDay | null | undefined = (() => {
+    if (!todaySchedule || !allTripDays?.length) return todaySchedule;
+    if (dayOffset === 0) return todaySchedule;
+    const todayIdx = allTripDays.findIndex(d => d.dayNumber === todaySchedule.dayNumber);
+    if (todayIdx === -1) return todaySchedule;
+    const target = allTripDays[todayIdx + dayOffset];
+    return target ?? todaySchedule;
+  })();
+
+  const todayIdx = allTripDays?.findIndex(d => d.dayNumber === todaySchedule?.dayNumber) ?? -1;
+  const canGoBack = todayIdx > 0 && allTripDays && (todayIdx + dayOffset) > 0;
+  const canGoForward = allTripDays && todayIdx >= 0 && (todayIdx + dayOffset) < allTripDays.length - 1;
+
+  // Fetch DB-driven schedule items for displayed day
+  const { data: scheduleData } = useScheduleItems(displayedDay?.dayNumber ?? null);
   const dbItems = scheduleData?.items ?? [];
   const canManage = scheduleData?.canManage ?? false;
 
@@ -268,10 +297,14 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     return null;
   }
 
+  if (!displayedDay) return null;
+
   // Use DB items if available, otherwise fall back to parsed highlights
   const scheduleItems = dbItems.length > 0
     ? dbItemsToSchedule(dbItems)
-    : parseHighlightsToSchedule(todaySchedule);
+    : parseHighlightsToSchedule(displayedDay);
+
+  const isToday = dayOffset === 0;
 
   const handleJournalSave = async (entry: { location: string; content: string; photos: any[]; mood: string }) => {
     await createJournal.mutateAsync({
@@ -279,16 +312,18 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
       content: entry.content,
       location: entry.location,
       photos: entry.photos,
-      entryDate: todaySchedule.date,
+      entryDate: displayedDay.date,
     });
   };
 
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-title">今日行程</h2>
+        <h2 className="text-title">
+          {isToday ? "今日行程" : "每日行程"}
+        </h2>
         <div className="flex items-center gap-2">
-          {canManage && (
+          {canManage && isToday && (
             <button
               onClick={() => setManagerOpen(true)}
               className="flex items-center gap-1 text-caption text-muted-foreground hover:text-primary transition-colors"
@@ -297,12 +332,46 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
               管理
             </button>
           )}
-          <div className="text-primary text-body font-medium flex items-center gap-1">
-            第 {todaySchedule.dayNumber} 天
-            {todaySchedule.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
+          {/* Day navigation */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setDayOffset(o => o - 1)}
+              disabled={!canGoBack}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setDayOffset(0)}
+              className={cn(
+                "px-2 py-0.5 rounded-full text-body font-medium transition-colors",
+                isToday
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              )}
+            >
+              第 {displayedDay.dayNumber} 天
+              {!isToday && <span className="text-caption ml-1 text-muted-foreground/70">(點回今天)</span>}
+              {displayedDay.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
+            </button>
+            <button
+              onClick={() => setDayOffset(o => o + 1)}
+              disabled={!canGoForward}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
+
+      {/* City/date label for non-today */}
+      {!isToday && displayedDay.cityArea && (
+        <p className="text-caption text-muted-foreground px-1">
+          {displayedDay.date && <span className="mr-2">{displayedDay.date}</span>}
+          {displayedDay.cityArea}
+        </p>
+      )}
 
       <div className="bg-card/80 backdrop-blur-md rounded-xl shadow-card overflow-hidden border border-white/20">
         {scheduleItems.length === 0 ? (
@@ -528,17 +597,17 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
       <AddJournalSheet
         open={journalOpen}
         onOpenChange={setJournalOpen}
-        date={todaySchedule.date}
+        date={displayedDay.date}
         defaultLocation={journalLocation}
         onSave={handleJournalSave}
       />
 
-      {/* Schedule manager sheet (leader/guide/admin only) */}
-      {canManage && (
+      {/* Schedule manager sheet (leader/guide/admin only, today only) */}
+      {canManage && isToday && (
         <ScheduleManagerSheet
           open={managerOpen}
           onOpenChange={setManagerOpen}
-          dayNo={todaySchedule.dayNumber}
+          dayNo={displayedDay.dayNumber}
           items={dbItems}
           hasItems={dbItems.length > 0}
         />
