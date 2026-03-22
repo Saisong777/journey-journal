@@ -224,22 +224,25 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     enabled: !!todaySchedule,
   });
 
+  // allTripDays items only have dayNo (not dayNumber which is added by /today endpoint)
+  const getDayNo = (d: TripDay) => d.dayNo ?? (d as any).dayNumber;
+
   // Resolve the displayed day based on offset from today
+  const todayIdx = allTripDays?.findIndex(d => getDayNo(d) === getDayNo(todaySchedule!)) ?? -1;
+
   const displayedDay: TripDay | null | undefined = (() => {
     if (!todaySchedule || !allTripDays?.length) return todaySchedule;
     if (dayOffset === 0) return todaySchedule;
-    const todayIdx = allTripDays.findIndex(d => d.dayNumber === todaySchedule.dayNumber);
     if (todayIdx === -1) return todaySchedule;
     const target = allTripDays[todayIdx + dayOffset];
     return target ?? todaySchedule;
   })();
 
-  const todayIdx = allTripDays?.findIndex(d => d.dayNumber === todaySchedule?.dayNumber) ?? -1;
   const canGoBack = todayIdx > 0 && allTripDays && (todayIdx + dayOffset) > 0;
   const canGoForward = allTripDays && todayIdx >= 0 && (todayIdx + dayOffset) < allTripDays.length - 1;
 
   // Fetch DB-driven schedule items for displayed day
-  const { data: scheduleData } = useScheduleItems(displayedDay?.dayNumber ?? null);
+  const { data: scheduleData } = useScheduleItems(displayedDay ? getDayNo(displayedDay) : null);
   const dbItems = scheduleData?.items ?? [];
   const canManage = scheduleData?.canManage ?? false;
 
@@ -350,7 +353,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                   : "text-muted-foreground hover:text-primary"
               )}
             >
-              第 {displayedDay.dayNumber} 天
+              第 {getDayNo(displayedDay)} 天
               {!isToday && <span className="text-caption ml-1 text-muted-foreground/70">(點回今天)</span>}
               {displayedDay.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
             </button>
@@ -607,7 +610,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
         <ScheduleManagerSheet
           open={managerOpen}
           onOpenChange={setManagerOpen}
-          dayNo={displayedDay.dayNumber}
+          dayNo={getDayNo(displayedDay)}
           items={dbItems}
           hasItems={dbItems.length > 0}
         />
