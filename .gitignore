@@ -6,6 +6,8 @@
 # Snapshots
 *.local
 *.log
+backups/*.dump
+backups/*.sql
 *.njsproj
 *.ntvs*
 *.sln
@@ -14,6 +16,8 @@
 .DS_Store
 .env
 .env.*
+!.env.example
+!.env.local.example
 .idea
 .snapshots/
 .vscode/*

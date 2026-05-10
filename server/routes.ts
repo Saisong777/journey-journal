@@ -52,6 +52,7 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { insertTripSchema, insertGroupSchema, insertJournalEntrySchema, insertDevotionalEntrySchema, insertDevotionalCourseSchema } from "@shared/schema";
+import { DEFAULT_HELP_CONTENT } from "@shared/helpContent";
 
 // --- Input validation schemas for endpoints that were missing validation ---
 const updateProfileSchema = z.object({
@@ -276,13 +277,33 @@ async function getCachedUserRole(userId: string) {
   return role;
 }
 
+async function getTripAttractionsForUser(userId: string) {
+  const userRole = await getCachedUserRole(userId);
+  let tripId = userRole?.tripId;
+  let attractions = tripId ? await storage.getAttractionsByTrip(tripId) : [];
+
+  if ((!tripId || attractions.length === 0) && await storage.hasAdminAccess(userId)) {
+    const trips = await storage.getTrips();
+    for (const trip of trips) {
+      const candidateAttractions = await storage.getAttractionsByTrip(trip.id);
+      if (candidateAttractions.length > 0) {
+        tripId = trip.id;
+        attractions = candidateAttractions;
+        break;
+      }
+    }
+  }
+
+  return { tripId, attractions };
+}
+
 export function registerRoutes(app: Express) {
   // Apply extractUser middleware to all API routes
   app.use("/api", extractUser);
 
   // Google OAuth: initiate login
   // Use HMAC-signed state token instead of session to avoid mobile cookie issues
-  const OAUTH_STATE_SECRET = process.env.SESSION_SECRET || "oauth-state-fallback";
+  const OAUTH_STATE_SECRET = process.env.SESSION_SECRET || "dev-oauth-state-secret";
   function signOAuthState(nonce: string): string {
     return crypto.createHmac("sha256", OAUTH_STATE_SECRET).update(nonce).digest("hex");
   }
@@ -517,6 +538,42 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.get("/api/dev/local-login", async (req, res) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ error: "Not found" });
+    }
+
+    try {
+      const bootstrapAdminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+      const email = (req.query.email?.toString() || "admin@local.test").trim().toLowerCase();
+      const isAllowedLocalUser = email.endsWith("@local.test") || email === bootstrapAdminEmail;
+      if (!isAllowedLocalUser) {
+        return res.status(400).json({ error: "Only approved local development accounts are allowed" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "Local demo user not found. Run npm run db:seed:demo first." });
+      }
+
+      const token = generateToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await tokenStore.set(token, { userId: user.id, expiresAt });
+
+      req.session.regenerate((err) => {
+        if (err) console.error("Dev local login session regenerate error:", err);
+        req.session.userId = user.id;
+        req.session.save((saveErr) => {
+          if (saveErr) console.error("Dev local login session save error:", saveErr);
+          res.redirect(`/#authToken=${encodeURIComponent(token)}`);
+        });
+      });
+    } catch (error) {
+      console.error("Dev local login error:", error);
+      res.status(500).json({ error: "Dev local login failed" });
     }
   });
 
@@ -807,6 +864,8 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/weather", requireAuth, async (req, res) => {
+    let fallbackDestination = "旅程目的地";
+    let cacheKey = "";
     try {
       const userRole = await getCachedUserRole(req.userId!);
       if (!userRole || !userRole.tripId) {
@@ -816,9 +875,10 @@ export function registerRoutes(app: Express) {
       if (!trip) {
         return res.status(404).json({ error: "Trip not found" });
       }
+      fallbackDestination = trip.destination || fallbackDestination;
 
       const { lat, lon } = resolveDestinationCoords(trip.destination || "");
-      const cacheKey = `${lat}_${lon}`;
+      cacheKey = `${lat}_${lon}`;
       const now = Date.now();
       const cached = weatherCache.get(cacheKey);
       if (cached && now - cached.ts < WEATHER_CACHE_TTL) {
@@ -829,8 +889,8 @@ export function registerRoutes(app: Express) {
       const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
 
       const [weatherRes, aqRes] = await Promise.all([
-        fetch(weatherUrl).then((r) => r.json()),
-        fetch(aqUrl).then((r) => r.json()),
+        fetch(weatherUrl, { signal: AbortSignal.timeout(3500) }).then((r) => r.json()),
+        fetch(aqUrl, { signal: AbortSignal.timeout(3500) }).then((r) => r.json()),
       ]);
 
       const temperature = (weatherRes as any)?.current?.temperature_2m ?? null;
@@ -844,7 +904,19 @@ export function registerRoutes(app: Express) {
       res.json(data);
     } catch (error) {
       console.error("Failed to fetch weather:", error);
-      res.status(500).json({ error: "Failed to fetch weather data" });
+      const cached = cacheKey ? weatherCache.get(cacheKey) : undefined;
+      if (cached) {
+        return res.json(cached.data);
+      }
+      res.json({
+        temperature: null,
+        humidity: null,
+        uvIndex: null,
+        aqi: null,
+        destination: fallbackDestination,
+        updatedAt: new Date().toISOString(),
+        unavailable: true,
+      });
     }
   });
 
@@ -1601,10 +1673,8 @@ export function registerRoutes(app: Express) {
   // Member: get all attractions for current trip
   app.get("/api/attractions", requireAuth, async (req, res) => {
     try {
-      const userRole = await getCachedUserRole(req.userId!);
-      if (!userRole?.tripId) return res.json([]);
-      const rows = await storage.getAttractionsByTrip(userRole.tripId);
-      res.json(rows);
+      const { attractions } = await getTripAttractionsForUser(req.userId!);
+      res.json(attractions);
     } catch (error) {
       res.status(500).json({ error: "Failed to get attractions" });
     }
@@ -1621,7 +1691,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  app.get("/api/admin/users", requireSuperAdmin, async (req, res) => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 200, 500);
       const offset = parseInt(req.query.offset as string) || 0;
@@ -1673,7 +1743,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+  app.patch("/api/admin/users/:userId", requireSuperAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const parsed = adminUpdateUserSchema.safeParse(req.body);
@@ -1712,9 +1782,12 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/users/:userId", requireSuperAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
+      if (userId === req.userId) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
       await storage.deleteUser(userId);
       res.json({ success: true });
     } catch (error) {
@@ -1951,6 +2024,16 @@ export function registerRoutes(app: Express) {
       res.json(location || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to get location" });
+    }
+  });
+
+  app.delete("/api/my-location", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteUserLocation(req.userId!);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to clear location:", error);
+      res.status(500).json({ error: "Failed to clear location" });
     }
   });
 
@@ -2633,17 +2716,6 @@ export function registerRoutes(app: Express) {
       const userId = req.userId!;
       console.log("[check-trip-status] userId:", userId);
 
-      const user = await storage.getUser(userId);
-
-      // Auto-grant super_admin to saisong@gmail.com
-      if (user?.email === 'saisong@gmail.com') {
-        const platformRole = await storage.getPlatformRole(userId);
-        if (!platformRole || platformRole.role !== 'super_admin') {
-          await storage.setPlatformRole(userId, 'super_admin', null, 'system');
-          console.log(`[check-trip-status] Auto-granted super_admin to ${user.email}`);
-        }
-      }
-
       const userRole = await storage.getUserRole(userId);
       console.log("[check-trip-status] userRole:", JSON.stringify(userRole));
 
@@ -2675,7 +2747,7 @@ export function registerRoutes(app: Express) {
   app.get("/api/app-settings/help-content", requireAuth, async (_req, res) => {
     try {
       const content = await storage.getAppSetting("help_content");
-      res.json({ content: content || "" });
+      res.json({ content: content ?? DEFAULT_HELP_CONTENT, isDefault: content === null });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch help content" });
     }
@@ -2788,10 +2860,8 @@ export function registerRoutes(app: Express) {
   // ===== Member Attractions =====
   app.get("/api/attractions", requireAuth, async (req, res) => {
     try {
-      const userRole = await getCachedUserRole(req.userId!);
-      if (!userRole || !userRole.tripId) return res.json([]);
-      const list = await storage.getAttractionsByTrip(userRole.tripId);
-      res.json(list);
+      const { attractions } = await getTripAttractionsForUser(req.userId!);
+      res.json(attractions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch attractions" });
     }
@@ -2800,12 +2870,11 @@ export function registerRoutes(app: Express) {
   // Attractions annotated with scheduledDayNo — priority: scheduleItems > tripDays.highlights > attractions.dayNo
   app.get("/api/schedule-locations", requireAuth, async (req, res) => {
     try {
-      const userRole = await getCachedUserRole(req.userId!);
-      if (!userRole?.tripId) return res.json([]);
-      const [attractions, activityItems, tripDaysList] = await Promise.all([
-        storage.getAttractionsByTrip(userRole.tripId),
-        storage.getAllActivityScheduleItems(userRole.tripId),
-        storage.getTripDays(userRole.tripId),
+      const { tripId, attractions } = await getTripAttractionsForUser(req.userId!);
+      if (!tripId) return res.json([]);
+      const [activityItems, tripDaysList] = await Promise.all([
+        storage.getAllActivityScheduleItems(tripId),
+        storage.getTripDays(tripId),
       ]);
       const normalize = (s: string) =>
         s.replace(/[的了之在於記]/g, "").replace(/[(（）)\/／\s·・\-–—]/g, "").toLowerCase();

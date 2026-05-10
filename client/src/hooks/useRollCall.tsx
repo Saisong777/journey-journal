@@ -117,10 +117,10 @@ export function useRollCallMutations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roll-calls"] });
       queryClient.invalidateQueries({ queryKey: ["roll-call-active"] });
-      toast({ title: "點名已開始" });
+      toast({ title: "集合簽到已開始" });
     },
     onError: (error: Error) => {
-      toast({ title: "無法建立點名", description: error.message, variant: "destructive" });
+      toast({ title: "無法建立集合簽到", description: error.message, variant: "destructive" });
     },
   });
 
@@ -176,7 +176,7 @@ export function useRollCallMutations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roll-calls"] });
       queryClient.invalidateQueries({ queryKey: ["roll-call-active"] });
-      toast({ title: "點名已結束" });
+      toast({ title: "集合簽到已結束" });
     },
   });
 
@@ -193,7 +193,7 @@ export function useRollCallMutations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roll-calls"] });
       queryClient.invalidateQueries({ queryKey: ["roll-call-active"] });
-      toast({ title: "點名紀錄已刪除" });
+      toast({ title: "簽到紀錄已刪除" });
     },
   });
 

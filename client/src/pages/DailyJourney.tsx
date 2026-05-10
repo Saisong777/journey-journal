@@ -232,6 +232,26 @@ export default function DailyJourney() {
   const { data: trip } = useTrip();
   const dateStr = format(selectedDate, "yyyy-MM-dd");
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    const queryDate = params.get("date");
+
+    if (queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate) && queryDate !== dateStr) {
+      setSelectedDate(parseISO(queryDate));
+    }
+
+    if (tab === "morning" || tab === "adventure" || tab === "evening") {
+      setActiveTab(tab);
+    }
+
+    if (params.get("newJournal") === "1") {
+      setActiveTab("adventure");
+      const openTimer = window.setTimeout(() => setIsAddOpen(true), 250);
+      return () => window.clearTimeout(openTimer);
+    }
+  }, [dateStr, location.search]);
+
   const { data: entries, isLoading: journalLoading } = useJournalEntries(dateStr);
   const createEntry = useCreateJournalEntry();
   const deleteEntry = useDeleteJournalEntry();
@@ -461,14 +481,15 @@ export default function DailyJourney() {
     });
   };
 
-  const tabs: { key: TabType; label: string; icon: typeof Sun; completed: boolean }[] = [
-    { key: "morning", label: "晨光靈修", icon: Sun, completed: morningCompleted },
-    { key: "adventure", label: "旅途探險", icon: Compass, completed: adventureCompleted },
-    { key: "evening", label: "夜間感恩", icon: Moon, completed: eveningCompleted },
+  const tabs: { key: TabType; label: string; description: string; icon: typeof Sun; completed: boolean }[] = [
+    { key: "morning", label: "晨光靈修", description: "讀經、默想、禱告", icon: Sun, completed: morningCompleted },
+    { key: "adventure", label: "旅途記錄", description: "照片、感動、見聞", icon: Compass, completed: adventureCompleted },
+    { key: "evening", label: "夜間感恩", description: "回顧、感謝、明日禱告", icon: Moon, completed: eveningCompleted },
   ];
+  const completedCount = tabs.filter((tab) => tab.completed).length;
 
   return (
-    <PageLayout title="每日旅程">
+    <PageLayout title="今日記錄">
       <div className="relative px-4 md:px-8 py-6 pb-20 container max-w-5xl mx-auto space-y-8 animate-fade-in">
         {/* Date Selector */}
         <section className="space-y-4">
@@ -519,6 +540,48 @@ export default function DailyJourney() {
                 {day.isToday && selectedDayIndex !== index && (
                   <div className="w-2 h-2 rounded-full bg-primary mt-1 shadow-sm" />
                 )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Daily progress */}
+        <section className="rounded-sm border border-border/70 bg-card/90 p-4 shadow-card">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-caption text-muted-foreground">Daily Flow</p>
+              <h2 className="text-title">今天的記錄進度</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-caption text-muted-foreground">已完成</span>
+              <span className="rounded-sm bg-primary/10 px-2.5 py-1 text-body font-semibold text-primary">
+                {completedCount}/3
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {tabs.map((tab, index) => (
+              <button
+                key={`progress-${tab.key}`}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "flex min-h-[78px] items-center gap-3 rounded-sm border p-3 text-left transition-colors",
+                  activeTab === tab.key
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-background hover:bg-muted/60"
+                )}
+              >
+                <div className={cn(
+                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-sm",
+                  tab.completed ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                )}>
+                  {tab.completed ? <Check className="h-5 w-5" /> : <span className="text-sm font-semibold">{index + 1}</span>}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-body font-semibold">{tab.label}</p>
+                  <p className="line-clamp-1 text-caption text-muted-foreground">{tab.description}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -996,14 +1059,24 @@ export default function DailyJourney() {
               <div className="bg-card rounded-lg shadow-card p-8 text-center">
                 <Compass className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-body text-muted-foreground">
-                  今天還沒有探險記錄，點擊下方按鈕開始記錄吧！
+                  今天還沒有旅途記錄。可以先寫下一個景點、一張照片，或一句感動。
                 </p>
+                <Button
+                  onClick={() => setIsAddOpen(true)}
+                  className="mt-5"
+                  data-testid="button-add-first-journal"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  新增旅途記錄
+                </Button>
               </div>
             )}
 
             <button
               onClick={() => setIsAddOpen(true)}
               disabled={createEntry.isPending}
+              aria-label="新增旅途記錄"
+              title="新增旅途記錄"
               data-testid="button-add-journal"
               className={cn(
                 "fixed right-4 bottom-24 w-16 h-16 rounded-full z-40",

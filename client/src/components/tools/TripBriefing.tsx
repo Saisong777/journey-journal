@@ -165,6 +165,67 @@ function SectionCard({ section, index }: { section: Section; index: number }) {
   );
 }
 
+function getPreview(content: string) {
+  const compact = content.replace(/\s+/g, " ").trim();
+  if (compact.length <= 96) return compact;
+  return `${compact.slice(0, 96)}...`;
+}
+
+function PlainNoteCard({ note, index }: { note: TripNoteWithOrder; index: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const Icon = getSectionIcon(note.title);
+  const noteType = getSectionType(note.title, index);
+
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-sm border border-border bg-card shadow-soft",
+        typeStyles[noteType]
+      )}
+      data-testid={`briefing-note-${note.id}`}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+      >
+        <div className={cn(
+          "mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sm",
+          iconStyles[noteType]
+        )}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-body font-semibold text-foreground">{note.title}</h4>
+            <span className="rounded-sm bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {isOpen ? "收合" : "查看"}
+            </span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-muted-foreground">
+            {getPreview(note.content)}
+          </p>
+        </div>
+        {isOpen ? (
+          <ChevronDown className="mt-3 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="mt-3 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+        )}
+      </button>
+      <div
+        className={cn(
+          "border-t border-border/70 px-4 transition-all duration-200",
+          isOpen ? "max-h-[3200px] py-4 opacity-100" : "max-h-0 overflow-hidden py-0 opacity-0"
+        )}
+      >
+        <p className="whitespace-pre-line text-caption leading-7 text-muted-foreground">
+          {note.content}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function TripBriefing() {
   const { data: notes = [], isLoading } = useQuery<TripNoteWithOrder[]>({
     queryKey: ["/api/trips/current/notes"],
@@ -200,19 +261,20 @@ export function TripBriefing() {
 
   return (
     <div className="space-y-4" data-testid="trip-briefing-list">
-      <div className="bg-card rounded-lg shadow-card p-4">
-        <h3 className="text-body font-semibold mb-2">注意事項</h3>
-        <p className="text-caption text-muted-foreground">
-          行前必讀資訊，點擊各項展開詳細內容
+      <div className="rounded-sm border border-border/70 bg-card p-4 shadow-card">
+        <p className="text-caption text-muted-foreground">Travel Briefing</p>
+        <h3 className="mt-1 text-title">出發前先看重點</h3>
+        <p className="mt-1 text-caption text-muted-foreground">
+          每張卡片先看摘要，需要時再展開細節。
         </p>
       </div>
 
-      {notes.map((note) => {
+      {notes.map((note, noteIndex) => {
         const sections = parseContentSections(note.content);
         const hasSections = sections.length > 1 || (sections.length === 1 && sections[0].title !== "說明");
 
         return (
-          <div key={note.id} data-testid={`briefing-note-${note.id}`}>
+          <div key={`${note.id}-${note.sortOrder}-${noteIndex}`} data-testid={`briefing-note-${note.id}`}>
             {notes.length > 1 && (
               <div className="flex items-center gap-2 mb-3 mt-2">
                 <Globe className="w-4 h-4 text-primary" />
@@ -221,25 +283,11 @@ export function TripBriefing() {
             )}
 
             <div className="space-y-3">
-              {hasSections ? (
-                sections.map((section, i) => (
-                  <SectionCard key={section.key} section={section} index={i} />
-                ))
-              ) : (
-                <div className="bg-card rounded-lg shadow-soft border-l-4 border-l-primary bg-primary/5 p-4">
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary bg-primary/10">
-                      <Globe className="w-5 h-5" />
-                    </div>
-                    <h4 className="font-semibold text-body">{note.title}</h4>
-                  </div>
-                  <div className="ml-14">
-                    <p className="text-caption text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {note.content}
-                    </p>
-                  </div>
-                </div>
-              )}
+              {hasSections
+                ? sections.map((section, i) => (
+                    <SectionCard key={section.key} section={section} index={i} />
+                  ))
+                : <PlainNoteCard note={note} index={noteIndex} />}
             </div>
           </div>
         );

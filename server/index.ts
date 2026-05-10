@@ -1,17 +1,18 @@
 import "dotenv/config";
 import express from "express";
-import crypto from "crypto";
 import { createServer } from "http";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { createHash } from "crypto";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { registerUploadRoutes } from "./uploadRoutes";
 import { runStartupMigration } from "./startupMigration";
 
 const app = express();
+const isDevelopment = process.env.NODE_ENV !== "production";
 app.set('trust proxy', 1);
 
 // S5: Security headers
@@ -30,20 +31,35 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// S4: Global rate limit — 300 requests per 15 min (skip non-API routes)
+function rateLimitKey(req: express.Request) {
+  const authHeader = req.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const tokenHash = createHash("sha256").update(authHeader.slice(7)).digest("hex").slice(0, 24);
+    return `token:${tokenHash}`;
+  }
+
+  return `ip:${ipKeyGenerator(req.ip || "0.0.0.0")}`;
+}
+
+// S4: Global rate limit — production uses authenticated tokens as the primary
+// key so one hotel/coach Wi-Fi IP does not throttle the whole travel group.
 app.use("/api", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: isDevelopment ? 5000 : 1500,
+  keyGenerator: rateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.startsWith("/auth/google/callback"),
+  skip: (req) =>
+    req.path.startsWith("/auth/google/callback") ||
+    req.path.startsWith("/dev/local-login") ||
+    req.path.startsWith("/uploads/file/"),
   message: { error: "Too many requests, please try again later" },
 }));
 
 // S4: Strict rate limit for auth endpoints — 10 attempts per 15 min
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: isDevelopment ? 100 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts, please try again later" },
@@ -96,13 +112,16 @@ app.use((req, res, next) => {
 
 (async () => {
   console.log("[server] starting up...", { NODE_ENV: process.env.NODE_ENV, PORT: process.env.PORT, HAS_DB: !!process.env.DATABASE_URL });
+
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
   // Setup session middleware (PostgreSQL store)
   const pgStore = connectPg(session);
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   app.use(session({
-    secret: process.env.SESSION_SECRET || (process.env.NODE_ENV === "production"
-      ? (() => { console.error("[SECURITY] SESSION_SECRET not set in production! Generating random secret (sessions will not persist across restarts)."); return crypto.randomBytes(32).toString("hex"); })()
-      : "dev-secret-change-me"),
+    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
     store: new pgStore({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
@@ -120,9 +139,6 @@ app.use((req, res, next) => {
     },
   }));
 
-  // Register upload routes
-  registerUploadRoutes(app);
-
   // Run startup migration (ensure admin roles and trip data exist)
   try {
     await runStartupMigration();
@@ -132,6 +148,9 @@ app.use((req, res, next) => {
 
   // Register application routes
   registerRoutes(app);
+
+  // Register upload routes after API auth extraction middleware from registerRoutes.
+  registerUploadRoutes(app);
 
   const server = createServer(app);
 

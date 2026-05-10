@@ -53,8 +53,8 @@ export function FeatureCard({
       whileTap={{ scale: 0.94 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "w-full p-4 rounded-xl transition-colors duration-300",
-        "flex flex-col items-center text-center gap-2.5",
+        "w-full rounded-sm p-3.5 transition-colors duration-300",
+        "flex items-center gap-3 text-left",
         "touch-target shadow-card hover:shadow-elevated",
         "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         variantStyles[variant],
@@ -62,15 +62,15 @@ export function FeatureCard({
       )}
     >
       <div className={cn(
-        "w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110",
+        "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-sm transition-transform group-hover:scale-110",
         iconBgStyles[variant] || "bg-primary/10"
       )}>
-        <Icon className="w-6 h-6" strokeWidth={1.5} />
+        <Icon className="h-5 w-5" strokeWidth={1.7} />
       </div>
-      <div className="space-y-0.5">
-        <h3 className="text-sm font-medium">{title}</h3>
+      <div className="min-w-0 space-y-0.5">
+        <h3 className="truncate text-sm font-semibold">{title}</h3>
         <p className={cn(
-          "text-xs",
+          "line-clamp-2 text-xs leading-snug",
           descStyles[variant] || "text-muted-foreground"
         )}>
           {description}

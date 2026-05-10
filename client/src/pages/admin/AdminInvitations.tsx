@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
   useAllTrips,
@@ -37,7 +38,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Loader2, Ticket, Copy, Check, Download, QrCode } from "lucide-react";
+import { Plus, Trash2, Loader2, Ticket, Copy, Check, Download, QrCode, Users, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -59,7 +60,9 @@ function getInviteUrl(code: string) {
 }
 
 export default function AdminInvitations() {
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const { tripId: urlTripId } = useParams<{ tripId: string }>();
+  const navigate = useNavigate();
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(urlTripId || null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<InvitationFormData>(emptyForm);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -69,6 +72,18 @@ export default function AdminInvitations() {
   const { data: trips = [], isLoading: tripsLoading } = useAllTrips();
   const { data: invitations = [], isLoading: invitationsLoading } = useTripInvitations(selectedTripId);
   const { createInvitation, updateInvitation, deleteInvitation } = useTripInvitationMutations(selectedTripId);
+
+  useEffect(() => {
+    if (urlTripId) {
+      setSelectedTripId(urlTripId);
+      return;
+    }
+    if (!selectedTripId && trips.length > 0) {
+      const firstTripId = trips[0].id;
+      setSelectedTripId(firstTripId);
+      navigate(`/admin/invitations/${firstTripId}`, { replace: true });
+    }
+  }, [navigate, selectedTripId, trips, urlTripId]);
 
   const handleCreate = async () => {
     if (!selectedTripId) return;
@@ -130,6 +145,9 @@ export default function AdminInvitations() {
     if (!dateStr) return "無限期";
     return new Date(dateStr).toLocaleDateString("zh-TW");
   };
+  const selectedTrip = trips.find((trip) => trip.id === selectedTripId);
+  const activeInvitations = invitations.filter((invitation) => invitation.isActive);
+  const totalUsed = invitations.reduce((sum, invitation) => sum + invitation.usedCount, 0);
 
   if (tripsLoading) {
     return (
@@ -146,8 +164,8 @@ export default function AdminInvitations() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">邀請碼管理</h1>
-            <p className="text-gray-500 mt-1">建立和管理旅程邀請碼（4位數）</p>
+            <h1 className="text-2xl font-bold text-gray-900">邀請與發布</h1>
+            <p className="text-gray-500 mt-1">建立旅程邀請碼，讓旅客加入正確的旅程</p>
           </div>
         </div>
 
@@ -158,10 +176,13 @@ export default function AdminInvitations() {
               選擇旅程
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Select
               value={selectedTripId || ""}
-              onValueChange={(value) => setSelectedTripId(value || null)}
+              onValueChange={(value) => {
+                setSelectedTripId(value || null);
+                if (value) navigate(`/admin/invitations/${value}`);
+              }}
             >
               <SelectTrigger data-testid="select-trip">
                 <SelectValue placeholder="選擇旅程..." />
@@ -174,6 +195,31 @@ export default function AdminInvitations() {
                 ))}
               </SelectContent>
             </Select>
+            {selectedTrip && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-900">
+                    <Ticket className="h-4 w-4" />
+                    啟用邀請碼
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-amber-900">{activeInvitations.length}</p>
+                </div>
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Users className="h-4 w-4" />
+                    已使用
+                  </div>
+                  <p className="mt-1 text-2xl font-bold">{totalUsed}</p>
+                </div>
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <ShieldCheck className="h-4 w-4" />
+                    旅客入口
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{selectedTrip.title}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

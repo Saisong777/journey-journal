@@ -80,7 +80,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 1000 * 60 * 5, // 5 minutes — free memory faster on mobile
+      gcTime: 1000 * 60 * 60, // 1 hour — keep travel data available while moving between weak networks
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     },

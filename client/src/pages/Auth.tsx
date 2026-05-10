@@ -8,9 +8,78 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { setAuthToken } from "@/lib/queryClient";
-import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowLeft, MapPin } from "lucide-react";
+import mountOlives from "@/assets/attractions/mount-olives.jpg";
 
 type AuthView = "main" | "forgot-password";
+
+const authInputClass =
+  "h-12 rounded-sm border-stone-300 bg-white pl-10 text-stone-950 caret-amber-700 placeholder:text-stone-500 focus-visible:ring-amber-600 focus-visible:ring-offset-0";
+const authIconClass = "absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-500";
+const authOutlineButtonClass =
+  "h-12 w-full rounded-sm border-stone-300 bg-white text-stone-900 hover:bg-stone-50 hover:text-stone-950";
+
+function AuthShell({
+  children,
+  eyebrow,
+  title,
+  description,
+}: {
+  children: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-stone-950 text-white">
+      <img
+        src={mountOlives}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,24,39,0.42)_0%,rgba(17,24,39,0.72)_48%,rgba(12,10,9,0.96)_100%)]" />
+
+      <main className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-end gap-8 px-5 pb-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] sm:px-8 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-center lg:gap-12 lg:px-10">
+        <section className="hidden max-w-2xl space-y-5 lg:block">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/icon-192.png"
+              alt="與神同行"
+              className="h-11 w-11 rounded-sm border border-white/20 shadow-soft"
+            />
+            <div>
+              <p className="text-base font-semibold leading-none">與神同行</p>
+              <p className="mt-1 text-xs text-white/70">Trip Companion</p>
+            </div>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-sm border border-white/20 bg-white/12 px-3 py-2 text-sm text-white/90 backdrop-blur-md">
+            <MapPin className="h-4 w-4" />
+            {eyebrow}
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-5xl font-bold leading-tight text-white">{title}</h1>
+            <p className="max-w-xl text-xl leading-relaxed text-white/82">{description}</p>
+          </div>
+        </section>
+
+        <section className="w-full animate-fade-in">
+          <div className="mb-5 flex items-center gap-2.5 lg:hidden">
+            <img
+              src="/icon-192.png"
+              alt="與神同行"
+              className="h-10 w-10 rounded-sm border border-white/20 shadow-soft"
+            />
+            <div>
+              <p className="text-sm font-semibold leading-none">與神同行</p>
+              <p className="mt-1 text-xs text-white/70">Trip Companion</p>
+            </div>
+          </div>
+          {children}
+        </section>
+      </main>
+    </div>
+  );
+}
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -174,10 +243,11 @@ export default function Auth() {
       }
 
       setResetSent(true);
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "請稍後再試";
       toast({
         title: "發送失敗",
-        description: error.message || "請稍後再試",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -187,19 +257,19 @@ export default function Auth() {
 
   if (view === "forgot-password") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6 animate-fade-in">
-          <div className="text-center space-y-2">
-            <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
-              <span className="text-3xl text-primary-foreground">T</span>
-            </div>
+      <AuthShell
+        eyebrow="回到旅程前，先找回帳號"
+        title="重新取得同行的入口"
+        description="輸入電子郵件，我們會寄出重設連結，讓你回到每日行程與靈修記錄。"
+      >
+        <div className="mx-auto w-full max-w-md space-y-4">
+          <div className="space-y-1.5 text-white lg:hidden">
+            <p className="text-sm text-white/72">回到旅程前，先找回帳號</p>
             <h1 className="text-2xl font-bold">忘記密碼</h1>
-            <p className="text-muted-foreground">
-              輸入您的電子郵件，我們將發送重設連結
-            </p>
+            <p className="text-sm leading-relaxed text-white/78">輸入您的電子郵件，我們將發送重設連結。</p>
           </div>
 
-          <Card>
+          <Card className="rounded-sm border-white/18 bg-white text-stone-900 shadow-elevated">
             {resetSent ? (
               <CardContent className="pt-6 text-center space-y-4">
                 <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
@@ -211,7 +281,7 @@ export default function Auth() {
                 </p>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className={authOutlineButtonClass}
                   onClick={() => {
                     setView("main");
                     setResetSent(false);
@@ -234,14 +304,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="reset-email">電子郵件</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Mail className={authIconClass} />
                       <Input
                         id="reset-email"
                         type="email"
                         placeholder="you@example.com"
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-reset-email"
                       />
@@ -249,7 +319,7 @@ export default function Auth() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-reset-submit">
+                  <Button type="submit" className="h-12 w-full rounded-sm" disabled={isLoading} data-testid="button-reset-submit">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -262,7 +332,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="w-full"
+                    className="h-11 w-full rounded-sm"
                     onClick={() => setView("main")}
                     data-testid="button-back-login"
                   >
@@ -274,26 +344,28 @@ export default function Auth() {
             )}
           </Card>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 animate-fade-in">
-        <div className="text-center space-y-2">
-          <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center">
-            <span className="text-3xl text-primary-foreground">T</span>
-          </div>
+    <AuthShell
+      eyebrow="登入後接續你的旅程"
+      title="把每天的路程，收進同一個安靜的地方"
+      description="行程、經文、照片、同行者與提醒都在這裡，讓旅途中的每一天更容易被記住。"
+    >
+      <div className="mx-auto w-full max-w-md space-y-4">
+        <div className="space-y-1.5 text-white lg:hidden">
+          <p className="text-sm text-white/72">登入後接續你的旅程</p>
           <h1 className="text-2xl font-bold">一起同行</h1>
-          <p className="text-muted-foreground">
-            一起經歷與神同行的喜樂
+          <p className="text-sm leading-relaxed text-white/78">
+            行程、經文、照片與同行者都在這裡。
           </p>
         </div>
 
-        <Card>
+        <Card className="rounded-sm border-white/18 bg-white text-stone-900 shadow-elevated">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid h-12 w-full grid-cols-2 rounded-sm bg-stone-100">
               <TabsTrigger value="login" data-testid="tab-login">登入</TabsTrigger>
               <TabsTrigger value="signup" data-testid="tab-signup">註冊</TabsTrigger>
             </TabsList>
@@ -310,14 +382,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="login-email">電子郵件</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Mail className={authIconClass} />
                       <Input
                         id="login-email"
                         type="email"
                         placeholder="you@example.com"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-login-email"
                       />
@@ -337,14 +409,14 @@ export default function Auth() {
                       </Button>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className={authIconClass} />
                       <Input
                         id="login-password"
                         type="password"
                         placeholder="輸入密碼或臨時密碼"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-login-password"
                       />
@@ -355,7 +427,7 @@ export default function Auth() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-login">
+                  <Button type="submit" className="h-12 w-full rounded-sm" disabled={isLoading} data-testid="button-login">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -378,7 +450,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12"
+                    className={authOutlineButtonClass}
                     onClick={() => window.location.href = "/api/login"}
                     data-testid="button-google-login"
                   >
@@ -418,14 +490,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">姓名</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <User className={authIconClass} />
                       <Input
                         id="signup-name"
                         type="text"
                         placeholder="您的姓名"
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-signup-name"
                       />
@@ -434,14 +506,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">電子郵件</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Mail className={authIconClass} />
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder="you@example.com"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-signup-email"
                       />
@@ -450,14 +522,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">密碼</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className={authIconClass} />
                       <Input
                         id="signup-password"
                         type="password"
                         placeholder="至少 8 個字元"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-signup-password"
                       />
@@ -466,14 +538,14 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm-password">確認密碼</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Lock className={authIconClass} />
                       <Input
                         id="signup-confirm-password"
                         type="password"
                         placeholder="再次輸入密碼"
                         value={signupConfirmPassword}
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                        className="pl-10 h-12"
+                        className={authInputClass}
                         required
                         data-testid="input-signup-confirm-password"
                       />
@@ -481,7 +553,7 @@ export default function Auth() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                  <Button type="submit" className="w-full h-12" disabled={isLoading} data-testid="button-signup">
+                  <Button type="submit" className="h-12 w-full rounded-sm" disabled={isLoading} data-testid="button-signup">
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -504,7 +576,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12"
+                    className={authOutlineButtonClass}
                     onClick={() => window.location.href = "/api/login"}
                     data-testid="button-google-signup"
                   >
@@ -534,10 +606,10 @@ export default function Auth() {
           </Tabs>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-xs leading-relaxed text-white/68">
           註冊即表示您同意我們的服務條款和隱私政策
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

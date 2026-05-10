@@ -9,6 +9,14 @@ if ("caches" in window) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    let reloadingForUpdate = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      window.location.reload();
+    });
+
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then((registration) => {
@@ -16,12 +24,19 @@ if ("serviceWorker" in navigator) {
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                newWorker.postMessage({ type: "SKIP_WAITING" });
+              }
               if (newWorker.state === "activated") {
-                window.location.reload();
+                window.dispatchEvent(new CustomEvent("app-update-ready"));
               }
             });
           }
         });
+
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
       })
       .catch(() => {});
   });

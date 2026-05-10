@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { transformPhotoUrl } from "@/lib/photoUtils";
 import { Loader2, FileDown, ChevronRight, ArrowLeft } from "lucide-react";
@@ -88,14 +87,14 @@ export default function BibleModulePage() {
           <article className="bg-card rounded-xl border border-border p-5">
             <h2 className="text-lg font-bold mb-4">{selectedItem.title}</h2>
             {selectedItem.content && (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                components={markdownComponents}
-              >
-                {selectedItem.content}
-              </ReactMarkdown>
+              <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={markdownComponents}
+                >
+                  {selectedItem.content}
+                </ReactMarkdown>
+              </div>
             )}
             {selectedItem.fileUrl && (
               <a
@@ -165,12 +164,11 @@ export default function BibleModulePage() {
                   <div className="p-4 space-y-2">
                     <h3 className="text-body font-semibold">{item.title}</h3>
                     {item.content && (
-                      <ReactMarkdown
-                        className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                        components={markdownComponents}
-                      >
-                        {item.content}
-                      </ReactMarkdown>
+                      <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                        <ReactMarkdown components={markdownComponents}>
+                          {item.content}
+                        </ReactMarkdown>
+                      </div>
                     )}
                     {item.fileUrl && (
                       <a

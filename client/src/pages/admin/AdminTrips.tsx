@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
   useAllTrips,
@@ -57,7 +58,29 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, Loader2, Users, Upload, Send, FileText, Globe, CheckCircle2, XCircle, UserPlus, UserCog, UserMinus, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Users,
+  Upload,
+  Send,
+  FileText,
+  Globe,
+  CheckCircle2,
+  XCircle,
+  UserPlus,
+  UserCog,
+  UserMinus,
+  ChevronDown,
+  CalendarDays,
+  MapPinned,
+  BookOpen,
+  Ticket,
+  ArrowRight,
+  ClipboardList,
+} from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -104,6 +127,13 @@ const roleColors: Record<string, string> = {
   guide: "bg-terracotta text-white",
   member: "bg-muted text-muted-foreground",
 };
+
+function getTripDuration(startDate: string, endDate: string) {
+  const start = new Date(startDate).getTime();
+  const end = new Date(endDate).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return Math.max(1, Math.round((end - start) / 86400000) + 1);
+}
 
 function parseCSV(text: string): { name: string; email: string }[] {
   const lines = text.trim().split("\n");
@@ -732,14 +762,14 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              即將發送行前通知給 {selectedMembers.size} 位團員。信件將包含行程登入碼、臨時密碼和 QR Code。
+              即將發送行前通知給 {selectedMembers.size} 位團員。信件將包含邀請碼、臨時密碼和 QR Code。
             </p>
             <div className="space-y-2">
-              <label className="text-sm font-medium">選擇行程登入碼</label>
+              <label className="text-sm font-medium">選擇邀請碼</label>
               {activeInvitations.length > 0 ? (
                 <Select value={invitationCode} onValueChange={setInvitationCode}>
                   <SelectTrigger>
-                    <SelectValue placeholder="選擇登入碼" />
+                    <SelectValue placeholder="選擇邀請碼" />
                   </SelectTrigger>
                   <SelectContent>
                     {activeInvitations.map((inv: any) => (
@@ -750,7 +780,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm text-destructive">尚未建立行程登入碼，請先至「邀請碼管理」建立。</p>
+                <p className="text-sm text-destructive">尚未建立邀請碼，請先至「邀請與發布」建立。</p>
               )}
             </div>
           </div>
@@ -759,7 +789,7 @@ function TripMemberSection({ tripId, tripGroups }: { tripId: string; tripGroups:
             <Button
               onClick={() => {
                 if (!invitationCode) {
-                  toast({ title: "請選擇登入碼", variant: "destructive" });
+                  toast({ title: "請選擇邀請碼", variant: "destructive" });
                   return;
                 }
                 notifyMutation.mutate({ userIds: Array.from(selectedMembers), code: invitationCode });
@@ -991,9 +1021,9 @@ export default function AdminTrips() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-display mb-2">旅程管理</h2>
+            <h2 className="text-display mb-2">旅程控制台</h2>
             <p className="text-body text-muted-foreground">
-              建立、編輯旅程，管理小組與團員
+              建立旅程，管理團員、分組與發布前資料
             </p>
           </div>
 
@@ -1063,14 +1093,62 @@ export default function AdminTrips() {
         <div className="space-y-4">
           {trips?.length ? (
             <Accordion type="single" collapsible className="space-y-4">
-              {trips.map((trip) => (
+              {trips.map((trip) => {
+                const tripGroups = getGroupsForTrip(trip.id);
+                const duration = getTripDuration(trip.startDate, trip.endDate);
+                const workflowItems = [
+                  {
+                    label: "行程日程",
+                    description: "每天去哪裡、吃什麼、住哪裡",
+                    icon: CalendarDays,
+                    to: `/admin/trip-days/${trip.id}`,
+                    done: false,
+                  },
+                  {
+                    label: "團員名單",
+                    description: "匯入旅客、調整角色與密碼狀態",
+                    icon: Users,
+                    to: "#members",
+                    done: false,
+                  },
+                  {
+                    label: "分組",
+                    description: tripGroups.length ? `${tripGroups.length} 組已建立` : "建立小組再分配團員",
+                    icon: ClipboardList,
+                    to: "#groups",
+                    done: tripGroups.length > 0,
+                  },
+                  {
+                    label: "景點導覽",
+                    description: "景點故事、經文、GPS 與導覽內容",
+                    icon: MapPinned,
+                    to: `/admin/attractions/${trip.id}`,
+                    done: false,
+                  },
+                  {
+                    label: "每日靈修",
+                    description: "每日經文、反思問題與禱告",
+                    icon: BookOpen,
+                    to: `/admin/devotionals/${trip.id}`,
+                    done: false,
+                  },
+                  {
+                    label: "邀請與發布",
+                    description: "產生邀請碼、QR Code 與旅客入口",
+                    icon: Ticket,
+                    to: `/admin/invitations/${trip.id}`,
+                    done: false,
+                  },
+                ];
+
+                return (
                 <AccordionItem
                   key={trip.id}
                   value={trip.id}
                   className="bg-card rounded-lg shadow-card border-0"
                 >
                   <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                    <div className="flex items-center gap-4 text-left">
+                    <div className="flex w-full items-center gap-4 text-left">
                       <div className="flex-1">
                         <h3 className="text-body font-semibold">{trip.title}</h3>
                         <p className="text-caption text-muted-foreground">
@@ -1079,10 +1157,70 @@ export default function AdminTrips() {
                           {format(new Date(trip.endDate), "MM/dd", { locale: zhTW })}
                         </p>
                       </div>
+                      <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
+                        {duration && <Badge variant="secondary">{duration} 天</Badge>}
+                        <Badge variant={tripGroups.length ? "default" : "outline"}>
+                          {tripGroups.length ? `${tripGroups.length} 組` : "未分組"}
+                        </Badge>
+                      </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-4">
                     <div className="space-y-6">
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h4 className="text-body font-semibold">發布準備流程</h4>
+                            <p className="text-caption text-muted-foreground">
+                              依序完成這些項目，旅客端就會比較完整、也比較不容易出現空頁。
+                            </p>
+                          </div>
+                          <Link
+                            to={`/admin/invitations/${trip.id}`}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                          >
+                            前往發布
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {workflowItems.map((item) => {
+                            const content = (
+                              <>
+                                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-background text-primary">
+                                  {item.done ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <item.icon className="h-5 w-5" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-body font-semibold">{item.label}</p>
+                                  <p className="text-caption text-muted-foreground">{item.description}</p>
+                                </div>
+                                <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                              </>
+                            );
+                            if (item.to.startsWith("#")) {
+                              return (
+                                <a
+                                  key={item.label}
+                                  href={item.to}
+                                  className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/60"
+                                >
+                                  {content}
+                                </a>
+                              );
+                            }
+                            return (
+                              <Link
+                                key={item.label}
+                                to={item.to}
+                                className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/60"
+                              >
+                                {content}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       {/* Trip Actions */}
                       <div className="flex gap-2">
                         <Dialog
@@ -1157,18 +1295,18 @@ export default function AdminTrips() {
                       </div>
 
                       {/* Groups Management - Collapsible, above Member Management */}
-                      <Collapsible className="border-t pt-4">
+                      <Collapsible className="border-t pt-4" id="groups">
                         <CollapsibleTrigger className="w-full flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-muted-foreground" />
-                            <h4 className="text-body font-medium">小組管理</h4>
-                            <span className="text-xs text-muted-foreground">({getGroupsForTrip(trip.id).length} 組)</span>
+                            <h4 className="text-body font-medium">分組</h4>
+                            <span className="text-xs text-muted-foreground">({tripGroups.length} 組)</span>
                           </div>
                           <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="space-y-2 mb-4">
-                            {getGroupsForTrip(trip.id).map((group) => (
+                            {tripGroups.map((group) => (
                               <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                                 {editingGroup?.id === group.id ? (
                                   <div className="flex items-center gap-2 flex-1">
@@ -1225,12 +1363,12 @@ export default function AdminTrips() {
                       </Collapsible>
 
                       {/* Member Management */}
-                      <div className="border-t pt-4">
+                      <div className="border-t pt-4" id="members">
                         <div className="flex items-center gap-2 mb-3">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-body font-medium">團員管理</h4>
+                          <h4 className="text-body font-medium">團員名單</h4>
                         </div>
-                        <TripMemberSection tripId={trip.id} tripGroups={getGroupsForTrip(trip.id)} />
+                        <TripMemberSection tripId={trip.id} tripGroups={tripGroups} />
                       </div>
 
                       {/* Trip Notes Assignment */}
@@ -1238,7 +1376,8 @@ export default function AdminTrips() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              ))}
+                );
+              })}
             </Accordion>
           ) : (
             <div className="bg-card rounded-lg shadow-card p-12 text-center">

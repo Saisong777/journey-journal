@@ -13,24 +13,29 @@ export function DailyDevotional({ bibleRefs }: DailyDevotionalProps) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-title px-1">今日靈修</h2>
+      <div className="flex items-end justify-between gap-3 px-1">
+        <div>
+          <p className="text-caption text-muted-foreground">Devotional</p>
+          <h2 className="text-title">今日靈修</h2>
+        </div>
+        <span className="rounded-sm bg-primary/10 px-2.5 py-1 text-caption font-medium text-primary">
+          {hasCustomRefs ? "行程經文" : "預設經文"}
+        </span>
+      </div>
       
       <button 
         onClick={() => navigate("/daily-journey")}
-        className="w-full bg-card rounded-lg shadow-card p-5 text-left hover:shadow-elevated transition-all active:brightness-95"
+        className="w-full rounded-sm border border-primary/10 bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--primary)/0.08)_100%)] p-4 text-left shadow-card transition-all hover:shadow-elevated active:brightness-95"
         data-testid="button-devotional"
       >
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full gradient-olive flex items-center justify-center flex-shrink-0">
-            <Book className="w-6 h-6 text-secondary-foreground" />
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-sm gradient-olive shadow-soft">
+            <Book className="h-6 w-6 text-secondary-foreground" />
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-caption text-muted-foreground" data-testid="text-bible-refs">{displayRefs}</span>
-              <span className="bg-primary/10 text-primary text-caption px-2 py-0.5 rounded-full">
-                {hasCustomRefs ? "今日經文" : "默認經文"}
-              </span>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="truncate text-caption font-medium text-primary" data-testid="text-bible-refs">{displayRefs}</span>
             </div>
             
             <p className="text-body text-foreground leading-relaxed line-clamp-3">
@@ -40,7 +45,7 @@ export function DailyDevotional({ bibleRefs }: DailyDevotionalProps) {
               }
             </p>
             
-            <div className="flex items-center gap-1 mt-3 text-primary text-body font-medium">
+            <div className="mt-3 flex items-center gap-1 text-body font-medium text-primary">
               開始靈修
               <ChevronRight className="w-4 h-4" />
             </div>

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Globe, ArrowRight, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { TripNote } from "@shared/schema";
@@ -78,8 +79,8 @@ export default function AdminTripNotes() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold" data-testid="text-page-title">區域注意事項管理</h2>
-            <p className="text-muted-foreground">每個區域一份完整注意事項，可分配至不同旅程</p>
+            <h2 className="text-2xl font-bold" data-testid="text-page-title">注意事項</h2>
+            <p className="text-muted-foreground">先建立區域注意事項，再分配到對應旅程給旅客查看</p>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -125,13 +126,32 @@ export default function AdminTripNotes() {
           </Dialog>
         </div>
 
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <FileText className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold">發布前請確認已分配到旅程</p>
+                <p className="text-sm">這裡是注意事項資料庫，旅客是否看得到，要到旅程控制台指派。</p>
+              </div>
+            </div>
+            <Link
+              to="/admin/trips"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+            >
+              前往指派
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">載入中...</div>
         ) : notes.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>尚未建立任何區域注意事項</p>
-            <p className="text-sm mt-1">點擊上方「新增區域」按鈕開始建立</p>
+            <p className="font-medium">尚未建立任何注意事項</p>
+            <p className="text-sm mt-1">先建立「土耳其」「希臘」這類區域資料，再到旅程控制台分配</p>
           </div>
         ) : (
           <div className="space-y-3">

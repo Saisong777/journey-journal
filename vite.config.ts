@@ -7,12 +7,14 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
       manifest: false,
       workbox: {
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         navigateFallbackDenylist: [/^\/api\//],
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/[a-z]\.tile\.openstreetmap\.org\/.*/i,
@@ -26,13 +28,25 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /\/api\/(?!login|auth\/google|trips\/current\/devotional)/,
+            urlPattern: /\/api\/(trips\/current|trip-days|members|groups|schedule-locations|app-settings\/help-content|trips\/current\/devotional-courses|trips\/current\/notes)(?:\?.*)?$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trip-data-cache",
+              expiration: {
+                maxEntries: 160,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+              networkTimeoutSeconds: 4,
+            },
+          },
+          {
+            urlPattern: /\/api\/(?!login|auth\/google|auth\/logout|auth\/reset-password|dev\/local-login)/,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 5,
+                maxAgeSeconds: 60 * 15,
               },
               networkTimeoutSeconds: 10,
             },

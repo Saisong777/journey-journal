@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Check, X, Users, Plus, Loader2, UserCheck, Lock, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Check, X, Users, Plus, Loader2, UserCheck, Lock, Search, MapPin, Phone } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,7 +98,7 @@ export default function RollCall() {
 
   if (isLoading) {
     return (
-      <PageLayout title="點名">
+      <PageLayout title="集合簽到">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -108,18 +109,55 @@ export default function RollCall() {
   // No active roll call
   if (!activeRollCall) {
     return (
-      <PageLayout title="點名">
+      <PageLayout title="集合簽到">
         <div className="px-4 pt-4 pb-20 max-w-2xl mx-auto">
-          <div className="text-center py-20 space-y-4">
-            <Users className="w-20 h-20 mx-auto text-muted-foreground/20" />
-            <p className="text-muted-foreground text-body-lg">目前沒有進行中的點名</p>
+          <div className="py-16 space-y-5">
+            <div className="text-center">
+              <Users className="w-20 h-20 mx-auto text-muted-foreground/20" />
+              <h1 className="mt-4 text-title font-semibold">目前沒有進行中的集合簽到</h1>
+              <p className="mt-2 text-body text-muted-foreground">
+                {canManage
+                  ? "集合前按下開始，團員就能自己簽到；你也可以直接替團員切換狀態。"
+                  : "領隊開始簽到後，這裡會出現一個大大的簽到按鈕。"}
+              </p>
+            </div>
+
+            {!canManage && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Link
+                  to="/location"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-card transition-colors hover:bg-muted/60"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-body font-semibold">看集合地圖</p>
+                    <p className="text-caption text-muted-foreground">找團員或分享位置</p>
+                  </div>
+                </Link>
+                <Link
+                  to="/members"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-card transition-colors hover:bg-muted/60"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-body font-semibold">聯絡領隊</p>
+                    <p className="text-caption text-muted-foreground">需要協助時直接打電話</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+
             {canManage && (
               <Button
                 onClick={() => setShowStartSheet(true)}
-                className="gradient-warm text-primary-foreground rounded-xl h-14 px-10 text-body-lg"
+                className="mx-auto flex gradient-warm text-primary-foreground rounded-xl h-14 px-10 text-body-lg"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                開始點名
+                開始集合簽到
               </Button>
             )}
           </div>
@@ -128,7 +166,7 @@ export default function RollCall() {
           <Sheet open={showStartSheet} onOpenChange={setShowStartSheet}>
             <SheetContent side="bottom" className="rounded-t-3xl">
               <SheetHeader className="pb-4">
-                <SheetTitle className="text-center">開始點名</SheetTitle>
+                <SheetTitle className="text-center">開始集合簽到</SheetTitle>
               </SheetHeader>
               <div className="space-y-4 pb-6">
                 <div>
@@ -160,7 +198,7 @@ export default function RollCall() {
                   {createRollCall.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "開始點名"
+                    "開始集合簽到"
                   )}
                 </Button>
               </div>
@@ -177,7 +215,7 @@ export default function RollCall() {
   const showSelfCheckIn = activeRollCall.selfCheckInEnabled && myAttendance && myAttendance.status !== "present" && !canManage;
 
   return (
-    <PageLayout title="點名">
+    <PageLayout title="集合簽到">
       <div className="px-4 pt-4 pb-20 max-w-2xl mx-auto space-y-4">
         {/* Status header */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4">
@@ -217,7 +255,7 @@ export default function RollCall() {
                   className="rounded-xl h-12"
                 >
                   <Lock className="w-4 h-4 mr-1" />
-                  結束點名
+                  結束簽到
                 </Button>
               )}
             </div>
@@ -321,7 +359,7 @@ export default function RollCall() {
         <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>結束點名？</AlertDialogTitle>
+              <AlertDialogTitle>結束集合簽到？</AlertDialogTitle>
               <AlertDialogDescription>
                 結束後將無法再修改出席狀態。
                 目前 {activeRollCall.presentCount}/{activeRollCall.totalCount} 人到齊。
