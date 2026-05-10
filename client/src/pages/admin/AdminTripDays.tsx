@@ -235,8 +235,8 @@ export default function AdminTripDays() {
     return (
       <AdminLayout>
         <div className="space-y-6">
-          <h2 className="text-display">每日行程管理</h2>
-          <p className="text-body text-muted-foreground mb-4">請先選擇一個旅程：</p>
+          <h2 className="text-display">行程日程</h2>
+          <p className="text-body text-muted-foreground mb-4">請先選擇要編排行程的旅程：</p>
           <div className="grid gap-4">
             {trips?.map((trip: any) => (
               <Button
@@ -495,7 +495,7 @@ export default function AdminTripDays() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h2 className="text-display mb-1">每日行程管理</h2>
+            <h2 className="text-display mb-1">行程日程</h2>
             {currentTrip && (
               <p className="text-body text-muted-foreground">
                 {currentTrip.title} · {currentTrip.destination}
@@ -507,12 +507,12 @@ export default function AdminTripDays() {
             <DialogTrigger asChild>
               <Button onClick={openCreate} data-testid="button-create-trip-day">
                 <Plus className="w-4 h-4 mr-2" />
-                新增每日行程
+                新增一天行程
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>新增每日行程</DialogTitle>
+              <DialogTitle>新增一天行程</DialogTitle>
               </DialogHeader>
               {renderTripDayForm()}
               <DialogFooter>
@@ -739,7 +739,11 @@ export default function AdminTripDays() {
             })
           ) : (
             <div className="bg-card rounded-lg shadow-card p-12 text-center">
-              <p className="text-body text-muted-foreground mb-4">目前沒有任何每日行程</p>
+              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-title font-semibold mb-2">目前還沒有每日行程</h3>
+              <p className="text-body text-muted-foreground mb-5">
+                先建立第一天，旅客端的今日行程、地圖與景點導覽才會有脈絡。
+              </p>
               <Button onClick={openCreate} data-testid="button-create-first-day">
                 <Plus className="w-4 h-4 mr-2" />
                 建立第一天行程

@@ -5,7 +5,7 @@ import { eq, and, isNull, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
-const ADMIN_EMAIL = "saisong@gmail.com";
+const BOOTSTRAP_ADMIN_EMAIL = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase() || "";
 
 const TRIP_DATA = {
   title: "2026 土耳其希臘平安同行",
@@ -108,7 +108,9 @@ async function syncDataToCurrentDb() {
       console.log("[data-sync] created invitation code");
     }
 
-    const adminUser = await db.select().from(users).where(eq(users.email, ADMIN_EMAIL)).limit(1);
+    const adminUser = BOOTSTRAP_ADMIN_EMAIL
+      ? await db.select().from(users).where(eq(users.email, BOOTSTRAP_ADMIN_EMAIL)).limit(1)
+      : [];
     if (adminUser.length) {
       const userId = adminUser[0].id;
       const memberRole = await db.select().from(userRoles)
@@ -566,48 +568,51 @@ export async function runStartupMigration() {
   try {
     console.log("[startup-migration] checking admin role...");
 
-    const adminUser = await db.select().from(users).where(eq(users.email, ADMIN_EMAIL)).limit(1);
-    if (!adminUser.length) {
-      console.log("[startup-migration] admin user not found, skipping");
-      return;
-    }
-
-    const userId = adminUser[0].id;
-    console.log("[startup-migration] found admin user:", userId);
-
-    const existingAdminRole = await db
-      .select()
-      .from(userRoles)
-      .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "admin")))
-      .limit(1);
-
-    if (!existingAdminRole.length) {
-      await db.insert(userRoles).values({
-        userId,
-        role: "admin",
-        tripId: null,
-      });
-      console.log("[startup-migration] created admin role (global) for user:", userId);
+    if (!BOOTSTRAP_ADMIN_EMAIL) {
+      console.log("[startup-migration] BOOTSTRAP_ADMIN_EMAIL not set, skipping admin bootstrap");
     } else {
-      console.log("[startup-migration] admin role already exists");
-    }
+      const adminUser = await db.select().from(users).where(eq(users.email, BOOTSTRAP_ADMIN_EMAIL)).limit(1);
+      if (!adminUser.length) {
+        console.log("[startup-migration] bootstrap admin user not found, continuing without role changes");
+      } else {
+        const userId = adminUser[0].id;
+        console.log("[startup-migration] found bootstrap admin user:", userId);
 
-    const existingPlatformRole = await db
-      .select()
-      .from(platformRoles)
-      .where(eq(platformRoles.userId, userId))
-      .limit(1);
+        const existingAdminRole = await db
+          .select()
+          .from(userRoles)
+          .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "admin")))
+          .limit(1);
 
-    if (!existingPlatformRole.length) {
-      await db.insert(platformRoles).values({
-        userId,
-        role: "super_admin",
-        permissions: null,
-        assignedBy: null,
-      });
-      console.log("[startup-migration] created super_admin platform role for user:", userId);
-    } else {
-      console.log("[startup-migration] platform role already exists:", existingPlatformRole[0].role);
+        if (!existingAdminRole.length) {
+          await db.insert(userRoles).values({
+            userId,
+            role: "admin",
+            tripId: null,
+          });
+          console.log("[startup-migration] created admin role (global) for user:", userId);
+        } else {
+          console.log("[startup-migration] admin role already exists");
+        }
+
+        const existingPlatformRole = await db
+          .select()
+          .from(platformRoles)
+          .where(eq(platformRoles.userId, userId))
+          .limit(1);
+
+        if (!existingPlatformRole.length) {
+          await db.insert(platformRoles).values({
+            userId,
+            role: "super_admin",
+            permissions: null,
+            assignedBy: null,
+          });
+          console.log("[startup-migration] created super_admin platform role for user:", userId);
+        } else {
+          console.log("[startup-migration] platform role already exists:", existingPlatformRole[0].role);
+        }
+      }
     }
 
     // Ensure columns exist BEFORE any migrations that depend on them

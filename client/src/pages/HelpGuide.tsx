@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -41,14 +40,14 @@ export default function HelpGuide() {
           </div>
         ) : data?.content ? (
           <article className="bg-card rounded-xl border border-border p-5">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-              components={markdownComponents}
-            >
-              {data.content}
-            </ReactMarkdown>
+            <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+              >
+                {data.content}
+              </ReactMarkdown>
+            </div>
           </article>
         ) : (
           <div className="text-center py-12 text-muted-foreground">

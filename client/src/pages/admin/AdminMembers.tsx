@@ -80,10 +80,10 @@ const PLATFORM_ROLES = [
 
 const MODULE_PERMISSIONS = [
   { key: "trips", label: "行程管理" },
-  { key: "members", label: "團員管理" },
-  { key: "groups", label: "小組管理" },
-  { key: "devotionals", label: "靈修課程" },
-  { key: "invitations", label: "邀請碼管理" },
+  { key: "members", label: "團員名單" },
+  { key: "groups", label: "小組分配" },
+  { key: "devotionals", label: "每日靈修" },
+  { key: "invitations", label: "邀請與發布" },
   { key: "notifications", label: "通知發送" },
 ] as const;
 
@@ -287,9 +287,9 @@ export default function AdminMembers() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-display mb-2" data-testid="text-admin-members-title">會員管理</h2>
+          <h2 className="text-display mb-2" data-testid="text-admin-members-title">帳號權限</h2>
           <p className="text-body text-muted-foreground">
-            管理平台上所有已註冊的會員帳號
+            管理平台帳號、角色權限與旅程成員資料
           </p>
         </div>
 

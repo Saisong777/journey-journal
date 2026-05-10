@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Loader2, ArrowLeft, MapPin, Book, Search, Upload } from "lucide-react";
+import { Pencil, Trash2, Loader2, ArrowLeft, MapPin, Book, Search, Upload, FileText, CheckCircle2 } from "lucide-react";
 
 // Fields to show in the edit form, grouped
 const FIELD_GROUPS = [
@@ -170,6 +170,7 @@ export default function AdminAttractions() {
   const [filterDay, setFilterDay] = useState<number | null>(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<Record<string, string>[] | null>(null);
+  const currentTrip = trips?.find((trip: any) => trip.id === tripId);
 
   const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,8 +217,8 @@ export default function AdminAttractions() {
     return (
       <AdminLayout>
         <div className="space-y-4">
-          <h2 className="text-display mb-2">景點管理</h2>
-          <p className="text-muted-foreground">請選擇行程：</p>
+          <h2 className="text-display mb-2">景點導覽</h2>
+          <p className="text-muted-foreground">請選擇要整理景點資料的旅程：</p>
           <div className="grid gap-3">
             {trips?.map((trip: any) => (
               <Button
@@ -272,12 +273,21 @@ export default function AdminAttractions() {
     const matchDay = filterDay === null || a.dayNo === filterDay;
     return matchSearch && matchDay;
   });
+  const totalAttractions = attractions?.length || 0;
+  const withGps = (attractions || []).filter(a => Boolean(a.gps)).length;
+  const withScripture = (attractions || []).filter(a => Boolean(a.scriptureRefs)).length;
+  const withStory = (attractions || []).filter(a => Boolean(a.storySummary)).length;
 
   return (
     <AdminLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-display">景點管理</h2>
+          <div>
+            <h2 className="text-display">景點導覽</h2>
+            <p className="text-body text-muted-foreground">
+              {currentTrip ? `${currentTrip.title} · ${currentTrip.destination || "未設定目的地"}` : "整理旅客在前台會看到的景點故事"}
+            </p>
+          </div>
           <div className="flex gap-2">
             <label>
               <input type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
@@ -302,6 +312,24 @@ export default function AdminAttractions() {
             </Button>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "景點總數", value: totalAttractions, icon: MapPin },
+            { label: "有 GPS", value: withGps, icon: CheckCircle2 },
+            { label: "有經文", value: withScripture, icon: Book },
+            { label: "有故事", value: withStory, icon: FileText },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-lg bg-card p-4 shadow-card">
+              <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                <stat.icon className="h-4 w-4 text-primary" />
+                {stat.label}
+              </div>
+              <p className="mt-1 text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Search + filter */}
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
@@ -334,7 +362,9 @@ export default function AdminAttractions() {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">共 {filtered.length} 個景點</p>
+        <p className="text-sm text-muted-foreground">
+          目前顯示 {filtered.length} 個景點
+        </p>
 
         {isLoading && (
           <div className="flex justify-center py-8">
@@ -401,6 +431,35 @@ export default function AdminAttractions() {
               </div>
             </div>
           ))}
+          {!isLoading && filtered.length === 0 && (
+            <div className="rounded-lg bg-card p-10 text-center shadow-card">
+              <MapPin className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
+              <h3 className="text-title font-semibold">目前沒有可顯示的景點</h3>
+              <p className="mt-2 text-body text-muted-foreground">
+                可以先匯入 CSV 建立景點清單，再匯入 Markdown 補上深度導覽內容。
+              </p>
+              <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <label>
+                  <input type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
+                  <Button variant="outline" asChild>
+                    <span>
+                      <Upload className="w-4 h-4 mr-2" />
+                      匯入 CSV
+                    </span>
+                  </Button>
+                </label>
+                <label>
+                  <input type="file" accept=".md" multiple className="hidden" onChange={handleMdImport} />
+                  <Button asChild>
+                    <span>
+                      <Book className="w-4 h-4 mr-2" />
+                      匯入深度資料
+                    </span>
+                  </Button>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

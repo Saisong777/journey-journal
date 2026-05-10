@@ -1,73 +1,119 @@
-# Welcome to your Lovable project
+# Trip Companion / 與神同行
 
-## Project info
+旅遊靈修 PWA，部署於 Railway，正式站台為 <https://trip.wechurch.online/>。
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+這個專案目前是 React/Vite 前端加 Express 後端，資料庫使用 PostgreSQL + Drizzle ORM。它支援旅程行程、每日靈修、日誌與照片、景點地圖、點名、成員管理、邀請碼、後台管理、Bible Library、R2 檔案上傳、Resend 郵件通知與 Google OAuth。
 
-## How can I edit this code?
+## Tech Stack
 
-There are several ways of editing your application.
+- Frontend: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Query
+- Backend: Express, TypeScript, express-session, connect-pg-simple
+- Database: PostgreSQL, Drizzle ORM
+- Storage: Cloudflare R2 compatible S3 API
+- Auth: Email/password, Google OAuth
+- Deployment: Railway with Nixpacks
+- PWA: vite-plugin-pwa / Workbox
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Repository
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+git clone https://github.com/Saisong777/journey-journal.git
+cd journey-journal
+npm install
 ```
 
-**Edit a file directly in GitHub**
+## Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run dev       # Start the Express server and Vite middleware in development
+npm run build     # Build frontend assets and bundled server output
+npm run start     # Run the production server from dist/index.js
+npm test          # Run Vitest
+npm run lint      # Run ESLint
+npm run db:push   # Push Drizzle schema to the configured database
+npm run db:studio # Open Drizzle Studio
+```
 
-**Use GitHub Codespaces**
+## Local Docker Demo Database
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+For safer local testing, use the included Docker PostgreSQL database instead of Railway production data.
 
-## What technologies are used for this project?
+```sh
+npm run local:up
+npm run local:wait
+npm run db:push:local
+npm run db:seed:demo
+npm run dev:local
+```
 
-This project is built with:
+Open <http://127.0.0.1:5173> and sign in with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Admin: `admin@local.test` / `123456`
+- Member: `member1@local.test` / `123456`
+- Guide: `guide@local.test` / `123456`
 
-## How can I deploy this project?
+These are local demo accounts created by `npm run db:seed:demo`; do not use them for production.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+To wipe and rebuild the local database:
 
-## Can I connect a custom domain to my Lovable project?
+```sh
+npm run db:reset:local
+```
 
-Yes, you can!
+The local connection lives in `.env.local`, which is ignored by git. Keep `.env.local.example` updated when local development variables change.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Environment Variables
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Create a local `.env` from `.env.example` before running the app locally.
+
+Required for the full app:
+
+- `DATABASE_URL`: PostgreSQL connection string.
+- `SESSION_SECRET`: stable secret for Express sessions and OAuth state.
+- `APP_URL`: public app URL used for redirects and notifications.
+
+Optional integrations:
+
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Google OAuth.
+- `RESEND_API_KEY` and `RESEND_FROM_EMAIL`: email notifications and password reset.
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`, `VITE_R2_PUBLIC_URL`: photo/object uploads.
+
+## Local Development Notes
+
+The Railway production environment is already linked through the Railway CLI. Be careful with:
+
+```sh
+railway run npm run dev
+railway run npm run db:push
+```
+
+Those commands can use production variables and may touch the production database. For safer development, prefer a separate local/staging PostgreSQL database and a local `.env`.
+
+The server startup currently runs `runStartupMigration()` automatically. That is useful in deployment, but it means local development should be pointed at a disposable or staging database unless you explicitly intend to update production data.
+
+## Railway Deployment
+
+Railway reads `railway.json`:
+
+- Build command: `npm run build`
+- Start command: `npx drizzle-kit push --force || echo 'schema push skipped'; npm run start`
+- Healthcheck: `/api/auth/session`
+
+The linked Railway context at handoff time was:
+
+- Project: `Wechurch-New-Full`
+- Environment: `production`
+- Service: `wechurch2.0`
+
+## Current Verification Baseline
+
+As of the Codex handoff:
+
+```sh
+npm test
+npm run build
+```
+
+Both commands pass. `npm audit` reports dependency advisories; update dependencies deliberately and retest before deploying.
+
+`npm run lint` is not clean yet. At handoff it reports existing TypeScript/ESLint issues, mostly `no-explicit-any`, React fast-refresh warnings in shared UI modules, and a small number of hook/escape/import style rules. Treat lint cleanup as a separate hardening task rather than part of an unrelated feature change.

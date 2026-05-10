@@ -1,4 +1,4 @@
-import { Home, Compass, MapPin, Users, Settings } from "lucide-react";
+import { Home, BookOpen, Map, Users, Menu } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -9,11 +9,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    { icon: Home, label: "首頁", path: "/" },
-    { icon: Compass, label: "旅程", path: "/daily-journey" },
-    { icon: MapPin, label: "定位", path: "/location" },
-    { icon: Users, label: "團員", path: "/members" },
-    { icon: Settings, label: "設定", path: "/settings" },
+    { icon: Home, label: "今日", path: "/" },
+    { icon: BookOpen, label: "記錄", path: "/daily-journey" },
+    { icon: Map, label: "地圖", path: "/location" },
+    { icon: Users, label: "通訊錄", path: "/members" },
+    { icon: Menu, label: "更多", path: "/settings" },
 ];
 
 export function SidebarNav() {

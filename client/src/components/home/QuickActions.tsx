@@ -17,32 +17,32 @@ const colorPattern: CardVariant[] = ["primary", "olive-light", "warm-light", "ol
 const baseFeatures = [
   {
     icon: BookOpen,
-    title: "每日旅程",
+    title: "今日記錄",
     description: "靈修、日誌、感恩",
     path: "/daily-journey",
   },
   {
     icon: Info,
-    title: "景點資訊",
-    description: "景點介紹與歷史背景",
+    title: "景點導覽",
+    description: "景點故事與歷史背景",
     path: "/attractions",
   },
   {
     icon: Wrench,
-    title: "旅遊工具",
+    title: "行前工具",
     description: "出團說明、檢查表、匯率",
     path: "/tools",
   },
   {
     icon: Users,
-    title: "團員管理",
-    description: "查看團員資訊",
+    title: "通訊錄",
+    description: "查看團員與組長資訊",
     path: "/members",
   },
   {
     icon: ClipboardCheck,
-    title: "點名",
-    description: "出席點名與紀錄",
+    title: "集合簽到",
+    description: "集合簽到與出席紀錄",
     path: "/roll-call",
   },
 ];
@@ -65,8 +65,11 @@ export function QuickActions() {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-title px-1">快速功能</h2>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="px-1">
+        <p className="text-caption text-muted-foreground">Actions</p>
+        <h2 className="text-title">現在可能會用到</h2>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {features.map((feature, index) => (
           <FeatureCard
             key={feature.title}

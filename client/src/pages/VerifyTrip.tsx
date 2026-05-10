@@ -8,6 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Ticket, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
+type RequestError = Error & {
+  response?: {
+    json?: () => Promise<{ error?: string }>;
+  };
+};
+
 export default function VerifyTrip() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -44,14 +50,6 @@ export default function VerifyTrip() {
     }
   }, [tripStatus, navigate]);
 
-  if (tripStatusLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-amber-600" />
-      </div>
-    );
-  }
-
   const verifyMutation = useMutation({
     mutationFn: async (invitationCode: string) => {
       const response = await apiRequest("POST", "/api/verify-invitation", { code: invitationCode });
@@ -65,7 +63,7 @@ export default function VerifyTrip() {
         navigate("/");
       }, 2000);
     },
-    onError: async (err: any) => {
+    onError: async (err: RequestError) => {
       try {
         const errorData = await err.response?.json?.();
         setError(errorData?.error || "驗證失敗，請稍後再試");
@@ -74,6 +72,14 @@ export default function VerifyTrip() {
       }
     },
   });
+
+  if (tripStatusLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-amber-600" />
+      </div>
+    );
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

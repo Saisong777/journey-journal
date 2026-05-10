@@ -1,7 +1,6 @@
 import { Book, Calendar, Clock, Compass, Footprints, Mountain, Ticket, Users } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { cn } from "@/lib/utils";
 import { ScriptureText } from "@/components/ScriptureLink";
 import {
@@ -52,6 +51,7 @@ export interface AttractionDB {
   localProducts: string | null;
   recommendationScore: string | null;
   physicalComment: string | null;
+  mdContent: string | null;
 }
 
 function formatDate(dateStr: string): string {
@@ -64,30 +64,30 @@ function formatDate(dateStr: string): string {
 
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw]}
-      className={cn("prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
-      components={{
-        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-        ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
-        li: ({ children }) => <li className="text-sm">{children}</li>,
-        h1: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
-        h2: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
-        h3: ({ children }) => <h4 className="text-sm font-bold mt-2 mb-1">{children}</h4>,
-        h4: ({ children }) => <h4 className="text-sm font-semibold mt-2 mb-1">{children}</h4>,
-        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-        blockquote: ({ children }) => <blockquote className="border-l-2 border-amber-400 pl-3 italic my-2">{children}</blockquote>,
-        hr: () => <hr className="my-3 border-border" />,
-        table: ({ children }) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
-        thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
-        th: ({ children }) => <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>,
-        td: ({ children }) => <td className="border border-border px-3 py-2">{children}</td>,
-      }}
-    >
-      {text}
-    </ReactMarkdown>
+    <div className={cn("prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="text-sm">{children}</li>,
+          h1: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
+          h2: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>,
+          h3: ({ children }) => <h4 className="text-sm font-bold mt-2 mb-1">{children}</h4>,
+          h4: ({ children }) => <h4 className="text-sm font-semibold mt-2 mb-1">{children}</h4>,
+          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+          blockquote: ({ children }) => <blockquote className="border-l-2 border-amber-400 pl-3 italic my-2">{children}</blockquote>,
+          hr: () => <hr className="my-3 border-border" />,
+          table: ({ children }) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
+          thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
+          th: ({ children }) => <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>,
+          td: ({ children }) => <td className="border border-border px-3 py-2">{children}</td>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -162,6 +162,12 @@ export function AttractionDetailSheet({ attraction, open, onOpenChange }: Attrac
                 )}
               </div>
 
+              {attraction.mdContent ? (
+                <div className="bg-card border border-border rounded-lg p-4">
+                  <MarkdownContent text={attraction.mdContent} className="text-muted-foreground" />
+                </div>
+              ) : (
+                <>
               {/* Scripture */}
               {attraction.scriptureRefs && (
                 <InfoBlock title="相關經文" icon={Book} className="bg-primary/10 text-primary">
@@ -230,6 +236,8 @@ export function AttractionDetailSheet({ attraction, open, onOpenChange }: Attrac
                     <p className="text-body text-muted-foreground"><span className="font-medium">位置：</span>{attraction.modernLocation}</p>
                   )}
                 </div>
+              )}
+                </>
               )}
             </div>
           </>

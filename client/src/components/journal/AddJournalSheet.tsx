@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { X, Camera, MapPin, Smile, Loader2, Upload } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { X, Camera, MapPin, Smile, Loader2, Upload, CloudOff, RefreshCw, CheckCircle2 } from "lucide-react";
+import { get, set, del } from "idb-keyval";
 import {
   Sheet,
   SheetContent,
@@ -10,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/queryClient";
-import { compressImage, extractGps, type PhotoGps, type PhotoWithMeta } from "@/lib/photoUtils";
+import { compressImage, extractGps, transformPhotoUrl, type PhotoGps, type PhotoWithMeta } from "@/lib/photoUtils";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddJournalSheetProps {
   open: boolean;
@@ -32,24 +34,125 @@ const moods = [
   { key: "amazed", emoji: "✨", label: "驚嘆" },
 ];
 
+type PhotoDraft = {
+  url: string;
+  objectPath: string;
+  gps: PhotoGps | null;
+  file?: File;
+  status: "uploaded" | "pending";
+};
+
+type PersistedPhotoDraft =
+  | {
+      status: "uploaded";
+      objectPath: string;
+      gps: PhotoGps | null;
+    }
+  | {
+      status: "pending";
+      file: File;
+      gps: PhotoGps | null;
+    };
+
+type JournalDraft = {
+  selectedLocation: string;
+  content: string;
+  selectedMood: string;
+  photos: PersistedPhotoDraft[];
+  updatedAt: number;
+};
+
+const MAX_PHOTOS = 7;
+
 export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onSave }: AddJournalSheetProps) {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
-  const [photos, setPhotos] = useState<{ url: string; objectPath: string; gps: PhotoGps | null }[]>([]);
+  const [photos, setPhotos] = useState<PhotoDraft[]>([]);
   const [locations, setLocations] = useState<string[]>(["其他景點"]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRetryingUploads, setIsRetryingUploads] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const { toast } = useToast();
+  const hydratedRef = useRef(false);
+  const draftKey = useMemo(() => `journey-journal-draft:${date || "today"}`, [date]);
 
   useEffect(() => {
     if (open) {
-      if (defaultLocation) {
+      if (defaultLocation && !selectedLocation) {
         setSelectedLocation(defaultLocation);
       }
       fetchLocations();
     }
   }, [open, date, defaultLocation]);
+
+  useEffect(() => {
+    if (!open || hydratedRef.current) return;
+
+    hydratedRef.current = true;
+    get<JournalDraft>(draftKey)
+      .then((draft) => {
+        if (!draft) return;
+        setSelectedLocation(draft.selectedLocation || defaultLocation || "");
+        setContent(draft.content || "");
+        setSelectedMood(draft.selectedMood || "");
+        setPhotos(
+          draft.photos.slice(0, MAX_PHOTOS).map((photo) => {
+            if (photo.status === "uploaded") {
+              return {
+                status: "uploaded",
+                objectPath: photo.objectPath,
+                gps: photo.gps,
+                url: transformPhotoUrl(photo.objectPath),
+              };
+            }
+
+            return {
+              status: "pending",
+              objectPath: "",
+              gps: photo.gps,
+              file: photo.file,
+              url: URL.createObjectURL(photo.file),
+            };
+          })
+        );
+        setDraftRestored(true);
+      })
+      .catch(() => {});
+
+    return () => {
+      hydratedRef.current = false;
+    };
+  }, [defaultLocation, draftKey, open]);
+
+  useEffect(() => {
+    if (!open || !hydratedRef.current) return;
+
+    const hasDraft = content.trim() || selectedLocation || selectedMood || photos.length > 0;
+    const timeoutId = window.setTimeout(() => {
+      if (!hasDraft) {
+        del(draftKey).catch(() => {});
+        return;
+      }
+
+      const draft: JournalDraft = {
+        selectedLocation,
+        content,
+        selectedMood,
+        photos: photos.map((photo) =>
+          photo.status === "uploaded"
+            ? { status: "uploaded", objectPath: photo.objectPath, gps: photo.gps }
+            : { status: "pending", file: photo.file!, gps: photo.gps }
+        ),
+        updatedAt: Date.now(),
+      };
+      set(draftKey, draft).catch(() => {});
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [content, draftKey, open, photos, selectedLocation, selectedMood]);
 
   const fetchLocations = async () => {
     setIsLoadingLocations(true);
@@ -83,7 +186,40 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
     }
   };
 
-  const MAX_PHOTOS = 7;
+  const uploadPreparedPhoto = async (file: File, gpsData: PhotoGps | null): Promise<PhotoDraft> => {
+    const token = getAuthToken();
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const urlResponse = await fetch("/api/uploads/request-url", {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: JSON.stringify({
+        name: file.name,
+        size: file.size,
+        contentType: file.type,
+      }),
+    });
+    if (!urlResponse.ok) throw new Error("Failed to get upload URL");
+    const { uploadURL, objectPath } = await urlResponse.json();
+
+    const uploadResponse = await fetch(uploadURL, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+    if (!uploadResponse.ok) throw new Error("Failed to upload file");
+
+    return {
+      status: "uploaded",
+      url: URL.createObjectURL(file),
+      objectPath,
+      gps: gpsData,
+    };
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -95,49 +231,41 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
     setIsUploading(true);
 
     try {
-      const token = getAuthToken();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const filesToUpload = Array.from(files).slice(0, remaining);
 
-      // Extract GPS and compress in parallel
       const prepared = await Promise.all(filesToUpload.map(async (f) => {
         const [compressed, gpsData] = await Promise.all([compressImage(f), extractGps(f)]);
         return { compressed, gps: gpsData };
       }));
 
-      // Upload all in parallel
       const results = await Promise.all(prepared.map(async ({ compressed: file, gps: gpsData }) => {
-        const urlResponse = await fetch("/api/uploads/request-url", {
-          method: "POST",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({
-            name: file.name,
-            size: file.size,
-            contentType: file.type,
-          }),
-        });
-        if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-        const { uploadURL, objectPath } = await urlResponse.json();
-
-        const uploadResponse = await fetch(uploadURL, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
-        });
-        if (!uploadResponse.ok) throw new Error("Failed to upload file");
-
-        const previewUrl = URL.createObjectURL(file);
-        return { url: previewUrl, objectPath, gps: gpsData };
+        try {
+          return await uploadPreparedPhoto(file, gpsData);
+        } catch {
+          return {
+            status: "pending" as const,
+            url: URL.createObjectURL(file),
+            objectPath: "",
+            gps: gpsData,
+            file,
+          };
+        }
       }));
 
       setPhotos(prev => [...prev, ...results]);
+      if (results.some((result) => result.status === "pending")) {
+        toast({
+          title: "照片已先保留在本機",
+          description: "網路恢復後可在這個畫面點「重新上傳照片」。",
+        });
+      }
     } catch (error) {
       console.error("Upload failed:", error);
+      toast({
+        title: "照片處理失敗",
+        description: "請稍後再試，已填寫的文字草稿會保留。",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
       e.target.value = "";
@@ -152,23 +280,75 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
     });
   };
 
+  const retryPendingUploads = async () => {
+    const pendingPhotos = photos.filter((photo) => photo.status === "pending" && photo.file);
+    if (pendingPhotos.length === 0) return photos;
+
+    setIsRetryingUploads(true);
+    const nextPhotos: PhotoDraft[] = [];
+
+    for (const photo of photos) {
+      if (photo.status !== "pending" || !photo.file) {
+        nextPhotos.push(photo);
+        continue;
+      }
+
+      try {
+        const uploaded = await uploadPreparedPhoto(photo.file, photo.gps);
+        URL.revokeObjectURL(photo.url);
+        nextPhotos.push(uploaded);
+      } catch {
+        nextPhotos.push(photo);
+      }
+    }
+
+    setPhotos(nextPhotos);
+    setIsRetryingUploads(false);
+
+    const remaining = nextPhotos.filter((photo) => photo.status === "pending").length;
+    toast({
+      title: remaining ? "仍有照片待上傳" : "照片已上傳完成",
+      description: remaining ? "網路仍不穩，照片草稿會繼續保留在本機。" : "現在可以一起儲存到日誌。",
+      variant: remaining ? "destructive" : "default",
+    });
+
+    return nextPhotos;
+  };
+
   const handleSave = async () => {
     // Only content is required - location is optional
     if (content.trim()) {
       setIsSaving(true);
       try {
+        const latestPhotos = await retryPendingUploads();
+        const pendingCount = latestPhotos.filter((photo) => photo.status === "pending").length;
         await onSave?.({
           location: selectedLocation || "",
           content,
-          photos: photos.map(p => ({
+          photos: latestPhotos.filter((photo) => photo.status === "uploaded").map(p => ({
             photoUrl: p.objectPath,
             latitude: p.gps?.latitude ?? null,
             longitude: p.gps?.longitude ?? null,
           })),
           mood: selectedMood,
         });
+        if (pendingCount > 0) {
+          toast({
+            title: "文字已儲存，照片草稿仍保留",
+            description: "等網路穩定後再開日誌草稿，可重新上傳照片。",
+          });
+          setPhotos(latestPhotos.filter((photo) => photo.status === "pending"));
+          setContent("");
+          setSelectedMood("");
+          setSelectedLocation(defaultLocation || "");
+          onOpenChange(false);
+          return;
+        }
         // Cleanup preview URLs
-        photos.forEach(p => URL.revokeObjectURL(p.url));
+        latestPhotos.forEach(p => {
+          if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+        });
+        await del(draftKey);
         // Reset form
         setSelectedLocation("");
         setContent("");
@@ -183,6 +363,7 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
 
   // Only content is required
   const isValid = content.trim().length > 0;
+  const pendingPhotoCount = photos.filter((photo) => photo.status === "pending").length;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -192,6 +373,24 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
         </SheetHeader>
 
         <div className="space-y-6 overflow-y-auto flex-1 pb-4">
+          {(draftRestored || pendingPhotoCount > 0) && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950">
+              <div className="flex items-start gap-2">
+                {pendingPhotoCount > 0 ? <CloudOff className="mt-0.5 h-4 w-4" /> : <CheckCircle2 className="mt-0.5 h-4 w-4" />}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {pendingPhotoCount > 0 ? `${pendingPhotoCount} 張照片待上傳` : "已載入上次未完成的草稿"}
+                  </p>
+                  <p className="mt-1 text-xs">
+                    {pendingPhotoCount > 0
+                      ? "照片先存在本機，網路穩定後可重新上傳。"
+                      : "你可以接著寫，不會因為剛剛離開畫面就消失。"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Location Selection - Optional */}
           <div className="space-y-3">
             <label className="text-body font-medium flex items-center gap-2">
@@ -235,7 +434,7 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
                   <img
                     src={photo.url}
                     alt={`照片 ${index + 1}`}
-                    className="w-24 h-24 object-cover rounded-lg"
+                    className={cn("w-24 h-24 object-cover rounded-lg", photo.status === "pending" && "opacity-80")}
                     loading="lazy"
                     data-testid={`img-photo-${index}`}
                   />
@@ -246,6 +445,11 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
                   >
                     <X className="w-4 h-4" />
                   </button>
+                  {photo.status === "pending" && (
+                    <span className="absolute bottom-1 left-1 right-1 rounded bg-black/65 px-1 py-0.5 text-center text-[10px] font-medium text-white">
+                      待上傳
+                    </span>
+                  )}
                 </div>
               ))}
               {photos.length < MAX_PHOTOS && (
@@ -270,6 +474,19 @@ export function AddJournalSheet({ open, onOpenChange, date, defaultLocation, onS
                 </label>
               )}
             </div>
+            {pendingPhotoCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={retryPendingUploads}
+                disabled={isRetryingUploads || isUploading}
+                className="w-full"
+              >
+                <RefreshCw className={cn("mr-2 h-4 w-4", isRetryingUploads && "animate-spin")} />
+                {isRetryingUploads ? "重新上傳中..." : "重新上傳照片"}
+              </Button>
+            )}
           </div>
 
           {/* Journal Content */}

@@ -20,16 +20,21 @@ interface AdminLayoutProps {
 
 const navItems = [
   { path: "/admin", label: "總覽", icon: LayoutDashboard },
-  { path: "/admin/trips", label: "旅程管理", icon: Map },
-  { path: "/admin/trip-days", label: "每日行程", icon: CalendarDays },
-  { path: "/admin/devotionals", label: "靈修管理", icon: BookOpen },
+  { path: "/admin/trips", label: "旅程控制台", icon: Map },
+  { path: "/admin/trip-days", label: "行程日程", icon: CalendarDays },
+  { path: "/admin/devotionals", label: "每日靈修", icon: BookOpen },
   { path: "/admin/trip-notes", label: "注意事項", icon: FileText },
-  { path: "/admin/invitations", label: "邀請碼", icon: Ticket },
-  { path: "/admin/members", label: "會員管理", icon: Users },
-  { path: "/admin/attractions", label: "景點管理", icon: Map },
-  { path: "/admin/bible-library", label: "聖經資料館", icon: Library },
+  { path: "/admin/invitations", label: "邀請與發布", icon: Ticket },
+  { path: "/admin/members", label: "帳號權限", icon: Users },
+  { path: "/admin/attractions", label: "景點導覽", icon: Map },
+  { path: "/admin/bible-library", label: "資料館", icon: Library },
   { path: "/admin/help-guide", label: "使用說明", icon: HelpCircle },
 ];
+
+function isNavActive(pathname: string, itemPath: string) {
+  if (itemPath === "/admin") return pathname === "/admin";
+  return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+}
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
@@ -70,7 +75,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       >
         <div className="flex gap-1 px-3 py-2 min-w-max">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = isNavActive(location.pathname, item.path);
             return (
               <Link
                 key={item.path}
@@ -96,7 +101,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <aside className="w-56 min-h-[calc(100vh-3.5rem)] border-r border-border bg-card hidden md:block">
           <nav className="p-3 space-y-0.5">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = isNavActive(location.pathname, item.path);
               return (
                 <Link
                   key={item.path}

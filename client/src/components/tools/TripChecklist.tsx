@@ -80,7 +80,9 @@ export function TripChecklist() {
       if (saved) {
         setCheckedItems(JSON.parse(saved));
       }
-    } catch {}
+    } catch {
+      setCheckedItems({});
+    }
   }, []);
 
   useEffect(() => {

@@ -96,7 +96,7 @@ const Attractions = () => {
       <PageLayout>
         <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
           <section className="space-y-2">
-            <h1 className="text-display">景點資訊</h1>
+            <h1 className="text-display">景點導覽</h1>
             <p className="text-body text-muted-foreground">
               探索平安同行的歷史與故事
             </p>
@@ -113,7 +113,7 @@ const Attractions = () => {
     <PageLayout>
       <div className="px-4 py-6 pb-20 max-w-lg mx-auto space-y-6 animate-fade-in">
         <section className="space-y-2">
-          <h1 className="text-display" data-testid="text-attractions-title">景點資訊</h1>
+          <h1 className="text-display" data-testid="text-attractions-title">景點導覽</h1>
           <p className="text-body text-muted-foreground">
             {trip?.title || "探索平安同行的歷史與故事"}
           </p>

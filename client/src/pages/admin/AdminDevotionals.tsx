@@ -85,6 +85,18 @@ export default function AdminDevotionals() {
   const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
+    if (urlTripId) {
+      setSelectedTripId(urlTripId);
+      return;
+    }
+    if (!selectedTripId && trips && trips.length > 0) {
+      const firstTripId = trips[0].id;
+      setSelectedTripId(firstTripId);
+      navigate(`/admin/devotionals/${firstTripId}`, { replace: true });
+    }
+  }, [navigate, selectedTripId, trips, urlTripId]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedScripture(formData.scripture.trim());
     }, 500);
@@ -246,9 +258,9 @@ export default function AdminDevotionals() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-display mb-2">靈修管理</h2>
+            <h2 className="text-display mb-2">每日靈修</h2>
             <p className="text-body text-muted-foreground">
-              為每個旅程建立靈修課程內容
+              為每一天建立經文、反思問題與禱告內容
             </p>
           </div>
 
@@ -260,7 +272,7 @@ export default function AdminDevotionals() {
               </Button>
               <Button onClick={openCreate} data-testid="button-create-devotional">
                 <Plus className="w-4 h-4 mr-2" />
-                新增靈修課程
+                新增單日靈修
               </Button>
             </div>
           )}
@@ -394,11 +406,21 @@ export default function AdminDevotionals() {
           </div>
         ) : (
           <div className="bg-card rounded-lg shadow-card p-12 text-center">
-            <p className="text-body text-muted-foreground mb-4">此旅程尚未有靈修課程</p>
-            <Button onClick={openCreate} data-testid="button-create-first-devotional">
-              <Plus className="w-4 h-4 mr-2" />
-              建立第一個靈修課程
-            </Button>
+            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-title font-semibold mb-2">此旅程尚未有每日靈修</h3>
+            <p className="text-body text-muted-foreground mb-5">
+              可以一次匯入 CSV，或先建立第一天的經文與反思。
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <Button variant="outline" onClick={() => { setCsvPreview([]); setIsImportOpen(true); }}>
+                <Upload className="w-4 h-4 mr-2" />
+                匯入 CSV
+              </Button>
+              <Button onClick={openCreate} data-testid="button-create-first-devotional">
+                <Plus className="w-4 h-4 mr-2" />
+                建立第一天靈修
+              </Button>
+            </div>
           </div>
         )}
 

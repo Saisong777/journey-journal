@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Clock, MapPin, Utensils, Home, Info, PenLine, Book, Users, Compass, Clock3, DollarSign, Shirt, Camera, Star, Shield, Accessibility, UtensilsCrossed, BedDouble, Map, Landmark, Search, MessageCircleQuestion, Bus, Coffee, Settings2, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +16,7 @@ import { AddJournalSheet } from "@/components/journal/AddJournalSheet";
 import { useCreateJournalEntry } from "@/hooks/useJournalEntries";
 import { useScheduleItems, type ScheduleItem as DbScheduleItem } from "@/hooks/useScheduleItems";
 import { ScheduleManagerSheet } from "@/components/schedule/ScheduleManagerSheet";
+import type { PhotoWithMeta } from "@/lib/photoUtils";
 
 interface TripDay {
   id: string;
@@ -224,11 +224,14 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     enabled: !!todaySchedule,
   });
 
-  // allTripDays items only have dayNo (not dayNumber which is added by /today endpoint)
-  const getDayNo = (d: TripDay) => d.dayNo ?? (d as any).dayNumber;
+  // allTripDays items usually have dayNo; /today also carries dayNumber.
+  const getDayNo = (d: TripDay | null | undefined) => d?.dayNo ?? d?.dayNumber ?? null;
+  const todayDayNo = getDayNo(todaySchedule);
 
   // Resolve the displayed day based on offset from today
-  const todayIdx = allTripDays?.findIndex(d => getDayNo(d) === getDayNo(todaySchedule!)) ?? -1;
+  const todayIdx = todayDayNo == null
+    ? -1
+    : allTripDays?.findIndex(d => getDayNo(d) === todayDayNo) ?? -1;
 
   const displayedDay: TripDay | null | undefined = (() => {
     if (!todaySchedule || !allTripDays?.length) return todaySchedule;
@@ -242,7 +245,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   const canGoForward = allTripDays && todayIdx >= 0 && (todayIdx + dayOffset) < allTripDays.length - 1;
 
   // Fetch DB-driven schedule items for displayed day
-  const { data: scheduleData } = useScheduleItems(displayedDay ? getDayNo(displayedDay) : null);
+  const { data: scheduleData } = useScheduleItems(getDayNo(displayedDay));
   const dbItems = scheduleData?.items ?? [];
   const canManage = scheduleData?.canManage ?? false;
 
@@ -265,7 +268,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
   function findAttraction(title: string): Attraction | undefined {
     if (!allAttractions) return undefined;
     const normalize = (s: string) =>
-      s.replace(/[的了之在於記]/g, "").replace(/[(（）)\/／\s·・\-–—]/g, "");
+      s.replace(/[的了之在於記]/g, "").replace(/[()（）/／\s·・–—-]/g, "");
     const normTitle = normalize(title);
     return allAttractions.find(a => {
       const normName = normalize(a.nameZh);
@@ -277,14 +280,17 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
     return (
       <section className="space-y-4">
         <div className="flex items-center justify-between px-1">
-          <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-4 w-16" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <Skeleton className="h-9 w-28 rounded-sm" />
         </div>
-        <div className="bg-card rounded-lg shadow-card overflow-hidden">
+        <div className="overflow-hidden rounded-sm border border-border/70 bg-card shadow-card">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-4 border-b border-border last:border-0">
-              <Skeleton className="w-14 h-12" />
-              <Skeleton className="w-3 h-3 rounded-full" />
+            <div key={i} className="flex items-center gap-4 border-b border-border/50 p-4 last:border-0">
+              <Skeleton className="h-12 w-14 rounded-sm" />
+              <Skeleton className="h-3 w-3 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-3 w-24" />
@@ -309,7 +315,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
 
   const isToday = dayOffset === 0;
 
-  const handleJournalSave = async (entry: { location: string; content: string; photos: any[]; mood: string }) => {
+  const handleJournalSave = async (entry: { location: string; content: string; photos: PhotoWithMeta[]; mood: string }) => {
     await createJournal.mutateAsync({
       title: entry.location || "隨手記錄",
       content: entry.content,
@@ -321,46 +327,49 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-title">
-          {isToday ? "今日行程" : "每日行程"}
-        </h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-end justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <p className="text-caption text-muted-foreground">Schedule</p>
+          <h2 className="text-title">
+            {isToday ? "今日行程" : "每日行程"}
+          </h2>
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-2">
           {canManage && isToday && (
             <button
               onClick={() => setManagerOpen(true)}
-              className="flex items-center gap-1 text-caption text-muted-foreground hover:text-primary transition-colors"
+              className="flex h-8 items-center gap-1 rounded-sm px-2 text-caption text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
               <Settings2 className="w-3.5 h-3.5" />
               管理
             </button>
           )}
           {/* Day navigation */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 rounded-sm border border-border/70 bg-card/70 p-1 shadow-soft">
             <button
               onClick={() => setDayOffset(o => o - 1)}
               disabled={!canGoBack}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted disabled:opacity-30 transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors hover:bg-muted disabled:opacity-30"
+              aria-label="前一天"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setDayOffset(0)}
               className={cn(
-                "px-2 py-0.5 rounded-full text-body font-medium transition-colors",
+                "rounded-sm px-2 py-0.5 text-body font-medium transition-colors",
                 isToday
-                  ? "text-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-primary"
               )}
             >
-              第 {getDayNo(displayedDay)} 天
-              {!isToday && <span className="text-caption ml-1 text-muted-foreground/70">(點回今天)</span>}
-              {displayedDay.isPostTrip && <span className="text-muted-foreground text-caption ml-1">(已結束)</span>}
+              D{getDayNo(displayedDay)}
             </button>
             <button
               onClick={() => setDayOffset(o => o + 1)}
               disabled={!canGoForward}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted disabled:opacity-30 transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors hover:bg-muted disabled:opacity-30"
+              aria-label="後一天"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -369,14 +378,16 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
       </div>
 
       {/* City/date label for non-today */}
-      {!isToday && displayedDay.cityArea && (
-        <p className="text-caption text-muted-foreground px-1">
-          {displayedDay.date && <span className="mr-2">{displayedDay.date}</span>}
-          {displayedDay.cityArea}
-        </p>
+      {(!isToday || displayedDay.cityArea) && (
+        <div className="flex flex-wrap items-center gap-2 px-1 text-caption text-muted-foreground">
+          {displayedDay.date && <span>{displayedDay.date}</span>}
+          {displayedDay.cityArea && <span>{displayedDay.cityArea}</span>}
+          {!isToday && <span className="text-primary">點 D{getDayNo(displayedDay)} 回到今天</span>}
+          {displayedDay.isPostTrip && <span>已結束</span>}
+        </div>
       )}
 
-      <div className="bg-card/80 backdrop-blur-md rounded-xl shadow-card overflow-hidden border border-white/20">
+      <div className="overflow-hidden rounded-sm border border-border/70 bg-card/90 shadow-card backdrop-blur-md">
         {scheduleItems.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <p className="text-body-lg">今日為自由活動日，好好享受！</p>
@@ -389,13 +400,13 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                 key={index}
                 className={cn(
                   "border-b border-border/50 last:border-0 transition-colors",
-                  item.isNext && "bg-primary/5 border-primary/20"
+                  item.isNext && "bg-primary/[0.07]"
                 )}
                 data-testid={`schedule-item-${index}`}
               >
-                <div className="flex items-center gap-3 px-4 py-3">
+                <div className="flex items-start gap-3 px-4 py-3.5">
                   <div className={cn(
-                    "text-center min-w-[50px]",
+                    "flex min-w-[54px] flex-col items-center rounded-sm px-2 py-1.5",
                     item.isNext ? "text-primary font-bold" : "text-muted-foreground"
                   )}>
                     {item.icon === "meal" ? (
@@ -411,22 +422,22 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                     ) : (
                       <Clock className="w-4 h-4 mx-auto mb-1 opacity-80" />
                     )}
-                    <span className="text-body">{item.time}</span>
+                    <span className="text-sm leading-none">{item.time}</span>
                   </div>
 
                   <div className="relative flex flex-col items-center self-stretch py-1">
                     <div className={cn(
-                      "w-3 h-3 rounded-full z-10 shadow-sm",
-                      item.isNext ? "bg-primary ring-3 ring-primary/20" : "bg-muted border-2 border-border"
+                      "z-10 h-3 w-3 rounded-full shadow-sm",
+                      item.isNext ? "bg-primary ring-4 ring-primary/15" : "border-2 border-border bg-muted"
                     )} />
                     {index < scheduleItems.length - 1 && (
                       <div className="absolute top-4 w-0.5 h-[calc(100%+8px)] bg-gradient-to-b from-border to-border/50" />
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0 py-0.5">
+                  <div className="min-w-0 flex-1 py-0.5">
                     <h3 className={cn(
-                      "text-body font-semibold truncate",
+                      "truncate text-body font-semibold",
                       item.isNext ? "text-primary" : "text-foreground"
                     )}>
                       {item.title}
@@ -442,14 +453,14 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
 
                 {/* Action buttons for activity items */}
                 {item.icon === "activity" && (
-                  <div className="flex gap-2 px-4 pb-3 pl-[74px]">
+                  <div className="flex gap-2 px-4 pb-3 pl-[86px]">
                     {attraction && (
                       <button
                         onClick={() => setSelectedAttraction(attraction)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        className="flex min-h-9 items-center gap-1 rounded-sm bg-primary/10 px-2.5 py-1 text-caption text-primary transition-colors hover:bg-primary/20"
                       >
                         <Info className="w-3 h-3" />
-                        景點資訊
+                        景點導覽
                       </button>
                     )}
                     <button
@@ -457,7 +468,7 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                         setJournalLocation(item.title);
                         setJournalOpen(true);
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-caption bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
+                      className="flex min-h-9 items-center gap-1 rounded-sm bg-amber-100 px-2.5 py-1 text-caption text-amber-800 transition-colors hover:bg-amber-200"
                     >
                       <PenLine className="w-3 h-3" />
                       隨手記錄
@@ -499,7 +510,6 @@ export function TodaySchedule({ todaySchedule, isLoading }: TodayScheduleProps) 
                 prose-hr:my-6 prose-hr:border-border">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
                   components={{
                     table: ({ children }) => <div className="overflow-x-auto my-3"><table className="w-full text-sm border-collapse border border-border">{children}</table></div>,
                     thead: ({ children }) => <thead className="bg-muted">{children}</thead>,

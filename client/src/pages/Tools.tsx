@@ -13,7 +13,7 @@ export default function Tools() {
   const [viewMode, setViewMode] = useState<ViewMode>("briefing");
 
   return (
-    <PageLayout title="旅遊工具">
+    <PageLayout title="行前工具">
       <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         <WeatherInfo />
 

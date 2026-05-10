@@ -147,6 +147,10 @@ export interface IStorage {
 
   getMembers(tripId: string): Promise<(Profile & { group?: Group | null; role?: string })[]>;
   getAllProfiles(): Promise<Profile[]>;
+  getUserLocation(userId: string): Promise<UserLocation | undefined>;
+  getLocationsByTrip(tripId: string): Promise<(UserLocation & { profile?: Profile })[]>;
+  updateUserLocation(userId: string, tripId: string, latitude: number, longitude: number): Promise<UserLocation>;
+  deleteUserLocation(userId: string): Promise<void>;
 
   getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]>;
   getDevotionalCourse(id: string): Promise<DevotionalCourse | undefined>;
@@ -643,6 +647,10 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return result;
+  }
+
+  async deleteUserLocation(userId: string): Promise<void> {
+    await db.delete(userLocations).where(eq(userLocations.userId, userId));
   }
 
   async getDevotionalCourses(tripId: string): Promise<DevotionalCourse[]> {

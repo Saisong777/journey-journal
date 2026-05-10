@@ -134,7 +134,7 @@ export default function Members() {
   }, [members]);
 
   return (
-    <PageLayout title="團員管理">
+    <PageLayout title="通訊錄">
       <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
         {/* Stats */}
         <section className="bg-card rounded-lg shadow-card p-4">
@@ -163,7 +163,7 @@ export default function Members() {
               <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
-                  <h3 className="text-body font-semibold">小組管理</h3>
+                  <h3 className="text-body font-semibold">我的小組</h3>
                   <span className="text-caption text-muted-foreground">({groups.length} 組)</span>
                 </div>
                 <ChevronDown className={cn(
@@ -205,7 +205,7 @@ export default function Members() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜尋團員姓名、組別或電話..."
+              placeholder="搜尋姓名、組別或電話..."
               className="pl-10 h-12 text-body"
             />
           </div>
