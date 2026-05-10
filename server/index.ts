@@ -6,6 +6,7 @@ import connectPg from "connect-pg-simple";
 import helmet from "helmet";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { createHash } from "crypto";
+import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { registerUploadRoutes } from "./uploadRoutes";
@@ -79,6 +80,41 @@ app.use((req, res, next) => {
   express.json({ limit: "10mb" })(req, res, next);
 });
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));
+
+app.get("/healthz", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "journey-journal",
+    environment: process.env.NODE_ENV || "development",
+    uptimeSec: Math.round(process.uptime()),
+  });
+});
+
+app.get("/api/health", async (_req, res) => {
+  const startedAt = Date.now();
+  try {
+    await pool.query("select 1");
+    res.json({
+      ok: true,
+      service: "journey-journal",
+      environment: process.env.NODE_ENV || "development",
+      db: "ok",
+      uptimeSec: Math.round(process.uptime()),
+      checkedAt: new Date().toISOString(),
+      latencyMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    console.error("[health] database check failed:", error);
+    res.status(503).json({
+      ok: false,
+      service: "journey-journal",
+      environment: process.env.NODE_ENV || "development",
+      db: "unavailable",
+      checkedAt: new Date().toISOString(),
+      latencyMs: Date.now() - startedAt,
+    });
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

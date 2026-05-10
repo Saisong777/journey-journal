@@ -23,7 +23,9 @@
     "dev:local": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npm run dev",
     "db:push:local": "set -a; [ -f .env.local ] && . ./.env.local; set +a; npm run db:push",
     "db:seed:demo": "set -a; [ -f .env.local ] && . ./.env.local; set +a; tsx scripts/seed-demo-data.ts",
-    "db:reset:local": "docker compose down -v && docker compose up -d postgres && npm run local:wait && npm run db:push:local && npm run db:seed:demo"
+    "db:reset:local": "docker compose down -v && docker compose up -d postgres && npm run local:wait && npm run db:push:local && npm run db:seed:demo",
+    "smoke:prod": "tsx scripts/smoke-production.ts",
+    "release:check": "npm test && npx tsc --noEmit && npm run build && npm run smoke:prod"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",

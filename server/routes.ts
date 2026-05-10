@@ -301,6 +301,93 @@ export function registerRoutes(app: Express) {
   // Apply extractUser middleware to all API routes
   app.use("/api", extractUser);
 
+  app.get("/api/admin/system-status", requireAdmin, async (_req, res) => {
+    try {
+      const [trips, profiles, groups, roles, invitations] = await Promise.all([
+        storage.getTrips(),
+        storage.getAllProfiles(),
+        storage.getAllGroups(),
+        storage.getAllUserRoles(),
+        storage.getAllTripInvitations(),
+      ]);
+
+      const sortedTrips = [...trips].sort((a, b) => {
+        const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return bTime - aTime;
+      });
+      const activeTrip = sortedTrips[0] || null;
+      let activeTripStatus = null;
+
+      if (activeTrip) {
+        const [tripDays, tripMembers, attractions, devotionals, notes] = await Promise.all([
+          storage.getTripDays(activeTrip.id),
+          storage.getMembers(activeTrip.id),
+          storage.getAttractionsByTrip(activeTrip.id),
+          storage.getDevotionalCourses(activeTrip.id),
+          storage.getNotesForTrip(activeTrip.id),
+        ]);
+        const activeInvitations = invitations.filter((invitation) => invitation.tripId === activeTrip.id && invitation.isActive !== false);
+        const checks = [
+          Boolean(activeTrip.destination && activeTrip.startDate && activeTrip.endDate),
+          tripDays.length > 0,
+          tripMembers.length > 0,
+          groups.some((group) => group.tripId === activeTrip.id),
+          attractions.length > 0,
+          devotionals.length > 0,
+          notes.length > 0,
+          activeInvitations.length > 0,
+        ];
+
+        activeTripStatus = {
+          id: activeTrip.id,
+          title: activeTrip.title,
+          destination: activeTrip.destination,
+          startDate: activeTrip.startDate,
+          endDate: activeTrip.endDate,
+          readiness: Math.round((checks.filter(Boolean).length / checks.length) * 100),
+          counts: {
+            days: tripDays.length,
+            members: tripMembers.length,
+            groups: groups.filter((group) => group.tripId === activeTrip.id).length,
+            attractions: attractions.length,
+            devotionals: devotionals.length,
+            notes: notes.length,
+            invitations: activeInvitations.length,
+          },
+          risks: {
+            membersMissingEmergency: tripMembers.filter((member) => !member.emergencyContactName || !member.emergencyContactPhone).length,
+            membersWithoutGroup: tripMembers.filter((member) => !member.groupId).length,
+            attractionsMissingGps: attractions.filter((attraction) => !attraction.gps).length,
+          },
+        };
+      }
+
+      res.json({
+        ok: true,
+        checkedAt: new Date().toISOString(),
+        environment: process.env.NODE_ENV || "development",
+        integrations: {
+          googleOAuth: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+          email: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL),
+          uploads: Boolean(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME),
+          sessionSecret: Boolean(process.env.SESSION_SECRET),
+        },
+        counts: {
+          trips: trips.length,
+          profiles: profiles.length,
+          groups: groups.length,
+          roles: roles.length,
+          invitations: invitations.length,
+        },
+        activeTrip: activeTripStatus,
+      });
+    } catch (error) {
+      console.error("[system-status] error:", error);
+      res.status(500).json({ ok: false, error: "Failed to load system status" });
+    }
+  });
+
   // Google OAuth: initiate login
   // Use HMAC-signed state token instead of session to avoid mobile cookie issues
   const OAUTH_STATE_SECRET = process.env.SESSION_SECRET || "dev-oauth-state-secret";

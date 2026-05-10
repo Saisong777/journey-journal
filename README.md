@@ -30,6 +30,8 @@ npm run build     # Build frontend assets and bundled server output
 npm run start     # Run the production server from dist/index.js
 npm test          # Run Vitest
 npm run lint      # Run ESLint
+npm run smoke:prod # Check the live production URL without signing in
+npm run release:check # Test, typecheck, build, and production smoke check
 npm run db:push   # Push Drizzle schema to the configured database
 npm run db:studio # Open Drizzle Studio
 ```
@@ -99,21 +101,28 @@ Railway reads `railway.json`:
 - Start command: `npx drizzle-kit push --force || echo 'schema push skipped'; npm run start`
 - Healthcheck: `/api/auth/session`
 
-The linked Railway context at handoff time was:
+The production Railway context is:
 
-- Project: `Wechurch-New-Full`
+- Project: `Life-Jourey`
 - Environment: `production`
-- Service: `wechurch2.0`
+- Service: `journey-journal`
+- Public URL: <https://trip.wechurch.online>
 
 ## Current Verification Baseline
 
-As of the Codex handoff:
+Before deploying a release candidate:
 
 ```sh
 npm test
+npx tsc --noEmit
 npm run build
+npm run smoke:prod
 ```
 
-Both commands pass. `npm audit` reports dependency advisories; update dependencies deliberately and retest before deploying.
+`npm run smoke:prod` checks the public HTML shell, health endpoints, security headers, anonymous session response, and protected API behavior on <https://trip.wechurch.online>. To test another target, set `SMOKE_BASE_URL`.
 
-`npm run lint` is not clean yet. At handoff it reports existing TypeScript/ESLint issues, mostly `no-explicit-any`, React fast-refresh warnings in shared UI modules, and a small number of hook/escape/import style rules. Treat lint cleanup as a separate hardening task rather than part of an unrelated feature change.
+```sh
+SMOKE_BASE_URL=http://127.0.0.1:5000 npm run smoke:prod
+```
+
+`npm run lint` currently reports warnings from existing TypeScript/React style rules. Treat lint cleanup as a separate hardening task unless the change directly touches those files.

@@ -34,6 +34,33 @@ type AdminTrip = {
   endDate?: string | null;
 };
 
+type AdminGroup = {
+  id: string;
+  tripId: string;
+  name: string;
+};
+
+type AdminMember = {
+  id: string;
+  groupId?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+};
+
+type AdminAttraction = {
+  id: string;
+  gps?: string | null;
+};
+
+type AdminInvitation = {
+  id: string;
+  isActive?: boolean | null;
+};
+
+type AdminResource = {
+  id: string;
+};
+
 type ChecklistItem = {
   label: string;
   detail: string;
@@ -45,6 +72,43 @@ type ChecklistItem = {
 type HelpContentResponse = {
   content: string;
   isDefault?: boolean;
+};
+
+type SystemStatusResponse = {
+  ok: boolean;
+  checkedAt: string;
+  environment: string;
+  integrations: {
+    googleOAuth: boolean;
+    email: boolean;
+    uploads: boolean;
+    sessionSecret: boolean;
+  };
+  counts: {
+    trips: number;
+    profiles: number;
+    groups: number;
+    roles: number;
+    invitations: number;
+  };
+  activeTrip: null | {
+    title: string;
+    readiness: number;
+    counts: {
+      days: number;
+      members: number;
+      groups: number;
+      attractions: number;
+      devotionals: number;
+      notes: number;
+      invitations: number;
+    };
+    risks: {
+      membersMissingEmergency: number;
+      membersWithoutGroup: number;
+      attractionsMissingGps: number;
+    };
+  };
 };
 
 const SELECTED_TRIP_STORAGE_KEY = "admin_dashboard_selected_trip_id";
@@ -82,18 +146,21 @@ export default function AdminDashboard() {
   const { data: trips = [], isLoading: tripsLoading } = useAllTrips();
   const { data: profiles = [], isLoading: profilesLoading } = useAllProfiles();
   const { data: groups = [], isLoading: groupsLoading } = useAllGroups();
+  const allTrips = trips as AdminTrip[];
+  const allProfiles = profiles as AdminResource[];
+  const allGroups = groups as AdminGroup[];
   const [selectedTripId, setSelectedTripId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(SELECTED_TRIP_STORAGE_KEY);
   });
 
   const sortedTrips = useMemo(() => {
-    return [...(trips as AdminTrip[])].sort((a, b) => {
+    return [...allTrips].sort((a, b) => {
       const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
       const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
       return bTime - aTime;
     });
-  }, [trips]);
+  }, [allTrips]);
 
   useEffect(() => {
     if (sortedTrips.length === 0) return;
@@ -109,23 +176,27 @@ export default function AdminDashboard() {
   }, [selectedTripId]);
 
   const selectedTrip = sortedTrips.find((trip) => trip.id === selectedTripId) || null;
-  const { data: tripDays = [] } = useTripResource<any>(selectedTripId, "days");
-  const { data: tripMembers = [] } = useTripResource<any>(selectedTripId, "members");
-  const { data: attractions = [] } = useTripResource<any>(selectedTripId, "attractions");
-  const { data: devotionals = [] } = useTripResource<any>(selectedTripId, "devotional-courses");
-  const { data: invitations = [] } = useTripResource<any>(selectedTripId, "invitations");
-  const { data: notes = [] } = useTripResource<any>(selectedTripId, "notes");
+  const { data: tripDays = [] } = useTripResource<AdminResource>(selectedTripId, "days");
+  const { data: tripMembers = [] } = useTripResource<AdminMember>(selectedTripId, "members");
+  const { data: attractions = [] } = useTripResource<AdminAttraction>(selectedTripId, "attractions");
+  const { data: devotionals = [] } = useTripResource<AdminResource>(selectedTripId, "devotional-courses");
+  const { data: invitations = [] } = useTripResource<AdminInvitation>(selectedTripId, "invitations");
+  const { data: notes = [] } = useTripResource<AdminResource>(selectedTripId, "notes");
   const { data: helpContent } = useQuery<HelpContentResponse>({
     queryKey: ["/api/app-settings/help-content"],
   });
+  const { data: systemStatus } = useQuery<SystemStatusResponse>({
+    queryKey: ["/api/admin/system-status"],
+    staleTime: 60_000,
+  });
 
-  const tripGroups = (groups as any[]).filter((group) => group.tripId === selectedTripId);
+  const tripGroups = allGroups.filter((group) => group.tripId === selectedTripId);
   const activeInvitations = invitations.filter((invitation) => invitation.isActive !== false);
   const hasTripDates = Boolean(selectedTrip?.startDate && selectedTrip?.endDate);
   const expectedTripDays = getInclusiveDays(selectedTrip?.startDate, selectedTrip?.endDate);
-  const membersMissingEmergency = tripMembers.filter((member: any) => !member.emergencyContactName || !member.emergencyContactPhone).length;
-  const ungroupedMembers = tripMembers.filter((member: any) => !member.groupId).length;
-  const attractionsMissingGps = attractions.filter((attraction: any) => !attraction.gps).length;
+  const membersMissingEmergency = tripMembers.filter((member) => !member.emergencyContactName || !member.emergencyContactPhone).length;
+  const ungroupedMembers = tripMembers.filter((member) => !member.groupId).length;
+  const attractionsMissingGps = attractions.filter((attraction) => !attraction.gps).length;
   const devotionalCoverage = expectedTripDays ? Math.min(100, Math.round((devotionals.length / expectedTripDays) * 100)) : 0;
   const riskItems = [
     {
@@ -289,9 +360,22 @@ export default function AdminDashboard() {
 
   const stats = [
     { label: "旅程", value: tripsLoading ? "..." : sortedTrips.length, icon: Map },
-    { label: "會員帳號", value: profilesLoading ? "..." : (profiles as any[]).length, icon: Users },
-    { label: "分組", value: groupsLoading ? "..." : (groups as any[]).length, icon: Layers },
+    { label: "會員帳號", value: profilesLoading ? "..." : allProfiles.length, icon: Users },
+    { label: "分組", value: groupsLoading ? "..." : allGroups.length, icon: Layers },
   ];
+  const integrationItems = systemStatus
+    ? [
+      { label: "登入", ok: systemStatus.integrations.googleOAuth || systemStatus.integrations.sessionSecret },
+      { label: "郵件", ok: systemStatus.integrations.email },
+      { label: "上傳", ok: systemStatus.integrations.uploads },
+      { label: "Session", ok: systemStatus.integrations.sessionSecret },
+    ]
+    : [];
+  const operationalRiskCount = systemStatus?.activeTrip
+    ? systemStatus.activeTrip.risks.membersMissingEmergency
+      + systemStatus.activeTrip.risks.membersWithoutGroup
+      + systemStatus.activeTrip.risks.attractionsMissingGps
+    : 0;
   const isInitialLoading = tripsLoading || profilesLoading || groupsLoading;
 
   return (
@@ -328,6 +412,53 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+
+        {systemStatus && (
+          <section className="rounded-lg border border-border bg-card p-5 shadow-card">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <h3 className="text-title font-semibold">系統交付狀態</h3>
+                </div>
+                <p className="mt-1 text-caption text-muted-foreground">
+                  {systemStatus.environment} · {systemStatus.counts.trips} 趟旅程 · {systemStatus.counts.profiles} 位旅客資料
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {integrationItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-center text-xs font-semibold",
+                      item.ok ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-900"
+                    )}
+                  >
+                    {item.ok ? "已設定" : "待設定"} · {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {systemStatus.activeTrip && (
+              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 md:grid-cols-3">
+                <div>
+                  <p className="text-caption text-muted-foreground">最新旅程</p>
+                  <p className="mt-1 text-body font-semibold">{systemStatus.activeTrip.title}</p>
+                </div>
+                <div>
+                  <p className="text-caption text-muted-foreground">後台準備度</p>
+                  <p className="mt-1 text-body font-semibold">{systemStatus.activeTrip.readiness}%</p>
+                </div>
+                <div>
+                  <p className="text-caption text-muted-foreground">出團資料風險</p>
+                  <p className={cn("mt-1 text-body font-semibold", operationalRiskCount ? "text-amber-700" : "text-green-700")}>
+                    {operationalRiskCount ? `${operationalRiskCount} 筆待補` : "目前完整"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {isInitialLoading ? (
           <section className="rounded-lg bg-card p-8 text-center shadow-card">
