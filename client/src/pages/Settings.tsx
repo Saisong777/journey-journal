@@ -320,7 +320,7 @@ export default function Settings() {
 
   return (
     <PageLayout title="更多">
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-lg space-y-5 px-4 pb-24 pt-4 animate-fade-in md:space-y-6 md:pb-8 md:pt-6">
         {isSetupMode && (
           <section
             className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3"
@@ -339,7 +339,7 @@ export default function Settings() {
         {/* Profile Card */}
         <section
           onClick={() => setIsProfileOpen(true)}
-          className="bg-card rounded-lg shadow-card p-5 flex items-center gap-4 cursor-pointer hover:shadow-elevated transition-all active:brightness-95"
+          className="flex min-h-[96px] cursor-pointer items-center gap-4 rounded-lg bg-card p-5 shadow-card transition-all hover:shadow-elevated active:brightness-95"
         >
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
             {profile.avatarUrl ? (
@@ -383,7 +383,7 @@ export default function Settings() {
                 key={item.label}
                 type="button"
                 onClick={() => setIsProfileOpen(true)}
-                className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50"
+                className="flex min-h-[64px] items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50"
               >
                 <div
                   className={cn(
@@ -458,7 +458,7 @@ export default function Settings() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "w-full p-4 flex items-center gap-4 text-left hover:bg-muted/50 transition-colors",
+                  "flex min-h-[72px] w-full items-center gap-4 p-4 text-left transition-colors hover:bg-muted/50",
                   index < moreActions.length - 1 && "border-b border-border"
                 )}
                 data-testid={`more-action-${item.label}`}
@@ -498,7 +498,7 @@ export default function Settings() {
                     key={item.label}
                     onClick={item.onClick}
                     className={cn(
-                      "w-full p-4 flex items-center gap-4 text-left",
+                      "flex min-h-[72px] w-full items-center gap-4 p-4 text-left",
                       "hover:bg-muted/50 transition-colors cursor-pointer",
                       index < section.items.length - 1 && "border-b border-border"
                     )}
@@ -539,7 +539,7 @@ export default function Settings() {
           <section>
             <Link
               to="/admin"
-              className="w-full bg-primary/10 rounded-lg shadow-card p-4 flex items-center justify-center gap-2 text-primary hover:bg-primary/20 transition-colors"
+              className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-lg bg-primary/10 p-4 text-primary shadow-card transition-colors hover:bg-primary/20"
             >
               <Settings2 className="w-5 h-5" />
               <span className="text-body font-medium">進入管理後台</span>
@@ -551,7 +551,7 @@ export default function Settings() {
         <section>
           <button 
             onClick={handleLogout}
-            className="w-full bg-card rounded-lg shadow-card p-4 flex items-center justify-center gap-2 text-destructive hover:bg-destructive/5 transition-colors"
+            className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-lg bg-card p-4 text-destructive shadow-card transition-colors hover:bg-destructive/5"
           >
             <LogOut className="w-5 h-5" />
             <span className="text-body font-medium">登出</span>

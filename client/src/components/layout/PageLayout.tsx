@@ -3,8 +3,9 @@ import { SidebarNav } from "@/components/ui/SidebarNav";
 import { Header } from "@/components/layout/Header";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useOfflineSyncStatus } from "@/lib/offlineSyncContext";
+import { cn } from "@/lib/utils";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -24,9 +25,10 @@ export function PageLayout({
   headerClassName,
 }: PageLayoutProps) {
   const { pendingCount } = useOfflineSyncStatus();
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div className="h-[100dvh] flex overflow-hidden bg-background">
+    <div className="flex h-[100svh] overflow-hidden bg-background md:h-[100dvh]">
       {/* 桌面版/平板版側邊欄 */}
       {showBottomNav && <SidebarNav />}
 
@@ -41,11 +43,15 @@ export function PageLayout({
         )}
 
         <motion.main
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`flex-1 overflow-y-auto overscroll-none scroll-smooth ${showBottomNav ? "pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0" : ""}`}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, scale: 0.99 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className={cn(
+            "flex-1 overflow-y-auto overscroll-contain scroll-smooth",
+            "[-webkit-overflow-scrolling:touch] scroll-pb-[calc(5rem+env(safe-area-inset-bottom,0px))]",
+            showBottomNav ? "pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0" : "pb-[env(safe-area-inset-bottom,0px)]"
+          )}
         >
           {children}
         </motion.main>

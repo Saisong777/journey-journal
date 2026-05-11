@@ -51,13 +51,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div className="min-h-[100svh] overflow-x-hidden bg-background md:min-h-[100dvh]">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
+        <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between px-4 py-1">
           <div className="flex items-center gap-3">
             <Link 
               to="/" 
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              className="flex min-h-[44px] items-center gap-1.5 rounded-full text-muted-foreground transition-colors hover:text-foreground active:bg-muted"
               data-testid="link-back-frontend"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -71,9 +71,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       <div
         ref={scrollRef}
-        className="md:hidden sticky top-14 z-40 bg-card/95 backdrop-blur-sm border-b border-border overflow-x-auto scrollbar-hide"
+        className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-40 overflow-x-auto border-b border-border bg-card/95 backdrop-blur-sm scrollbar-hide md:hidden"
       >
-        <div className="flex gap-1 px-3 py-2 min-w-max">
+        <div className="flex min-w-max gap-1 px-3 py-2">
           {navItems.map((item) => {
             const isActive = isNavActive(location.pathname, item.path);
             return (
@@ -82,7 +82,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 to={item.path}
                 ref={isActive ? activeRef : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0",
+                  "flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted"
@@ -122,7 +122,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
         </aside>
 
-        <main className="flex-1 min-w-0 p-4 md:p-6">
+        <main className="min-w-0 flex-1 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:p-6">
           {children}
         </main>
       </div>

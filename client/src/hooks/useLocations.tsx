@@ -40,7 +40,10 @@ export function useLocations() {
       }
       return response.json();
     },
-    refetchInterval: 60000, // M3: Reduced from 30s to 60s
+    staleTime: 15 * 1000,
+    refetchInterval: 60000, // Keep group location fresh without draining mobile battery.
+    refetchIntervalInBackground: false,
+    retry: 1,
   });
 }
 

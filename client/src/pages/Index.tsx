@@ -363,7 +363,7 @@ function HomeSafetyNudge({ profile }: { profile?: Profile }) {
             </div>
             <Link
               to="/settings?setup=1"
-              className="inline-flex flex-shrink-0 items-center justify-center rounded-sm bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
+              className="inline-flex min-h-[44px] flex-shrink-0 items-center justify-center rounded-sm bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700"
             >
               補齊資料
             </Link>
@@ -419,7 +419,7 @@ const Index = () => {
 
   return (
     <PageLayout showHeader={false}>
-      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-20 md:pb-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-5xl space-y-5 px-4 pb-24 pt-[calc(1rem+env(safe-area-inset-top,0px))] animate-fade-in md:space-y-6 md:px-6 md:pb-8 lg:px-8">
         {tripLoading ? (
           <section className="text-center space-y-3">
             <Skeleton className="h-5 w-32 mx-auto" />
@@ -431,7 +431,7 @@ const Index = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1 space-y-1.5">
                 <p className="text-caption text-muted-foreground">{getGreeting()}，{userName}</p>
-                <h1 className="truncate text-xl font-semibold leading-tight text-foreground sm:text-2xl" data-testid="text-trip-title">
+                <h1 className="line-clamp-2 text-xl font-semibold leading-tight text-foreground sm:text-2xl" data-testid="text-trip-title">
                   {trip.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-caption text-muted-foreground">

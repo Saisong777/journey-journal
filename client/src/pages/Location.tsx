@@ -117,13 +117,14 @@ export default function Location() {
     return diffMins < 10;
   }
 
-  const onlineCount = membersWithLocation.filter((m) => m.status === "online").length;
-  const offlineCount = membersWithLocation.filter((m) => m.status === "offline").length;
   const mySharedLocation = user?.id ? locationByUserId.get(user.id) : undefined;
   const hasSharedLocation = Boolean(mySharedLocation);
   const myLocationIsFresh = mySharedLocation ? isOnline(mySharedLocation.updatedAt) : false;
   const sharedCount = membersWithLocation.filter((m) => m.latitude && m.longitude).length;
   const membersWithSharedLocation = membersWithLocation.filter((m) => m.latitude != null && m.longitude != null);
+  const onlineCount = membersWithSharedLocation.filter((m) => m.status === "online").length;
+  const staleLocationCount = membersWithSharedLocation.filter((m) => m.status === "offline").length;
+  const notSharingCount = Math.max(membersWithLocation.length - sharedCount, 0);
   const recentlyUpdatedMembers = [...membersWithSharedLocation]
     .sort((a, b) => {
       const aUpdatedAt = locationByUserId.get(a.id)?.updatedAt;
@@ -248,7 +249,7 @@ export default function Location() {
 
   return (
     <PageLayout title="地圖">
-      <div className="px-4 md:px-8 py-6 pb-20 container max-w-5xl mx-auto space-y-8 animate-fade-in overflow-x-hidden">
+      <div className="container mx-auto max-w-5xl space-y-5 overflow-x-hidden px-4 pb-24 pt-4 animate-fade-in md:space-y-8 md:px-8 md:pb-8 md:pt-6">
         <section className="overflow-hidden rounded-lg border border-primary/10 bg-[linear-gradient(135deg,hsl(var(--primary)/0.12)_0%,hsl(var(--background))_52%,hsl(var(--secondary)/0.12)_100%)] p-5 shadow-card">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
@@ -268,7 +269,7 @@ export default function Location() {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1.5 text-caption font-medium text-foreground shadow-sm">
                   <Users className="h-3.5 w-3.5 text-primary" />
-                  {onlineCount}/{membersWithLocation.length || 0} 位在線
+                  {sharedCount} 位已分享
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1.5 text-caption font-medium text-foreground shadow-sm">
                   <MapPinned className="h-3.5 w-3.5 text-primary" />
@@ -299,10 +300,9 @@ export default function Location() {
                 </div>
               </div>
               <Button
-                size="sm"
                 onClick={handleShareLocation}
                 disabled={isLocating}
-                className="mt-4 w-full rounded-md gradient-warm border-none shadow-sm hover:translate-y-px hover:shadow-card transition-all"
+                className="mt-4 min-h-[48px] w-full rounded-md gradient-warm border-none shadow-sm transition-all hover:shadow-card"
                 data-testid="button-share-location"
               >
                 <Navigation className={cn("w-4 h-4 mr-1.5", isLocating && "animate-pulse")} />
@@ -310,11 +310,10 @@ export default function Location() {
               </Button>
               {hasSharedLocation && (
                 <Button
-                  size="sm"
                   variant="outline"
                   onClick={handleStopSharing}
                   disabled={clearMyLocation.isPending}
-                  className="mt-2 w-full rounded-md"
+                  className="mt-2 min-h-[48px] w-full rounded-md"
                   data-testid="button-stop-sharing-location"
                 >
                   <Trash2 className="mr-1.5 h-4 w-4" />
@@ -356,7 +355,7 @@ export default function Location() {
               type="button"
               onClick={item.action}
               className={cn(
-                "flex min-h-[92px] items-center gap-3 rounded-lg border p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-elevated",
+                "flex min-h-[92px] items-center gap-3 rounded-lg border p-4 text-left shadow-card transition-all hover:shadow-elevated",
                 item.tone === "primary"
                   ? "border-primary/20 bg-primary text-primary-foreground"
                   : "border-border bg-card hover:bg-muted/50"
@@ -405,7 +404,11 @@ export default function Location() {
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <div className="w-3.5 h-3.5 rounded-full bg-stone" />
-              <span>離線 {offlineCount} 人</span>
+              <span>位置過期 {staleLocationCount} 人</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              <span>尚未分享 {notSharingCount} 人</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock3 className="h-4 w-4" />
@@ -413,10 +416,16 @@ export default function Location() {
             </div>
           </div>
 
-          {offlineCount > 0 && (
+          {staleLocationCount > 0 && (
             <div className="mt-4 p-4 bg-terracotta/10 rounded-lg flex items-center gap-3 text-terracotta border border-terracotta/20">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <span className="text-body-lg font-medium">{offlineCount} 位團員暫時沒有新位置，需要集合時可改用通訊錄聯絡。</span>
+              <span className="text-body-lg font-medium">{staleLocationCount} 位團員的位置超過 10 分鐘未更新，需要集合時可改用通訊錄聯絡。</span>
+            </div>
+          )}
+
+          {sharedCount === 0 && membersWithLocation.length > 0 && (
+            <div className="mt-4 rounded-lg border border-primary/15 bg-primary/10 p-4 text-primary">
+              <p className="text-body font-medium">目前還沒有人分享位置。集合時，請先按「分享我的位置」。</p>
             </div>
           )}
         </section>
@@ -483,7 +492,7 @@ export default function Location() {
                   <button
                     type="button"
                     onClick={() => setViewMode("groups")}
-                    className="text-caption font-semibold text-primary hover:underline"
+                    className="inline-flex min-h-[44px] items-center text-caption font-semibold text-primary hover:underline"
                   >
                     看小組
                   </button>
@@ -519,7 +528,7 @@ export default function Location() {
                   return (
                     <div key={dayNo} className="rounded-xl border border-border overflow-hidden">
                       <button
-                        className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted transition-colors"
+                        className="flex min-h-[56px] w-full items-center justify-between bg-card px-4 py-3 transition-colors hover:bg-muted"
                         onClick={() => {
                           setExpandedDays((prev) => {
                             const next = new Set(prev);
@@ -551,7 +560,7 @@ export default function Location() {
                               )}
                             >
                               <button
-                                className="min-w-0 flex-1 text-left"
+                                className="min-h-[48px] min-w-0 flex-1 text-left"
                                 onClick={() => setFocusAttractionId(a.id)}
                               >
                                 <p className="text-body font-medium truncate">{a.nameZh}</p>
@@ -591,7 +600,7 @@ export default function Location() {
                 <>
                   <button
                     onClick={() => setSelectedGroupId(null)}
-                    className="flex items-center gap-2 text-primary font-medium text-body hover:underline"
+                    className="flex min-h-[44px] items-center gap-2 text-body font-medium text-primary hover:underline"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     返回分組列表

@@ -77,7 +77,7 @@ const Attractions = () => {
   if (isLoading) {
     return (
       <PageLayout>
-        <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
+        <div className="mx-auto max-w-lg space-y-6 px-4 pb-24 pt-4 md:pb-8 md:pt-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-12 w-full" />
           <div className="flex gap-2">
@@ -94,14 +94,14 @@ const Attractions = () => {
   if (attractions.length === 0) {
     return (
       <PageLayout>
-        <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+        <div className="mx-auto max-w-lg space-y-6 px-4 pb-24 pt-4 animate-fade-in md:pb-8 md:pt-6">
           <section className="space-y-2">
             <h1 className="text-display">景點導覽</h1>
             <p className="text-body text-muted-foreground">
               探索平安同行的歷史與故事
             </p>
           </section>
-          <div className="text-center py-12 bg-card rounded-lg">
+      <div className="text-center py-12 bg-card rounded-lg">
             <p className="text-body text-muted-foreground">目前沒有景點資料</p>
           </div>
         </div>
@@ -111,7 +111,7 @@ const Attractions = () => {
 
   return (
     <PageLayout>
-      <div className="px-4 py-6 pb-20 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-lg space-y-5 px-4 pb-24 pt-4 animate-fade-in md:space-y-6 md:pb-8 md:pt-6">
         <section className="space-y-2">
           <h1 className="text-display" data-testid="text-attractions-title">景點導覽</h1>
           <p className="text-body text-muted-foreground">
@@ -130,12 +130,12 @@ const Attractions = () => {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide scroll-touch">
           <Button
             variant={selectedDay === null ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedDay(null)}
-            className="rounded-full whitespace-nowrap"
+            className="min-h-[44px] rounded-full whitespace-nowrap"
             data-testid="button-filter-all"
           >
             全部
@@ -147,7 +147,7 @@ const Attractions = () => {
               size="sm"
               onClick={() => setSelectedDay(dayNo)}
               className={cn(
-                "rounded-full whitespace-nowrap",
+                "min-h-[44px] rounded-full whitespace-nowrap",
                 selectedDay === dayNo && "shadow-md"
               )}
               data-testid={`button-filter-day-${dayNo}`}
@@ -174,7 +174,7 @@ const Attractions = () => {
             <button
               key={a.id}
               onClick={() => handleAttractionClick(a)}
-              className="w-full bg-card rounded-lg shadow-card p-4 text-left hover:shadow-elevated transition-all active:brightness-95"
+              className="w-full rounded-lg bg-card p-4 text-left shadow-card transition-all hover:shadow-elevated active:brightness-95"
               data-testid={`card-attraction-${a.id}`}
             >
               <div className="flex items-start justify-between gap-3">

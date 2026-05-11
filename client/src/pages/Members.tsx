@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Search, Users, Phone, Loader2, ChevronDown } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { MemberCard, MemberData } from "@/components/members/MemberCard";
@@ -30,6 +30,7 @@ export default function Members() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [groupSectionOpen, setGroupSectionOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [hasInitializedGroups, setHasInitializedGroups] = useState(false);
 
   const { data: membersData, isLoading } = useMembers();
   const { data: groupsData } = useGroups();
@@ -102,6 +103,13 @@ export default function Members() {
     },
     {} as Record<string, MemberData[]>
   );
+  const groupNames = Object.keys(groupedMembers);
+
+  useEffect(() => {
+    if (hasInitializedGroups || groupNames.length <= 2) return;
+    setCollapsedGroups(new Set(groupNames));
+    setHasInitializedGroups(true);
+  }, [groupNames, hasInitializedGroups]);
 
   const toggleGroupCollapse = (groupName: string) => {
     setCollapsedGroups((prev) => {
@@ -135,7 +143,7 @@ export default function Members() {
 
   return (
     <PageLayout title="通訊錄">
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-lg space-y-5 px-4 pb-24 pt-4 animate-fade-in md:space-y-6 md:pb-8 md:pt-6">
         {/* Stats */}
         <section className="bg-card rounded-lg shadow-card p-4">
           <div className="flex items-center justify-around text-center">
@@ -156,11 +164,36 @@ export default function Members() {
           </div>
         </section>
 
+        {/* Quick Dial */}
+        {guide && guide.phone && (
+          <section className="rounded-lg bg-terracotta/10 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-terracotta">
+                <Phone className="h-5 w-5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-body font-semibold text-terracotta">
+                  緊急聯絡
+                </p>
+                <p className="truncate text-caption text-muted-foreground">
+                  領隊{guide.name}：{guide.phone}
+                </p>
+              </div>
+              <a
+                href={`tel:${guide.phone}`}
+                className="inline-flex min-h-[44px] flex-shrink-0 items-center rounded-lg bg-terracotta px-4 py-2 text-caption font-medium text-white"
+              >
+                撥打
+              </a>
+            </div>
+          </section>
+        )}
+
         {/* Group Management - Collapsible */}
         {groups.length > 0 && (
           <Collapsible open={groupSectionOpen} onOpenChange={setGroupSectionOpen}>
             <section className="bg-card rounded-lg shadow-card overflow-hidden">
-              <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
+              <CollapsibleTrigger className="flex min-h-[56px] w-full items-center justify-between p-4">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
                   <h3 className="text-body font-semibold">我的小組</h3>
@@ -219,7 +252,7 @@ export default function Members() {
                 key={item.key}
                 onClick={() => setFilter(item.key as FilterType)}
                 className={cn(
-                  "px-4 py-2 rounded-full text-caption transition-all touch-target",
+                  "rounded-full px-4 py-2 text-caption transition-all touch-target",
                   filter === item.key
                     ? "gradient-warm text-primary-foreground"
                     : "bg-card text-foreground hover:bg-muted"
@@ -237,7 +270,7 @@ export default function Members() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : Object.keys(groupedMembers).length > 0 ? (
+          ) : groupNames.length > 0 ? (
             Object.entries(groupedMembers).map(([group, groupMembers]) => (
               <Collapsible
                 key={group}
@@ -245,7 +278,7 @@ export default function Members() {
                 onOpenChange={() => toggleGroupCollapse(group)}
               >
                 <div className="space-y-3">
-                  <CollapsibleTrigger className="w-full flex items-center justify-between py-1">
+                  <CollapsibleTrigger className="flex min-h-[48px] w-full items-center justify-between py-1">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-primary" />
                       <h3 className="text-body font-semibold">{group}</h3>
@@ -283,30 +316,6 @@ export default function Members() {
           )}
         </section>
 
-        {/* Quick Dial */}
-        {guide && guide.phone && (
-          <section className="bg-terracotta/10 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-terracotta flex items-center justify-center">
-                <Phone className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-body font-semibold text-terracotta">
-                  緊急聯絡
-                </p>
-                <p className="text-caption text-muted-foreground">
-                  領隊{guide.name}：{guide.phone}
-                </p>
-              </div>
-              <a
-                href={`tel:${guide.phone}`}
-                className="px-4 py-2 bg-terracotta text-white rounded-lg text-caption font-medium"
-              >
-                撥打
-              </a>
-            </div>
-          </section>
-        )}
       </div>
 
       <MemberDetailSheet

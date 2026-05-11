@@ -17,20 +17,20 @@ export function Header({
 
   return (
     <header className={cn(
-      "bg-card border-b border-border flex-shrink-0 transform-gpu",
+      "flex-shrink-0 border-b border-border bg-card/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur transform-gpu",
       className
     )}>
-      <div className="flex items-center px-4 py-3 max-w-lg mx-auto relative">
+      <div className="relative mx-auto flex min-h-14 max-w-lg items-center px-4 py-2.5">
         {showBack && (
           <button
             onClick={() => navigate(-1)}
-            className="absolute left-4 p-1 -ml-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="absolute left-4 -ml-1 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-1 active:bg-muted"
             aria-label="返回"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
         )}
-        <h1 className="text-title text-foreground font-semibold flex-1 text-center">{title}</h1>
+        <h1 className="flex-1 truncate px-12 text-center text-title font-semibold text-foreground">{title}</h1>
       </div>
     </header>
   );

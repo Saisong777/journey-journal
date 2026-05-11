@@ -481,20 +481,20 @@ export default function DailyJourney() {
     });
   };
 
-  const tabs: { key: TabType; label: string; description: string; icon: typeof Sun; completed: boolean }[] = [
-    { key: "morning", label: "晨光靈修", description: "讀經、默想、禱告", icon: Sun, completed: morningCompleted },
-    { key: "adventure", label: "旅途記錄", description: "照片、感動、見聞", icon: Compass, completed: adventureCompleted },
-    { key: "evening", label: "夜間感恩", description: "回顧、感謝、明日禱告", icon: Moon, completed: eveningCompleted },
+  const tabs: { key: TabType; label: string; shortLabel: string; description: string; icon: typeof Sun; completed: boolean }[] = [
+    { key: "morning", label: "晨光靈修", shortLabel: "早晨", description: "讀經、默想、禱告", icon: Sun, completed: morningCompleted },
+    { key: "adventure", label: "旅途記錄", shortLabel: "記錄", description: "照片、感動、見聞", icon: Compass, completed: adventureCompleted },
+    { key: "evening", label: "夜間感恩", shortLabel: "晚禱", description: "回顧、感謝、明日禱告", icon: Moon, completed: eveningCompleted },
   ];
   const completedCount = tabs.filter((tab) => tab.completed).length;
 
   return (
     <PageLayout title="今日記錄">
-      <div className="relative px-4 md:px-8 py-6 pb-20 container max-w-5xl mx-auto space-y-8 animate-fade-in">
+      <div className="container relative mx-auto max-w-5xl space-y-6 px-4 pb-24 pt-4 animate-fade-in md:space-y-8 md:px-8 md:pb-8 md:pt-6">
         {/* Date Selector */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-display">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-title sm:text-display">
               {format(selectedDate, "yyyy年M月", { locale: zhTW })}
             </h2>
             <div className="flex items-center gap-2">
@@ -507,7 +507,7 @@ export default function DailyJourney() {
               </button>
               <button
                 onClick={() => setSelectedDate(new Date())}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95"
+                className="min-h-[44px] rounded-xl bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/20 active:scale-95"
                 data-testid="button-today"
               >
                 今天
@@ -522,17 +522,17 @@ export default function DailyJourney() {
             </div>
           </div>
 
-          <div ref={dateScrollRef} className="flex flex-nowrap gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
+          <div ref={dateScrollRef} className="-mx-4 flex flex-nowrap gap-2 overflow-x-auto px-4 pb-3 snap-x scrollbar-hide scroll-touch sm:gap-3">
             {days.map((day, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedDate(day.fullDate)}
                 data-testid={`button-day-${index}`}
                 className={cn(
-                  "flex-shrink-0 w-20 py-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all touch-target snap-start",
+                  "flex-shrink-0 w-16 rounded-xl py-3 flex flex-col items-center gap-1 transition-all touch-target snap-start sm:w-20 sm:py-4 sm:gap-1.5",
                   selectedDayIndex === index
-                    ? "gradient-warm text-primary-foreground shadow-elevated transform scale-105"
-                    : "bg-card/80 backdrop-blur-md text-foreground hover:bg-muted border border-border shadow-sm hover:shadow-card hover:-translate-y-1"
+                    ? "gradient-warm text-primary-foreground shadow-card sm:scale-105"
+                    : "bg-card/80 backdrop-blur-md text-foreground hover:bg-muted border border-border shadow-sm hover:shadow-card"
                 )}
               >
                 <span className={cn("text-caption font-medium", selectedDayIndex === index ? "text-primary-foreground/90" : "text-muted-foreground")}>{day.day}</span>
@@ -560,7 +560,7 @@ export default function DailyJourney() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="mt-4 hidden grid-cols-1 gap-2 sm:grid sm:grid-cols-3">
             {tabs.map((tab, index) => (
               <button
                 key={`progress-${tab.key}`}
@@ -588,25 +588,26 @@ export default function DailyJourney() {
         </section>
 
         {/* Step Tabs */}
-        <section className="flex gap-3 flex-shrink-0">
+        <section className="grid flex-shrink-0 grid-cols-3 gap-2 sm:flex sm:gap-3">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               data-testid={`tab-${tab.key}`}
               className={cn(
-                "flex-1 py-4 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-2 transition-all touch-target relative",
+                "relative flex min-h-[68px] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 transition-all touch-target sm:min-h-[56px] sm:flex-row sm:gap-2 sm:py-4",
                 activeTab === tab.key
                   ? tab.key === "morning"
                     ? "bg-amber-100 text-amber-800 shadow-elevated dark:bg-amber-900/40 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
                     : tab.key === "adventure"
                       ? "bg-emerald-100 text-emerald-800 shadow-elevated dark:bg-emerald-900/40 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800"
                       : "bg-indigo-100 text-indigo-800 shadow-elevated dark:bg-indigo-900/40 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800"
-                  : "bg-card/80 backdrop-blur-md text-muted-foreground hover:bg-muted border border-white/10 hover:shadow-card hover:-translate-y-1"
+                  : "bg-card/80 backdrop-blur-md text-muted-foreground hover:bg-muted border border-white/10 hover:shadow-card"
               )}
             >
               <tab.icon className="w-5 h-5 sm:w-4 sm:h-4" />
-              <span className="text-body font-semibold">{tab.label}</span>
+              <span className="text-sm font-semibold sm:hidden">{tab.shortLabel}</span>
+              <span className="hidden text-body font-semibold sm:inline">{tab.label}</span>
               {tab.completed && (
                 <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 absolute top-2 right-2 text-green-600 bg-green-100 rounded-full p-0.5" />
               )}
@@ -1079,10 +1080,10 @@ export default function DailyJourney() {
               title="新增旅途記錄"
               data-testid="button-add-journal"
               className={cn(
-                "fixed right-4 bottom-24 w-16 h-16 rounded-full z-40",
+                "fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] z-40 h-14 w-14 rounded-full md:bottom-8 md:h-16 md:w-16",
                 "bg-emerald-500 text-white shadow-elevated",
                 "flex items-center justify-center",
-                "hover:scale-105 active:scale-95 transition-transform",
+                "active:scale-95 transition-transform md:hover:scale-105",
                 "focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2",
                 "disabled:opacity-50"
               )}

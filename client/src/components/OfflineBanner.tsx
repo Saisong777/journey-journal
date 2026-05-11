@@ -14,23 +14,25 @@ export function OfflineBanner({ pendingCount = 0 }: OfflineBannerProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-2 px-4 py-2 text-caption font-medium transition-colors duration-300",
+        "sticky top-0 z-[60] flex min-h-10 items-center justify-center gap-2 px-3 py-2 text-center text-caption font-medium transition-colors duration-300",
         isOnline
           ? "bg-green-100 text-green-800"
           : "bg-amber-100 text-amber-800"
       )}
+      role="status"
+      aria-live="polite"
       data-testid="offline-banner"
     >
       {isOnline ? (
         <>
           <Wifi className="w-4 h-4" />
-          <span>已恢復連線</span>
+          <span>連線已恢復，資料會自動更新</span>
         </>
       ) : (
         <>
           <WifiOff className="w-4 h-4" />
-          <span>
-            目前無網路連線，顯示的是先前載入的資料
+          <span className="line-clamp-2">
+            離線模式：已載入資料仍可查看
             {pendingCount > 0 && `（${pendingCount} 筆資料待同步）`}
           </span>
         </>
